@@ -1,0 +1,23 @@
+seed: 7113064149
+batch_size: 128
+epochs: 1500
+dataset_file: SHHA
+data_root: 'C:\Users\qwert\PycharmProjects\pythonProject\dataset\ShanghaiTech\part_A\train_data'
+val_root: 'C:\Users\qwert\PycharmProjects\pythonProject\dataset\ShanghaiTech\part_A\train_data\images'
+test_root: 'C:\Users\qwert\PycharmProjects\pythonProject\dataset\ShanghaiTech\part_A\test_data\'
+mode: 'points'                 # 'density' | 'points' | 'class'
+crop_size:  [256, 256]
+crop_type: 'center'
+gray: False
+device: cuda
+out_dir: 'C:\Users\qwert\PycharmProjects\pythonProject\pointdiff_with_logging\output'
+#---------------------------MODEL-----------------------------------------------------
+in_ch: 3  # 1=灰階, 3=RGB
+fpn_c: 128
+cond_c: 64
+t_dim: 256
+with_score: True
+lr: 1e-4
+lr_backbone: 1e-5
+diffusion_T: 1000
+signal_scale: 1.0

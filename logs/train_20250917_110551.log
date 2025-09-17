@@ -1,0 +1,331 @@
+2025-09-17 11:05:51,343 [INFO] device=cuda
+2025-09-17 11:07:08,177 [INFO] images.shape: torch.Size([128, 3, 256, 256])
+2025-09-17 11:07:08,178 [INFO] points.shape: torch.Size([128, 900, 2])
+2025-09-17 11:07:08,181 [INFO] mask.shape: tensor([[ True,  True,  True,  ..., False, False, False],
+        [ True,  True,  True,  ..., False, False, False],
+        [False, False, False,  ..., False, False, False],
+        ...,
+        [ True,  True,  True,  ..., False, False, False],
+        [ True,  True,  True,  ..., False, False, False],
+        [ True,  True,  True,  ..., False, False, False]])
+2025-09-17 11:07:08,181 [INFO] [{'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_50.jpg', 'orig_size': [985, 985], 'tile_top': 256, 'tile_left': 729, 'tile_size': [256, 256], 'img_index': 246, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_208.jpg', 'orig_size': [683, 1024], 'tile_top': 128, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 121, 'tile_index_in_img': 9}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_122.jpg', 'orig_size': [787, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 26, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_22.jpg', 'orig_size': [630, 961], 'tile_top': 256, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 134, 'tile_index_in_img': 18}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_115.jpg', 'orig_size': [611, 1021], 'tile_top': 128, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 18, 'tile_index_in_img': 12}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_258.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 176, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_32.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 226, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_299.jpg', 'orig_size': [681, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 221, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_191.jpg', 'orig_size': [682, 1024], 'tile_top': 256, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 102, 'tile_index_in_img': 15}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_128.jpg', 'orig_size': [683, 1024], 'tile_top': 427, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 32, 'tile_index_in_img': 30}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_202.jpg', 'orig_size': [530, 800], 'tile_top': 128, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 115, 'tile_index_in_img': 8}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_274.jpg', 'orig_size': [681, 1024], 'tile_top': 425, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 194, 'tile_index_in_img': 32}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_290.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 212, 'tile_index_in_img': 16}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_83.jpg', 'orig_size': [683, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 282, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_285.jpg', 'orig_size': [694, 1024], 'tile_top': 438, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 206, 'tile_index_in_img': 31}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_133.jpg', 'orig_size': [683, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 38, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_226.jpg', 'orig_size': [615, 922], 'tile_top': 128, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 141, 'tile_index_in_img': 9}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_202.jpg', 'orig_size': [530, 800], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 115, 'tile_index_in_img': 9}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_77.jpg', 'orig_size': [684, 1024], 'tile_top': 428, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 275, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_186.jpg', 'orig_size': [653, 460], 'tile_top': 128, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 96, 'tile_index_in_img': 4}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_11.jpg', 'orig_size': [686, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 12, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_160.jpg', 'orig_size': [540, 1024], 'tile_top': 0, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 68, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_277.jpg', 'orig_size': [692, 1024], 'tile_top': 128, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 197, 'tile_index_in_img': 9}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_106.jpg', 'orig_size': [675, 1024], 'tile_top': 256, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 8, 'tile_index_in_img': 15}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_93.jpg', 'orig_size': [351, 620], 'tile_top': 95, 'tile_left': 364, 'tile_size': [256, 256], 'img_index': 293, 'tile_index_in_img': 7}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_78.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 276, 'tile_index_in_img': 28}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_47.jpg', 'orig_size': [662, 962], 'tile_top': 406, 'tile_left': 706, 'tile_size': [256, 256], 'img_index': 242, 'tile_index_in_img': 34}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_75.jpg', 'orig_size': [681, 1024], 'tile_top': 0, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 273, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_61.jpg', 'orig_size': [683, 1024], 'tile_top': 256, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 258, 'tile_index_in_img': 18}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_212.jpg', 'orig_size': [688, 1024], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 126, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_109.jpg', 'orig_size': [681, 1024], 'tile_top': 384, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 11, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_8.jpg', 'orig_size': [465, 700], 'tile_top': 0, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 278, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_144.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 50, 'tile_index_in_img': 27}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_144.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 50, 'tile_index_in_img': 16}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_126.jpg', 'orig_size': [576, 1024], 'tile_top': 128, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 30, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_269.jpg', 'orig_size': [400, 600], 'tile_top': 128, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 188, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_31.jpg', 'orig_size': [1024, 768], 'tile_top': 512, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 225, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_98.jpg', 'orig_size': [512, 1024], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 298, 'tile_index_in_img': 7}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_63.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 260, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_118.jpg', 'orig_size': [651, 1024], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 21, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_256.jpg', 'orig_size': [576, 1024], 'tile_top': 256, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 174, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_155.jpg', 'orig_size': [409, 620], 'tile_top': 153, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 62, 'tile_index_in_img': 8}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_31.jpg', 'orig_size': [1024, 768], 'tile_top': 640, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 225, 'tile_index_in_img': 27}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_37.jpg', 'orig_size': [683, 1024], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 231, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_58.jpg', 'orig_size': [681, 1024], 'tile_top': 425, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 254, 'tile_index_in_img': 34}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_147.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 53, 'tile_index_in_img': 19}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_210.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 124, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_202.jpg', 'orig_size': [530, 800], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 115, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_241.jpg', 'orig_size': [728, 1024], 'tile_top': 384, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 158, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_47.jpg', 'orig_size': [662, 962], 'tile_top': 406, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 242, 'tile_index_in_img': 33}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_20.jpg', 'orig_size': [688, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 112, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_282.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 203, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_98.jpg', 'orig_size': [512, 1024], 'tile_top': 256, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 298, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_41.jpg', 'orig_size': [683, 1024], 'tile_top': 427, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 236, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_53.jpg', 'orig_size': [662, 962], 'tile_top': 128, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 249, 'tile_index_in_img': 12}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_222.jpg', 'orig_size': [522, 1024], 'tile_top': 0, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 137, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_43.jpg', 'orig_size': [683, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 238, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_56.jpg', 'orig_size': [663, 962], 'tile_top': 128, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 252, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_256.jpg', 'orig_size': [576, 1024], 'tile_top': 256, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 174, 'tile_index_in_img': 19}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_258.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 176, 'tile_index_in_img': 27}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_67.jpg', 'orig_size': [683, 1024], 'tile_top': 256, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 264, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_7.jpg', 'orig_size': [590, 1024], 'tile_top': 334, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 267, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_112.jpg', 'orig_size': [327, 1024], 'tile_top': 71, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 15, 'tile_index_in_img': 13}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_36.jpg', 'orig_size': [388, 690], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 230, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_173.jpg', 'orig_size': [512, 1024], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 82, 'tile_index_in_img': 7}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_203.jpg', 'orig_size': [683, 1024], 'tile_top': 256, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 116, 'tile_index_in_img': 15}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_80.jpg', 'orig_size': [426, 634], 'tile_top': 170, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 279, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_235.jpg', 'orig_size': [683, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 151, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_117.jpg', 'orig_size': [579, 840], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 20, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_267.jpg', 'orig_size': [521, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 186, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_235.jpg', 'orig_size': [683, 1024], 'tile_top': 128, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 151, 'tile_index_in_img': 13}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_66.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 263, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_89.jpg', 'orig_size': [410, 563], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 288, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_59.jpg', 'orig_size': [686, 1024], 'tile_top': 0, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 255, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_292.jpg', 'orig_size': [665, 1024], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 214, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_228.jpg', 'orig_size': [340, 562], 'tile_top': 0, 'tile_left': 306, 'tile_size': [256, 256], 'img_index': 143, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_252.jpg', 'orig_size': [400, 600], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 170, 'tile_index_in_img': 4}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_275.jpg', 'orig_size': [270, 360], 'tile_top': 14, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 195, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_33.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 227, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_186.jpg', 'orig_size': [653, 460], 'tile_top': 397, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 96, 'tile_index_in_img': 13}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_57.jpg', 'orig_size': [1024, 1024], 'tile_top': 512, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 253, 'tile_index_in_img': 33}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_41.jpg', 'orig_size': [683, 1024], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 236, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_276.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 196, 'tile_index_in_img': 34}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_116.jpg', 'orig_size': [640, 640], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 19, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_255.jpg', 'orig_size': [701, 749], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 173, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_181.jpg', 'orig_size': [639, 1024], 'tile_top': 256, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 91, 'tile_index_in_img': 15}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_166.jpg', 'orig_size': [683, 1024], 'tile_top': 128, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 74, 'tile_index_in_img': 8}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_253.jpg', 'orig_size': [686, 1024], 'tile_top': 430, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 171, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_226.jpg', 'orig_size': [615, 922], 'tile_top': 128, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 141, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_3.jpg', 'orig_size': [664, 1000], 'tile_top': 384, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 222, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_56.jpg', 'orig_size': [663, 962], 'tile_top': 407, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 252, 'tile_index_in_img': 28}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_210.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 124, 'tile_index_in_img': 8}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_1.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 0, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_245.jpg', 'orig_size': [825, 1024], 'tile_top': 384, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 162, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_294.jpg', 'orig_size': [683, 1024], 'tile_top': 427, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 216, 'tile_index_in_img': 28}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_163.jpg', 'orig_size': [615, 970], 'tile_top': 359, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 71, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_281.jpg', 'orig_size': [680, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 202, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_92.jpg', 'orig_size': [1024, 832], 'tile_top': 512, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 292, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_245.jpg', 'orig_size': [825, 1024], 'tile_top': 384, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 162, 'tile_index_in_img': 27}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_269.jpg', 'orig_size': [400, 600], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 188, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_94.jpg', 'orig_size': [370, 1024], 'tile_top': 114, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 294, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_248.jpg', 'orig_size': [681, 1024], 'tile_top': 425, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 165, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_118.jpg', 'orig_size': [651, 1024], 'tile_top': 384, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 21, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_233.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 149, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_201.jpg', 'orig_size': [530, 800], 'tile_top': 274, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 114, 'tile_index_in_img': 19}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_147.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 53, 'tile_index_in_img': 16}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_33.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 227, 'tile_index_in_img': 31}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_197.jpg', 'orig_size': [600, 800], 'tile_top': 256, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 108, 'tile_index_in_img': 13}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_23.jpg', 'orig_size': [800, 600], 'tile_top': 544, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 145, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_124.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 28, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_124.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 28, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_13.jpg', 'orig_size': [747, 1024], 'tile_top': 256, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 34, 'tile_index_in_img': 15}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_90.jpg', 'orig_size': [576, 1024], 'tile_top': 128, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 290, 'tile_index_in_img': 13}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_294.jpg', 'orig_size': [683, 1024], 'tile_top': 427, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 216, 'tile_index_in_img': 34}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_300.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 224, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_297.jpg', 'orig_size': [685, 1024], 'tile_top': 429, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 219, 'tile_index_in_img': 32}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_219.jpg', 'orig_size': [282, 432], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 133, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_257.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 175, 'tile_index_in_img': 27}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_284.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 205, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_179.jpg', 'orig_size': [616, 1024], 'tile_top': 360, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 88, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_167.jpg', 'orig_size': [830, 1024], 'tile_top': 384, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 75, 'tile_index_in_img': 26}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_172.jpg', 'orig_size': [685, 1024], 'tile_top': 128, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 81, 'tile_index_in_img': 9}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_257.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 175, 'tile_index_in_img': 8}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_133.jpg', 'orig_size': [683, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 38, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_61.jpg', 'orig_size': [683, 1024], 'tile_top': 128, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 258, 'tile_index_in_img': 8}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_153.jpg', 'orig_size': [400, 600], 'tile_top': 128, 'tile_left': 344, 'tile_size': [256, 256], 'img_index': 60, 'tile_index_in_img': 7}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_115.jpg', 'orig_size': [611, 1021], 'tile_top': 256, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 18, 'tile_index_in_img': 16}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_201.jpg', 'orig_size': [530, 800], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 114, 'tile_index_in_img': 15}]
+2025-09-17 11:07:49,907 [INFO] [train] step=00010 data=0.341s gpu=1.313s loss=0.3391
+2025-09-17 11:08:02,446 [INFO] [train] step=00020 data=0.176s gpu=1.277s loss=0.3401
+2025-09-17 11:08:13,663 [INFO] [train] step=00030 data=0.119s gpu=1.224s loss=0.3386
+2025-09-17 11:08:24,477 [INFO] [train] step=00040 data=0.091s gpu=1.187s loss=0.3373
+2025-09-17 11:08:34,561 [INFO] [train] step=00050 data=0.073s gpu=1.150s loss=0.3379
+2025-09-17 11:08:57,805 [INFO] [val] loss=0.1202 Lcnt=0.0000 Lex=0.1042 Leps=0.0796 predCnt=347.46 gtCnt=63.48
+2025-09-17 11:08:57,806 [INFO] [val-top5]  pred=390.8 gt=7.0 err=383.8 |  pred=381.6 gt=3.0 err=378.6 |  pred=386.2 gt=9.0 err=377.2 |  pred=381.6 gt=6.0 err=375.6 |  pred=384.5 gt=9.0 err=375.5
+2025-09-17 11:08:57,806 [INFO] [Epoch 0001] train=0.3379  val=0.1202
+2025-09-17 11:09:14,934 [INFO] [train] step=00010 data=0.011s gpu=1.159s loss=0.3407
+2025-09-17 11:09:26,498 [INFO] [train] step=00020 data=0.011s gpu=1.152s loss=0.3400
+2025-09-17 11:09:37,665 [INFO] [train] step=00030 data=0.010s gpu=1.137s loss=0.3394
+2025-09-17 11:09:48,538 [INFO] [train] step=00040 data=0.008s gpu=1.124s loss=0.3386
+2025-09-17 11:09:58,708 [INFO] [train] step=00050 data=0.008s gpu=1.102s loss=0.3385
+2025-09-17 11:10:20,900 [INFO] [val] loss=0.1183 Lcnt=0.0000 Lex=0.1023 Leps=0.0798 predCnt=350.96 gtCnt=63.00
+2025-09-17 11:10:20,901 [INFO] [val-top5]  pred=391.2 gt=6.0 err=385.2 |  pred=381.8 gt=1.0 err=380.8 |  pred=385.3 gt=7.0 err=378.3 |  pred=385.3 gt=8.0 err=377.3 |  pred=382.1 gt=5.0 err=377.1
+2025-09-17 11:10:20,901 [INFO] [Epoch 0002] train=0.3385  val=0.1183
+2025-09-17 11:10:38,952 [INFO] [train] step=00010 data=0.011s gpu=1.166s loss=0.3371
+2025-09-17 11:10:50,530 [INFO] [train] step=00020 data=0.011s gpu=1.156s loss=0.3358
+2025-09-17 11:11:01,709 [INFO] [train] step=00030 data=0.010s gpu=1.141s loss=0.3365
+2025-09-17 11:11:12,514 [INFO] [train] step=00040 data=0.008s gpu=1.125s loss=0.3371
+2025-09-17 11:11:22,630 [INFO] [train] step=00050 data=0.007s gpu=1.101s loss=0.3373
+2025-09-17 11:11:45,685 [INFO] [val] loss=0.1201 Lcnt=0.0000 Lex=0.1039 Leps=0.0812 predCnt=353.01 gtCnt=62.94
+2025-09-17 11:11:45,686 [INFO] [val-top5]  pred=388.0 gt=1.0 err=387.0 |  pred=386.8 gt=6.0 err=380.8 |  pred=385.3 gt=5.0 err=380.3 |  pred=383.5 gt=4.0 err=379.5 |  pred=383.2 gt=4.0 err=379.2
+2025-09-17 11:11:45,687 [INFO] [Epoch 0003] train=0.3373  val=0.1201
+2025-09-17 11:12:02,944 [INFO] [train] step=00010 data=0.011s gpu=1.178s loss=0.3397
+2025-09-17 11:12:14,533 [INFO] [train] step=00020 data=0.011s gpu=1.162s loss=0.3365
+2025-09-17 11:12:25,719 [INFO] [train] step=00030 data=0.010s gpu=1.145s loss=0.3368
+2025-09-17 11:12:36,525 [INFO] [train] step=00040 data=0.008s gpu=1.128s loss=0.3375
+2025-09-17 11:12:46,648 [INFO] [train] step=00050 data=0.008s gpu=1.104s loss=0.3371
+2025-09-17 11:13:09,198 [INFO] [val] loss=0.1198 Lcnt=0.0000 Lex=0.1037 Leps=0.0804 predCnt=352.16 gtCnt=62.32
+2025-09-17 11:13:09,199 [INFO] [val-top5]  pred=400.1 gt=4.0 err=396.1 |  pred=391.0 gt=6.0 err=385.0 |  pred=391.4 gt=7.0 err=384.4 |  pred=383.5 gt=1.0 err=382.5 |  pred=384.2 gt=3.0 err=381.2
+2025-09-17 11:13:09,200 [INFO] [Epoch 0004] train=0.3371  val=0.1198
+2025-09-17 11:13:27,503 [INFO] [train] step=00010 data=0.010s gpu=1.160s loss=0.3354
+2025-09-17 11:13:39,301 [INFO] [train] step=00020 data=0.010s gpu=1.165s loss=0.3368
+2025-09-17 11:13:50,386 [INFO] [train] step=00030 data=0.009s gpu=1.143s loss=0.3380
+2025-09-17 11:14:01,218 [INFO] [train] step=00040 data=0.008s gpu=1.127s loss=0.3379
+2025-09-17 11:14:11,397 [INFO] [train] step=00050 data=0.007s gpu=1.104s loss=0.3386
+2025-09-17 11:14:33,971 [INFO] [val] loss=0.1200 Lcnt=0.0000 Lex=0.1037 Leps=0.0815 predCnt=352.57 gtCnt=63.68
+2025-09-17 11:14:33,971 [INFO] [val-top5]  pred=390.5 gt=1.0 err=389.5 |  pred=385.2 gt=6.0 err=379.2 |  pred=384.8 gt=6.0 err=378.8 |  pred=384.7 gt=6.0 err=378.7 |  pred=387.3 gt=9.0 err=378.3
+2025-09-17 11:14:33,972 [INFO] [Epoch 0005] train=0.3386  val=0.1200
+2025-09-17 11:14:51,779 [INFO] [train] step=00010 data=0.011s gpu=1.166s loss=0.3334
+2025-09-17 11:15:03,397 [INFO] [train] step=00020 data=0.010s gpu=1.158s loss=0.3361
+2025-09-17 11:15:14,606 [INFO] [train] step=00030 data=0.009s gpu=1.143s loss=0.3371
+2025-09-17 11:15:25,453 [INFO] [train] step=00040 data=0.008s gpu=1.128s loss=0.3373
+2025-09-17 11:15:35,584 [INFO] [train] step=00050 data=0.007s gpu=1.104s loss=0.3368
+2025-09-17 11:15:58,512 [INFO] [val] loss=0.1183 Lcnt=0.0000 Lex=0.1026 Leps=0.0782 predCnt=352.53 gtCnt=63.04
+2025-09-17 11:15:58,513 [INFO] [val-top5]  pred=391.8 gt=3.0 err=388.8 |  pred=397.4 gt=9.0 err=388.4 |  pred=389.6 gt=4.0 err=385.6 |  pred=383.4 gt=2.0 err=381.4 |  pred=383.3 gt=2.0 err=381.3
+2025-09-17 11:15:58,513 [INFO] [Epoch 0006] train=0.3368  val=0.1183
+2025-09-17 11:16:17,015 [INFO] [train] step=00010 data=0.011s gpu=1.175s loss=0.3396
+2025-09-17 11:16:28,615 [INFO] [train] step=00020 data=0.011s gpu=1.162s loss=0.3392
+2025-09-17 11:16:39,712 [INFO] [train] step=00030 data=0.009s gpu=1.142s loss=0.3394
+2025-09-17 11:16:50,561 [INFO] [train] step=00040 data=0.008s gpu=1.127s loss=0.3396
+2025-09-17 11:17:00,685 [INFO] [train] step=00050 data=0.007s gpu=1.103s loss=0.3386
+2025-09-17 11:17:23,004 [INFO] [val] loss=0.1192 Lcnt=0.0000 Lex=0.1028 Leps=0.0824 predCnt=352.15 gtCnt=64.15
+2025-09-17 11:17:23,004 [INFO] [val-top5]  pred=398.0 gt=7.0 err=391.0 |  pred=395.5 gt=9.0 err=386.5 |  pred=391.7 gt=6.0 err=385.7 |  pred=391.6 gt=10.0 err=381.6 |  pred=387.5 gt=6.0 err=381.5
+2025-09-17 11:17:23,005 [INFO] [Epoch 0007] train=0.3386  val=0.1192
+2025-09-17 11:17:40,962 [INFO] [train] step=00010 data=0.012s gpu=1.204s loss=0.3392
+2025-09-17 11:17:52,677 [INFO] [train] step=00020 data=0.011s gpu=1.182s loss=0.3388
+2025-09-17 11:18:03,922 [INFO] [train] step=00030 data=0.011s gpu=1.160s loss=0.3396
+2025-09-17 11:18:14,838 [INFO] [train] step=00040 data=0.009s gpu=1.142s loss=0.3392
+2025-09-17 11:18:25,109 [INFO] [train] step=00050 data=0.008s gpu=1.118s loss=0.3388
+2025-09-17 11:18:49,641 [INFO] [val] loss=0.1200 Lcnt=0.0000 Lex=0.1037 Leps=0.0812 predCnt=347.75 gtCnt=63.75
+2025-09-17 11:18:49,642 [INFO] [val-top5]  pred=385.9 gt=6.0 err=379.9 |  pred=383.3 gt=4.0 err=379.3 |  pred=381.9 gt=4.0 err=377.9 |  pred=380.3 gt=4.0 err=376.3 |  pred=385.2 gt=9.0 err=376.2
+2025-09-17 11:18:49,642 [INFO] [Epoch 0008] train=0.3388  val=0.1200
+2025-09-17 11:19:07,360 [INFO] [train] step=00010 data=0.011s gpu=1.180s loss=0.3381
+2025-09-17 11:19:19,091 [INFO] [train] step=00020 data=0.011s gpu=1.171s loss=0.3386
+2025-09-17 11:19:30,786 [INFO] [train] step=00030 data=0.010s gpu=1.167s loss=0.3391
+2025-09-17 11:19:41,631 [INFO] [train] step=00040 data=0.009s gpu=1.145s loss=0.3377
+2025-09-17 11:19:51,754 [INFO] [train] step=00050 data=0.008s gpu=1.118s loss=0.3381
+2025-09-17 11:20:14,760 [INFO] [val] loss=0.1184 Lcnt=0.0000 Lex=0.1027 Leps=0.0787 predCnt=352.94 gtCnt=63.53
+2025-09-17 11:20:14,760 [INFO] [val-top5]  pred=392.5 gt=4.0 err=388.5 |  pred=394.9 gt=7.0 err=387.9 |  pred=396.8 gt=9.0 err=387.8 |  pred=392.0 gt=6.0 err=386.0 |  pred=394.3 gt=9.0 err=385.3
+2025-09-17 11:20:14,761 [INFO] [Epoch 0009] train=0.3381  val=0.1184
+2025-09-17 11:20:32,049 [INFO] [train] step=00010 data=0.010s gpu=1.170s loss=0.3411
+2025-09-17 11:20:43,691 [INFO] [train] step=00020 data=0.010s gpu=1.162s loss=0.3381
+2025-09-17 11:20:54,839 [INFO] [train] step=00030 data=0.009s gpu=1.143s loss=0.3373
+2025-09-17 11:21:05,782 [INFO] [train] step=00040 data=0.008s gpu=1.130s loss=0.3379
+2025-09-17 11:21:15,962 [INFO] [train] step=00050 data=0.007s gpu=1.107s loss=0.3377
+2025-09-17 11:21:39,283 [INFO] [val] loss=0.1186 Lcnt=0.0000 Lex=0.1033 Leps=0.0769 predCnt=351.01 gtCnt=62.17
+2025-09-17 11:21:39,284 [INFO] [val-top5]  pred=399.0 gt=9.0 err=390.0 |  pred=385.2 gt=0.0 err=385.2 |  pred=392.0 gt=7.0 err=385.0 |  pred=387.1 gt=5.0 err=382.1 |  pred=402.0 gt=20.0 err=382.0
+2025-09-17 11:21:39,285 [INFO] [Epoch 0010] train=0.3377  val=0.1186
+2025-09-17 11:21:56,901 [INFO] [train] step=00010 data=0.012s gpu=1.158s loss=0.3414
+2025-09-17 11:22:08,599 [INFO] [train] step=00020 data=0.013s gpu=1.157s loss=0.3393
+2025-09-17 11:22:19,862 [INFO] [train] step=00030 data=0.011s gpu=1.144s loss=0.3387
+2025-09-17 11:22:30,695 [INFO] [train] step=00040 data=0.009s gpu=1.128s loss=0.3380
+2025-09-17 11:22:40,817 [INFO] [train] step=00050 data=0.008s gpu=1.104s loss=0.3386
+2025-09-17 11:23:04,264 [INFO] [val] loss=0.1191 Lcnt=0.0000 Lex=0.1034 Leps=0.0784 predCnt=352.36 gtCnt=63.76
+2025-09-17 11:23:04,264 [INFO] [val-top5]  pred=398.7 gt=7.0 err=391.7 |  pred=392.2 gt=6.0 err=386.2 |  pred=391.4 gt=6.0 err=385.4 |  pred=382.2 gt=3.0 err=379.2 |  pred=379.4 gt=2.0 err=377.4
+2025-09-17 11:23:04,265 [INFO] [Epoch 0011] train=0.3386  val=0.1191
+2025-09-17 11:23:21,543 [INFO] [train] step=00010 data=0.011s gpu=1.178s loss=0.3363
+2025-09-17 11:23:33,110 [INFO] [train] step=00020 data=0.011s gpu=1.161s loss=0.3372
+2025-09-17 11:23:44,269 [INFO] [train] step=00030 data=0.010s gpu=1.144s loss=0.3371
+2025-09-17 11:23:55,102 [INFO] [train] step=00040 data=0.008s gpu=1.127s loss=0.3377
+2025-09-17 11:24:05,238 [INFO] [train] step=00050 data=0.007s gpu=1.104s loss=0.3376
+2025-09-17 11:24:27,845 [INFO] [val] loss=0.1188 Lcnt=0.0000 Lex=0.1036 Leps=0.0759 predCnt=348.06 gtCnt=62.81
+2025-09-17 11:24:27,846 [INFO] [val-top5]  pred=401.3 gt=4.0 err=397.3 |  pred=385.5 gt=9.0 err=376.5 |  pred=381.2 gt=5.0 err=376.2 |  pred=380.2 gt=4.0 err=376.2 |  pred=378.8 gt=4.0 err=374.8
+2025-09-17 11:24:27,846 [INFO] [Epoch 0012] train=0.3376  val=0.1188
+2025-09-17 11:24:46,050 [INFO] [train] step=00010 data=0.012s gpu=1.178s loss=0.3407
+2025-09-17 11:24:57,636 [INFO] [train] step=00020 data=0.011s gpu=1.162s loss=0.3393
+2025-09-17 11:25:08,709 [INFO] [train] step=00030 data=0.010s gpu=1.142s loss=0.3380
+2025-09-17 11:25:19,572 [INFO] [train] step=00040 data=0.009s gpu=1.127s loss=0.3379
+2025-09-17 11:25:29,765 [INFO] [train] step=00050 data=0.008s gpu=1.104s loss=0.3369
+2025-09-17 11:25:53,087 [INFO] [val] loss=0.1186 Lcnt=0.0000 Lex=0.1030 Leps=0.0779 predCnt=351.77 gtCnt=64.39
+2025-09-17 11:25:53,088 [INFO] [val-top5]  pred=406.8 gt=4.0 err=402.8 |  pred=390.4 gt=6.0 err=384.4 |  pred=385.0 gt=1.0 err=384.0 |  pred=384.3 gt=2.0 err=382.3 |  pred=388.1 gt=7.0 err=381.1
+2025-09-17 11:25:53,089 [INFO] [Epoch 0013] train=0.3369  val=0.1186
+2025-09-17 11:26:10,813 [INFO] [train] step=00010 data=0.013s gpu=1.170s loss=0.3383
+2025-09-17 11:26:22,500 [INFO] [train] step=00020 data=0.012s gpu=1.164s loss=0.3383
+2025-09-17 11:26:33,752 [INFO] [train] step=00030 data=0.010s gpu=1.148s loss=0.3381
+2025-09-17 11:26:44,587 [INFO] [train] step=00040 data=0.009s gpu=1.131s loss=0.3379
+2025-09-17 11:26:54,692 [INFO] [train] step=00050 data=0.008s gpu=1.106s loss=0.3383
+2025-09-17 11:27:17,838 [INFO] [val] loss=0.1190 Lcnt=0.0000 Lex=0.1036 Leps=0.0772 predCnt=346.04 gtCnt=63.51
+2025-09-17 11:27:17,839 [INFO] [val-top5]  pred=387.5 gt=3.0 err=384.5 |  pred=382.7 gt=4.0 err=378.7 |  pred=383.9 gt=6.0 err=377.9 |  pred=383.1 gt=6.0 err=377.1 |  pred=380.1 gt=3.0 err=377.1
+2025-09-17 11:27:17,840 [INFO] [Epoch 0014] train=0.3383  val=0.1190
+2025-09-17 11:27:35,713 [INFO] [train] step=00010 data=0.012s gpu=1.181s loss=0.3375
+2025-09-17 11:27:47,347 [INFO] [train] step=00020 data=0.011s gpu=1.167s loss=0.3377
+2025-09-17 11:27:58,607 [INFO] [train] step=00030 data=0.010s gpu=1.151s loss=0.3383
+2025-09-17 11:28:09,452 [INFO] [train] step=00040 data=0.009s gpu=1.133s loss=0.3386
+2025-09-17 11:28:19,579 [INFO] [train] step=00050 data=0.008s gpu=1.108s loss=0.3389
+2025-09-17 11:28:42,787 [INFO] [val] loss=0.1183 Lcnt=0.0000 Lex=0.1026 Leps=0.0785 predCnt=351.10 gtCnt=62.87
+2025-09-17 11:28:42,788 [INFO] [val-top5]  pred=400.6 gt=4.0 err=396.6 |  pred=396.7 gt=8.0 err=388.7 |  pred=397.0 gt=9.0 err=388.0 |  pred=393.2 gt=6.0 err=387.2 |  pred=388.9 gt=3.0 err=385.9
+2025-09-17 11:28:42,789 [INFO] [Epoch 0015] train=0.3389  val=0.1183
+2025-09-17 11:28:59,837 [INFO] [train] step=00010 data=0.011s gpu=1.158s loss=0.3346
+2025-09-17 11:29:11,466 [INFO] [train] step=00020 data=0.010s gpu=1.155s loss=0.3362
+2025-09-17 11:29:22,646 [INFO] [train] step=00030 data=0.010s gpu=1.140s loss=0.3361
+2025-09-17 11:29:33,522 [INFO] [train] step=00040 data=0.008s gpu=1.126s loss=0.3373
+2025-09-17 11:29:43,684 [INFO] [train] step=00050 data=0.008s gpu=1.103s loss=0.3382
+2025-09-17 11:30:06,637 [INFO] [val] loss=0.1206 Lcnt=0.0000 Lex=0.1044 Leps=0.0806 predCnt=354.43 gtCnt=63.23
+2025-09-17 11:30:06,638 [INFO] [val-top5]  pred=394.8 gt=5.0 err=389.8 |  pred=387.6 gt=1.0 err=386.6 |  pred=395.7 gt=12.0 err=383.7 |  pred=390.4 gt=7.0 err=383.4 |  pred=382.7 gt=0.0 err=382.7
+2025-09-17 11:30:06,639 [INFO] [Epoch 0016] train=0.3382  val=0.1206
+2025-09-17 11:30:24,906 [INFO] [train] step=00010 data=0.011s gpu=1.161s loss=0.3349
+2025-09-17 11:30:36,517 [INFO] [train] step=00020 data=0.011s gpu=1.155s loss=0.3355
+2025-09-17 11:30:47,742 [INFO] [train] step=00030 data=0.009s gpu=1.142s loss=0.3371
+2025-09-17 11:30:58,596 [INFO] [train] step=00040 data=0.008s gpu=1.127s loss=0.3377
+2025-09-17 11:31:08,715 [INFO] [train] step=00050 data=0.007s gpu=1.103s loss=0.3375
+2025-09-17 11:31:32,130 [INFO] [val] loss=0.1200 Lcnt=0.0000 Lex=0.1041 Leps=0.0792 predCnt=349.76 gtCnt=63.66
+2025-09-17 11:31:32,131 [INFO] [val-top5]  pred=394.5 gt=9.0 err=385.5 |  pred=387.1 gt=6.0 err=381.1 |  pred=379.1 gt=0.0 err=379.1 |  pred=378.3 gt=1.0 err=377.3 |  pred=384.1 gt=7.0 err=377.1
+2025-09-17 11:31:32,132 [INFO] [Epoch 0017] train=0.3375  val=0.1200
+2025-09-17 11:31:50,618 [INFO] [train] step=00010 data=0.010s gpu=1.179s loss=0.3361
+2025-09-17 11:32:02,203 [INFO] [train] step=00020 data=0.010s gpu=1.163s loss=0.3358
+2025-09-17 11:32:13,310 [INFO] [train] step=00030 data=0.009s gpu=1.143s loss=0.3371
+2025-09-17 11:32:24,167 [INFO] [train] step=00040 data=0.008s gpu=1.128s loss=0.3368
+2025-09-17 11:32:34,269 [INFO] [train] step=00050 data=0.007s gpu=1.103s loss=0.3376
+2025-09-17 11:32:57,713 [INFO] [val] loss=0.1195 Lcnt=0.0000 Lex=0.1032 Leps=0.0815 predCnt=355.69 gtCnt=63.39
+2025-09-17 11:32:57,713 [INFO] [val-top5]  pred=400.3 gt=4.0 err=396.3 |  pred=397.7 gt=7.0 err=390.7 |  pred=391.3 gt=6.0 err=385.3 |  pred=386.8 gt=2.0 err=384.8 |  pred=385.1 gt=2.0 err=383.1
+2025-09-17 11:32:57,714 [INFO] [Epoch 0018] train=0.3376  val=0.1195
+2025-09-17 11:33:16,000 [INFO] [train] step=00010 data=0.011s gpu=1.163s loss=0.3385
+2025-09-17 11:33:27,601 [INFO] [train] step=00020 data=0.011s gpu=1.156s loss=0.3376
+2025-09-17 11:33:38,757 [INFO] [train] step=00030 data=0.010s gpu=1.140s loss=0.3379
+2025-09-17 11:33:49,598 [INFO] [train] step=00040 data=0.008s gpu=1.125s loss=0.3376
+2025-09-17 11:33:59,725 [INFO] [train] step=00050 data=0.007s gpu=1.102s loss=0.3375
+2025-09-17 11:34:23,133 [INFO] [val] loss=0.1193 Lcnt=0.0000 Lex=0.1035 Leps=0.0793 predCnt=351.47 gtCnt=62.63
+2025-09-17 11:34:23,134 [INFO] [val-top5]  pred=392.7 gt=9.0 err=383.7 |  pred=389.9 gt=9.0 err=380.9 |  pred=381.0 gt=1.0 err=380.0 |  pred=383.8 gt=4.0 err=379.8 |  pred=389.5 gt=10.0 err=379.5
+2025-09-17 11:34:23,135 [INFO] [Epoch 0019] train=0.3375  val=0.1193
+2025-09-17 11:34:41,243 [INFO] [train] step=00010 data=0.010s gpu=1.176s loss=0.3396
+2025-09-17 11:34:52,768 [INFO] [train] step=00020 data=0.011s gpu=1.158s loss=0.3386
+2025-09-17 11:35:03,910 [INFO] [train] step=00030 data=0.010s gpu=1.141s loss=0.3377
+2025-09-17 11:35:14,755 [INFO] [train] step=00040 data=0.008s gpu=1.126s loss=0.3382
+2025-09-17 11:35:24,882 [INFO] [train] step=00050 data=0.008s gpu=1.102s loss=0.3379
+2025-09-17 11:35:47,916 [INFO] [val] loss=0.1204 Lcnt=0.0000 Lex=0.1042 Leps=0.0814 predCnt=351.54 gtCnt=63.61
+2025-09-17 11:35:47,917 [INFO] [val-top5]  pred=393.4 gt=9.0 err=384.4 |  pred=387.7 gt=4.0 err=383.7 |  pred=386.5 gt=4.0 err=382.5 |  pred=388.5 gt=6.0 err=382.5 |  pred=382.9 gt=1.0 err=381.9
+2025-09-17 11:35:47,918 [INFO] [Epoch 0020] train=0.3379  val=0.1204
+2025-09-17 11:36:05,476 [INFO] [train] step=00010 data=0.011s gpu=1.166s loss=0.3379
+2025-09-17 11:36:17,053 [INFO] [train] step=00020 data=0.011s gpu=1.156s loss=0.3388
+2025-09-17 11:36:28,195 [INFO] [train] step=00030 data=0.010s gpu=1.140s loss=0.3388
+2025-09-17 11:36:39,091 [INFO] [train] step=00040 data=0.008s gpu=1.126s loss=0.3387
+2025-09-17 11:36:49,335 [INFO] [train] step=00050 data=0.007s gpu=1.105s loss=0.3383
+2025-09-17 11:37:11,722 [INFO] [val] loss=0.1196 Lcnt=0.0000 Lex=0.1028 Leps=0.0838 predCnt=355.65 gtCnt=63.63
+2025-09-17 11:37:11,723 [INFO] [val-top5]  pred=408.4 gt=7.0 err=401.4 |  pred=397.9 gt=3.0 err=394.9 |  pred=399.8 gt=6.0 err=393.8 |  pred=393.2 gt=1.0 err=392.2 |  pred=396.9 gt=6.0 err=390.9
+2025-09-17 11:37:11,724 [INFO] [Epoch 0021] train=0.3383  val=0.1196
+2025-09-17 11:37:29,128 [INFO] [train] step=00010 data=0.011s gpu=1.158s loss=0.3380
+2025-09-17 11:37:40,725 [INFO] [train] step=00020 data=0.011s gpu=1.153s loss=0.3392
+2025-09-17 11:37:52,073 [INFO] [train] step=00030 data=0.010s gpu=1.144s loss=0.3378
+2025-09-17 11:38:02,921 [INFO] [train] step=00040 data=0.009s gpu=1.128s loss=0.3377
+2025-09-17 11:38:13,047 [INFO] [train] step=00050 data=0.008s gpu=1.104s loss=0.3378
+2025-09-17 11:38:36,308 [INFO] [val] loss=0.1191 Lcnt=0.0000 Lex=0.1029 Leps=0.0813 predCnt=350.13 gtCnt=63.91
+2025-09-17 11:38:36,309 [INFO] [val-top5]  pred=393.3 gt=3.0 err=390.3 |  pred=387.2 gt=1.0 err=386.2 |  pred=389.2 gt=3.0 err=386.2 |  pred=387.5 gt=2.0 err=385.5 |  pred=385.6 gt=4.0 err=381.6
+2025-09-17 11:38:36,310 [INFO] [Epoch 0022] train=0.3378  val=0.1191
+2025-09-17 11:38:53,696 [INFO] [train] step=00010 data=0.012s gpu=1.160s loss=0.3369
+2025-09-17 11:39:05,284 [INFO] [train] step=00020 data=0.012s gpu=1.153s loss=0.3381
+2025-09-17 11:39:16,465 [INFO] [train] step=00030 data=0.010s gpu=1.139s loss=0.3378
+2025-09-17 11:39:27,316 [INFO] [train] step=00040 data=0.009s gpu=1.125s loss=0.3376
+2025-09-17 11:39:37,425 [INFO] [train] step=00050 data=0.008s gpu=1.101s loss=0.3376
+2025-09-17 11:40:00,615 [INFO] [val] loss=0.1192 Lcnt=0.0000 Lex=0.1025 Leps=0.0833 predCnt=352.30 gtCnt=63.68
+2025-09-17 11:40:00,616 [INFO] [val-top5]  pred=388.0 gt=6.0 err=382.0 |  pred=386.0 gt=7.0 err=379.0 |  pred=380.7 gt=2.0 err=378.7 |  pred=382.7 gt=4.0 err=378.7 |  pred=386.0 gt=8.0 err=378.0
+2025-09-17 11:40:00,617 [INFO] [Epoch 0023] train=0.3376  val=0.1192
+2025-09-17 11:40:18,215 [INFO] [train] step=00010 data=0.011s gpu=1.156s loss=0.3371
+2025-09-17 11:40:29,832 [INFO] [train] step=00020 data=0.011s gpu=1.153s loss=0.3380
+2025-09-17 11:40:40,964 [INFO] [train] step=00030 data=0.010s gpu=1.137s loss=0.3381
+2025-09-17 11:40:51,797 [INFO] [train] step=00040 data=0.009s gpu=1.122s loss=0.3377
+2025-09-17 11:41:02,018 [INFO] [train] step=00050 data=0.008s gpu=1.101s loss=0.3368
+2025-09-17 11:41:25,573 [INFO] [val] loss=0.1200 Lcnt=0.0000 Lex=0.1035 Leps=0.0822 predCnt=350.18 gtCnt=63.78
+2025-09-17 11:41:25,573 [INFO] [val-top5]  pred=389.5 gt=6.0 err=383.5 |  pred=382.8 gt=0.0 err=382.8 |  pred=390.1 gt=8.0 err=382.1 |  pred=383.2 gt=4.0 err=379.2 |  pred=380.2 gt=1.0 err=379.2
+2025-09-17 11:41:25,574 [INFO] [Epoch 0024] train=0.3368  val=0.1200
+2025-09-17 11:41:43,056 [INFO] [train] step=00010 data=0.011s gpu=1.156s loss=0.3406
+2025-09-17 11:41:54,610 [INFO] [train] step=00020 data=0.011s gpu=1.150s loss=0.3381
+2025-09-17 11:42:05,792 [INFO] [train] step=00030 data=0.010s gpu=1.136s loss=0.3361
+2025-09-17 11:42:16,622 [INFO] [train] step=00040 data=0.008s gpu=1.122s loss=0.3371
+2025-09-17 11:42:26,717 [INFO] [train] step=00050 data=0.008s gpu=1.099s loss=0.3369
+2025-09-17 11:42:49,749 [INFO] [val] loss=0.1189 Lcnt=0.0000 Lex=0.1032 Leps=0.0787 predCnt=347.77 gtCnt=63.12
+2025-09-17 11:42:49,750 [INFO] [val-top5]  pred=395.6 gt=6.0 err=389.6 |  pred=386.8 gt=1.0 err=385.8 |  pred=387.3 gt=4.0 err=383.3 |  pred=383.6 gt=7.0 err=376.6 |  pred=384.5 gt=9.0 err=375.5
+2025-09-17 11:42:49,750 [INFO] [Epoch 0025] train=0.3369  val=0.1189
+2025-09-17 11:43:08,039 [INFO] [train] step=00010 data=0.011s gpu=1.176s loss=0.3385
+2025-09-17 11:43:19,630 [INFO] [train] step=00020 data=0.010s gpu=1.162s loss=0.3397
+2025-09-17 11:43:30,753 [INFO] [train] step=00030 data=0.009s gpu=1.143s loss=0.3385
+2025-09-17 11:43:41,574 [INFO] [train] step=00040 data=0.008s gpu=1.127s loss=0.3381
+2025-09-17 11:43:51,665 [INFO] [train] step=00050 data=0.007s gpu=1.102s loss=0.3378
+2025-09-17 11:44:14,810 [INFO] [val] loss=0.1203 Lcnt=0.0000 Lex=0.1042 Leps=0.0804 predCnt=354.10 gtCnt=63.18
+2025-09-17 11:44:14,811 [INFO] [val-top5]  pred=401.4 gt=4.0 err=397.4 |  pred=385.8 gt=0.0 err=385.8 |  pred=387.7 gt=3.0 err=384.7 |  pred=385.3 gt=1.0 err=384.3 |  pred=385.7 gt=3.0 err=382.7
+2025-09-17 11:44:14,812 [INFO] [Epoch 0026] train=0.3378  val=0.1203
+2025-09-17 11:44:32,163 [INFO] [train] step=00010 data=0.011s gpu=1.166s loss=0.3416
+2025-09-17 11:44:43,743 [INFO] [train] step=00020 data=0.012s gpu=1.155s loss=0.3385
+2025-09-17 11:44:55,112 [INFO] [train] step=00030 data=0.011s gpu=1.146s loss=0.3384
+2025-09-17 11:45:06,308 [INFO] [train] step=00040 data=0.009s gpu=1.138s loss=0.3375
+2025-09-17 11:45:16,549 [INFO] [train] step=00050 data=0.008s gpu=1.114s loss=0.3374
+2025-09-17 11:45:39,474 [INFO] [val] loss=0.1207 Lcnt=0.0000 Lex=0.1040 Leps=0.0835 predCnt=350.60 gtCnt=63.91
+2025-09-17 11:45:39,475 [INFO] [val-top5]  pred=386.5 gt=2.0 err=384.5 |  pred=391.4 gt=10.0 err=381.4 |  pred=390.2 gt=10.0 err=380.2 |  pred=379.0 gt=1.0 err=378.0 |  pred=383.7 gt=6.0 err=377.7
+2025-09-17 11:45:39,476 [INFO] [Epoch 0027] train=0.3374  val=0.1207
+2025-09-17 11:45:57,335 [INFO] [train] step=00010 data=0.010s gpu=1.185s loss=0.3328
+2025-09-17 11:46:09,224 [INFO] [train] step=00020 data=0.011s gpu=1.181s loss=0.3351
+2025-09-17 11:46:20,488 [INFO] [train] step=00030 data=0.010s gpu=1.160s loss=0.3369
+2025-09-17 11:46:31,414 [INFO] [train] step=00040 data=0.008s gpu=1.142s loss=0.3375
+2025-09-17 11:46:41,579 [INFO] [train] step=00050 data=0.007s gpu=1.116s loss=0.3368
+2025-09-17 11:47:05,305 [INFO] [val] loss=0.1202 Lcnt=0.0000 Lex=0.1044 Leps=0.0789 predCnt=350.05 gtCnt=64.11
+2025-09-17 11:47:05,305 [INFO] [val-top5]  pred=386.3 gt=7.0 err=379.3 |  pred=382.1 gt=4.0 err=378.1 |  pred=396.0 gt=18.0 err=378.0 |  pred=386.9 gt=10.0 err=376.9 |  pred=382.4 gt=6.0 err=376.4
+2025-09-17 11:47:05,306 [INFO] [Epoch 0028] train=0.3368  val=0.1202
+2025-09-17 11:47:22,870 [INFO] [train] step=00010 data=0.010s gpu=1.157s loss=0.3378
+2025-09-17 11:47:34,433 [INFO] [train] step=00020 data=0.010s gpu=1.151s loss=0.3381
+2025-09-17 11:47:45,665 [INFO] [train] step=00030 data=0.010s gpu=1.139s loss=0.3394
+2025-09-17 11:47:56,471 [INFO] [train] step=00040 data=0.008s gpu=1.123s loss=0.3386
+2025-09-17 11:48:06,573 [INFO] [train] step=00050 data=0.008s gpu=1.100s loss=0.3384
+2025-09-17 11:48:29,563 [INFO] [val] loss=0.1188 Lcnt=0.0000 Lex=0.1030 Leps=0.0787 predCnt=348.74 gtCnt=63.98
+2025-09-17 11:48:29,564 [INFO] [val-top5]  pred=395.6 gt=9.0 err=386.6 |  pred=390.4 gt=9.0 err=381.4 |  pred=384.1 gt=7.0 err=377.1 |  pred=377.7 gt=1.0 err=376.7 |  pred=385.5 gt=10.0 err=375.5
+2025-09-17 11:48:29,565 [INFO] [Epoch 0029] train=0.3384  val=0.1188
+2025-09-17 11:48:46,809 [INFO] [train] step=00010 data=0.010s gpu=1.173s loss=0.3364
+2025-09-17 11:48:58,330 [INFO] [train] step=00020 data=0.010s gpu=1.157s loss=0.3384
+2025-09-17 11:49:09,444 [INFO] [train] step=00030 data=0.009s gpu=1.139s loss=0.3361
+2025-09-17 11:49:20,273 [INFO] [train] step=00040 data=0.008s gpu=1.124s loss=0.3367
+2025-09-17 11:49:30,340 [INFO] [train] step=00050 data=0.007s gpu=1.100s loss=0.3367
+2025-09-17 11:49:53,268 [INFO] [val] loss=0.1186 Lcnt=0.0000 Lex=0.1027 Leps=0.0795 predCnt=349.18 gtCnt=63.13
+2025-09-17 11:49:53,269 [INFO] [val-top5]  pred=391.3 gt=4.0 err=387.3 |  pred=392.7 gt=6.0 err=386.7 |  pred=391.9 gt=8.0 err=383.9 |  pred=384.4 gt=6.0 err=378.4 |  pred=381.3 gt=4.0 err=377.3
+2025-09-17 11:49:53,270 [INFO] [Epoch 0030] train=0.3367  val=0.1186
+2025-09-17 11:50:11,267 [INFO] [train] step=00010 data=0.015s gpu=1.195s loss=0.3391
+2025-09-17 11:50:23,724 [INFO] [train] step=00020 data=0.013s gpu=1.214s loss=0.3378
+2025-09-17 11:50:35,040 [INFO] [train] step=00030 data=0.012s gpu=1.184s loss=0.3379
+2025-09-17 11:50:45,899 [INFO] [train] step=00040 data=0.010s gpu=1.158s loss=0.3375
+2025-09-17 11:50:56,106 [INFO] [train] step=00050 data=0.009s gpu=1.130s loss=0.3373
+2025-09-17 11:51:19,940 [INFO] [val] loss=0.1197 Lcnt=0.0000 Lex=0.1037 Leps=0.0803 predCnt=355.00 gtCnt=63.26
+2025-09-17 11:51:19,941 [INFO] [val-top5]  pred=392.5 gt=3.0 err=389.5 |  pred=390.3 gt=2.0 err=388.3 |  pred=390.0 gt=3.0 err=387.0 |  pred=391.8 gt=6.0 err=385.8 |  pred=389.9 gt=6.0 err=383.9
+2025-09-17 11:51:19,942 [INFO] [Epoch 0031] train=0.3373  val=0.1197
+2025-09-17 11:51:37,196 [INFO] [train] step=00010 data=0.011s gpu=1.170s loss=0.3340
+2025-09-17 11:51:48,510 [INFO] [train] step=00020 data=0.011s gpu=1.145s loss=0.3343
+2025-09-17 11:51:59,468 [INFO] [train] step=00030 data=0.010s gpu=1.125s loss=0.3366
+2025-09-17 11:52:09,990 [INFO] [train] step=00040 data=0.009s gpu=1.106s loss=0.3369
+2025-09-17 11:52:19,793 [INFO] [train] step=00050 data=0.008s gpu=1.080s loss=0.3370
+2025-09-17 11:52:42,811 [INFO] [val] loss=0.1187 Lcnt=0.0000 Lex=0.1029 Leps=0.0789 predCnt=350.18 gtCnt=63.47
+2025-09-17 11:52:42,812 [INFO] [val-top5]  pred=394.3 gt=8.0 err=386.3 |  pred=386.7 gt=1.0 err=385.7 |  pred=389.6 gt=5.0 err=384.6 |  pred=384.5 gt=1.0 err=383.5 |  pred=389.1 gt=6.0 err=383.1
+2025-09-17 11:52:42,812 [INFO] [Epoch 0032] train=0.3370  val=0.1187
+2025-09-17 11:53:00,057 [INFO] [train] step=00010 data=0.011s gpu=1.122s loss=0.3383
+2025-09-17 11:53:11,169 [INFO] [train] step=00020 data=0.011s gpu=1.111s loss=0.3387
+2025-09-17 11:53:21,970 [INFO] [train] step=00030 data=0.010s gpu=1.098s loss=0.3380
+2025-09-17 11:53:32,471 [INFO] [train] step=00040 data=0.008s gpu=1.085s loss=0.3381
+2025-09-17 11:53:42,217 [INFO] [train] step=00050 data=0.008s gpu=1.062s loss=0.3367
+2025-09-17 11:54:06,236 [INFO] [val] loss=0.1196 Lcnt=0.0000 Lex=0.1037 Leps=0.0796 predCnt=353.28 gtCnt=64.66
+2025-09-17 11:54:06,237 [INFO] [val-top5]  pred=405.6 gt=4.0 err=401.6 |  pred=403.1 gt=9.0 err=394.1 |  pred=387.6 gt=0.0 err=387.6 |  pred=388.7 gt=6.0 err=382.7 |  pred=394.7 gt=12.0 err=382.7
+2025-09-17 11:54:06,238 [INFO] [Epoch 0033] train=0.3367  val=0.1196
+2025-09-17 11:54:22,676 [INFO] [train] step=00010 data=0.010s gpu=1.113s loss=0.3382
+2025-09-17 11:54:33,792 [INFO] [train] step=00020 data=0.010s gpu=1.107s loss=0.3388
+2025-09-17 11:54:44,643 [INFO] [train] step=00030 data=0.010s gpu=1.097s loss=0.3379
+2025-09-17 11:54:55,150 [INFO] [train] step=00040 data=0.008s gpu=1.084s loss=0.3375
+2025-09-17 11:55:04,994 [INFO] [train] step=00050 data=0.007s gpu=1.063s loss=0.3379
+2025-09-17 11:55:27,911 [INFO] [val] loss=0.1193 Lcnt=0.0000 Lex=0.1036 Leps=0.0787 predCnt=353.85 gtCnt=63.59
+2025-09-17 11:55:27,912 [INFO] [val-top5]  pred=394.9 gt=6.0 err=388.9 |  pred=385.3 gt=1.0 err=384.3 |  pred=385.3 gt=4.0 err=381.3 |  pred=389.6 gt=9.0 err=380.6 |  pred=384.8 gt=6.0 err=378.8
+2025-09-17 11:55:27,912 [INFO] [Epoch 0034] train=0.3379  val=0.1193
+2025-09-17 11:55:45,838 [INFO] [train] step=00010 data=0.011s gpu=1.125s loss=0.3372
+2025-09-17 11:55:56,939 [INFO] [train] step=00020 data=0.010s gpu=1.112s loss=0.3386
+2025-09-17 11:56:07,844 [INFO] [train] step=00030 data=0.009s gpu=1.102s loss=0.3377
+2025-09-17 11:56:18,724 [INFO] [train] step=00040 data=0.008s gpu=1.098s loss=0.3373
+2025-09-17 11:56:28,878 [INFO] [train] step=00050 data=0.007s gpu=1.080s loss=0.3373
+2025-09-17 11:56:52,486 [INFO] [val] loss=0.1198 Lcnt=0.0000 Lex=0.1039 Leps=0.0794 predCnt=350.44 gtCnt=64.03
+2025-09-17 11:56:52,487 [INFO] [val-top5]  pred=394.7 gt=6.0 err=388.7 |  pred=394.3 gt=7.0 err=387.3 |  pred=386.2 gt=0.0 err=386.2 |  pred=394.1 gt=9.0 err=385.1 |  pred=380.8 gt=0.0 err=380.8
+2025-09-17 11:56:52,487 [INFO] [Epoch 0035] train=0.3373  val=0.1198
+2025-09-17 11:57:11,219 [INFO] [train] step=00010 data=0.011s gpu=1.185s loss=0.3349
+2025-09-17 11:57:22,930 [INFO] [train] step=00020 data=0.011s gpu=1.172s loss=0.3372
+2025-09-17 11:57:34,084 [INFO] [train] step=00030 data=0.010s gpu=1.150s loss=0.3379
+2025-09-17 11:57:44,961 [INFO] [train] step=00040 data=0.009s gpu=1.134s loss=0.3377
+2025-09-17 11:57:55,090 [INFO] [train] step=00050 data=0.008s gpu=1.109s loss=0.3380
+2025-09-17 11:58:18,716 [INFO] [val] loss=0.1188 Lcnt=0.0000 Lex=0.1035 Leps=0.0764 predCnt=347.58 gtCnt=64.44
+2025-09-17 11:58:18,716 [INFO] [val-top5]  pred=380.9 gt=0.0 err=380.9 |  pred=381.9 gt=6.0 err=375.9 |  pred=375.9 gt=1.0 err=374.9 |  pred=378.1 gt=4.0 err=374.1 |  pred=380.9 gt=7.0 err=373.9
+2025-09-17 11:58:18,717 [INFO] [Epoch 0036] train=0.3380  val=0.1188
+2025-09-17 11:58:36,255 [INFO] [train] step=00010 data=0.011s gpu=1.198s loss=0.3359
+2025-09-17 11:58:48,080 [INFO] [train] step=00020 data=0.012s gpu=1.183s loss=0.3357
+2025-09-17 11:58:59,368 [INFO] [train] step=00030 data=0.011s gpu=1.162s loss=0.3377
+2025-09-17 11:59:10,234 [INFO] [train] step=00040 data=0.009s gpu=1.142s loss=0.3381
+2025-09-17 11:59:20,430 [INFO] [train] step=00050 data=0.008s gpu=1.117s loss=0.3386
+2025-09-17 11:59:43,624 [INFO] [val] loss=0.1175 Lcnt=0.0000 Lex=0.1025 Leps=0.0750 predCnt=348.09 gtCnt=62.98
+2025-09-17 11:59:43,625 [INFO] [val-top5]  pred=388.7 gt=9.0 err=379.7 |  pred=377.7 gt=0.0 err=377.7 |  pred=380.0 gt=3.0 err=377.0 |  pred=378.8 gt=4.0 err=374.8 |  pred=381.7 gt=7.0 err=374.7
+2025-09-17 11:59:43,626 [INFO] [Epoch 0037] train=0.3386  val=0.1175
+2025-09-17 12:00:02,128 [INFO] [train] step=00010 data=0.010s gpu=1.200s loss=0.3377
+2025-09-17 12:00:13,894 [INFO] [train] step=00020 data=0.011s gpu=1.182s loss=0.3353
+2025-09-17 12:00:25,090 [INFO] [train] step=00030 data=0.010s gpu=1.158s loss=0.3363
+2025-09-17 12:00:35,987 [INFO] [train] step=00040 data=0.009s gpu=1.140s loss=0.3370
+2025-09-17 12:00:46,145 [INFO] [train] step=00050 data=0.008s gpu=1.114s loss=0.3373
+2025-09-17 12:01:09,179 [INFO] [val] loss=0.1195 Lcnt=0.0000 Lex=0.1041 Leps=0.0773 predCnt=357.25 gtCnt=63.60
+2025-09-17 12:01:09,180 [INFO] [val-top5]  pred=399.1 gt=4.0 err=395.1 |  pred=393.8 gt=4.0 err=389.8 |  pred=385.3 gt=1.0 err=384.3 |  pred=387.3 gt=3.0 err=384.3 |  pred=391.3 gt=7.0 err=384.3
+2025-09-17 12:01:09,180 [INFO] [Epoch 0038] train=0.3373  val=0.1195
+2025-09-17 12:01:26,843 [INFO] [train] step=00010 data=0.010s gpu=1.171s loss=0.3372
+2025-09-17 12:01:38,593 [INFO] [train] step=00020 data=0.011s gpu=1.167s loss=0.3370
+2025-09-17 12:01:49,787 [INFO] [train] step=00030 data=0.010s gpu=1.149s loss=0.3379
+2025-09-17 12:02:00,652 [INFO] [train] step=00040 data=0.008s gpu=1.132s loss=0.3379
+2025-09-17 12:02:10,825 [INFO] [train] step=00050 data=0.007s gpu=1.108s loss=0.3378
+2025-09-17 12:02:33,582 [INFO] [val] loss=0.1197 Lcnt=0.0000 Lex=0.1043 Leps=0.0771 predCnt=352.15 gtCnt=63.31
+2025-09-17 12:02:33,583 [INFO] [val-top5]  pred=392.0 gt=4.0 err=388.0 |  pred=391.6 gt=6.0 err=385.6 |  pred=391.5 gt=9.0 err=382.5 |  pred=377.4 gt=1.0 err=376.4 |  pred=381.1 gt=5.0 err=376.1
+2025-09-17 12:02:33,584 [INFO] [Epoch 0039] train=0.3378  val=0.1197
+2025-09-17 12:02:51,295 [INFO] [train] step=00010 data=0.010s gpu=1.177s loss=0.3355
+2025-09-17 12:03:03,166 [INFO] [train] step=00020 data=0.012s gpu=1.175s loss=0.3342
+2025-09-17 12:03:14,572 [INFO] [train] step=00030 data=0.010s gpu=1.161s loss=0.3354
+2025-09-17 12:03:25,453 [INFO] [train] step=00040 data=0.009s gpu=1.141s loss=0.3366
+2025-09-17 12:03:35,632 [INFO] [train] step=00050 data=0.008s gpu=1.116s loss=0.3372
+2025-09-17 12:03:59,389 [INFO] [val] loss=0.1203 Lcnt=0.0000 Lex=0.1047 Leps=0.0780 predCnt=357.94 gtCnt=63.56
+2025-09-17 12:03:59,390 [INFO] [val-top5]  pred=391.3 gt=1.0 err=390.3 |  pred=395.9 gt=7.0 err=388.9 |  pred=389.4 gt=3.0 err=386.4 |  pred=390.0 gt=4.0 err=386.0 |  pred=391.8 gt=7.0 err=384.8
+2025-09-17 12:03:59,391 [INFO] [Epoch 0040] train=0.3372  val=0.1203

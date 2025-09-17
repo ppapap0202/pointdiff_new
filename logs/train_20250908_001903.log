@@ -1,0 +1,1061 @@
+2025-09-08 00:19:03,760 [INFO] device=cuda
+2025-09-08 00:19:30,219 [INFO] images.shape: torch.Size([200, 3, 256, 256])
+2025-09-08 00:19:30,220 [INFO] points.shape: torch.Size([200, 900, 2])
+2025-09-08 00:19:30,222 [INFO] mask.shape: tensor([[ True,  True,  True,  ..., False, False, False],
+        [ True,  True,  True,  ..., False, False, False],
+        [ True,  True,  True,  ..., False, False, False],
+        ...,
+        [ True,  True,  True,  ..., False, False, False],
+        [ True,  True,  True,  ..., False, False, False],
+        [ True,  True,  True,  ..., False, False, False]])
+2025-09-08 00:19:30,223 [INFO] [{'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_281.jpg', 'orig_size': [680, 1024], 'tile_top': 384, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 202, 'tile_index_in_img': 25}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_4.jpg', 'orig_size': [746, 1024], 'tile_top': 384, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 234, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_61.jpg', 'orig_size': [683, 1024], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 258, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_158.jpg', 'orig_size': [671, 1024], 'tile_top': 0, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 65, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_37.jpg', 'orig_size': [683, 1024], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 231, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_297.jpg', 'orig_size': [685, 1024], 'tile_top': 256, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 219, 'tile_index_in_img': 19}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_57.jpg', 'orig_size': [1024, 1024], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 253, 'tile_index_in_img': 7}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_172.jpg', 'orig_size': [685, 1024], 'tile_top': 256, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 81, 'tile_index_in_img': 18}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_83.jpg', 'orig_size': [683, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 282, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_57.jpg', 'orig_size': [1024, 1024], 'tile_top': 512, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 253, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_212.jpg', 'orig_size': [688, 1024], 'tile_top': 0, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 126, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_99.jpg', 'orig_size': [688, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 299, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_56.jpg', 'orig_size': [663, 962], 'tile_top': 384, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 252, 'tile_index_in_img': 26}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_34.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 228, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_283.jpg', 'orig_size': [661, 1024], 'tile_top': 256, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 204, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_24.jpg', 'orig_size': [769, 1024], 'tile_top': 384, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 156, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_286.jpg', 'orig_size': [578, 779], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 207, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_185.jpg', 'orig_size': [800, 583], 'tile_top': 544, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 95, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_1.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 0, 'tile_index_in_img': 18}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_297.jpg', 'orig_size': [685, 1024], 'tile_top': 256, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 219, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_50.jpg', 'orig_size': [985, 985], 'tile_top': 512, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 246, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_282.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 203, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_35.jpg', 'orig_size': [653, 1024], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 229, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_220.jpg', 'orig_size': [377, 1024], 'tile_top': 0, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 135, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_73.jpg', 'orig_size': [544, 932], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 271, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_296.jpg', 'orig_size': [685, 1024], 'tile_top': 429, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 218, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_246.jpg', 'orig_size': [267, 400], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 163, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_247.jpg', 'orig_size': [681, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 164, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_132.jpg', 'orig_size': [800, 600], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 37, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_287.jpg', 'orig_size': [716, 1024], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 208, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_168.jpg', 'orig_size': [944, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 76, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_222.jpg', 'orig_size': [522, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 137, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_17.jpg', 'orig_size': [478, 600], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 78, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_138.jpg', 'orig_size': [652, 1024], 'tile_top': 396, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 43, 'tile_index_in_img': 30}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_15.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 56, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_208.jpg', 'orig_size': [683, 1024], 'tile_top': 427, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 121, 'tile_index_in_img': 30}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_188.jpg', 'orig_size': [649, 1024], 'tile_top': 128, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 98, 'tile_index_in_img': 9}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_221.jpg', 'orig_size': [679, 1024], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 136, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_264.jpg', 'orig_size': [576, 1024], 'tile_top': 320, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 183, 'tile_index_in_img': 25}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_280.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 201, 'tile_index_in_img': 33}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_144.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 50, 'tile_index_in_img': 18}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_98.jpg', 'orig_size': [512, 1024], 'tile_top': 128, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 298, 'tile_index_in_img': 12}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_7.jpg', 'orig_size': [590, 1024], 'tile_top': 256, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 267, 'tile_index_in_img': 16}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_196.jpg', 'orig_size': [684, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 107, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_15.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 56, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_160.jpg', 'orig_size': [540, 1024], 'tile_top': 128, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 68, 'tile_index_in_img': 9}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_38.jpg', 'orig_size': [566, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 232, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_233.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 149, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_33.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 227, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_178.jpg', 'orig_size': [688, 1024], 'tile_top': 384, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 87, 'tile_index_in_img': 26}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_236.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 152, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_30.jpg', 'orig_size': [645, 1024], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 223, 'tile_index_in_img': 7}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_190.jpg', 'orig_size': [792, 1024], 'tile_top': 384, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 101, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_190.jpg', 'orig_size': [792, 1024], 'tile_top': 536, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 101, 'tile_index_in_img': 38}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_204.jpg', 'orig_size': [695, 1024], 'tile_top': 384, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 117, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_123.jpg', 'orig_size': [774, 1024], 'tile_top': 518, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 27, 'tile_index_in_img': 39}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_96.jpg', 'orig_size': [530, 1024], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 296, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_130.jpg', 'orig_size': [680, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 35, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_33.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 227, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_254.jpg', 'orig_size': [683, 1024], 'tile_top': 427, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 172, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_7.jpg', 'orig_size': [590, 1024], 'tile_top': 0, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 267, 'tile_index_in_img': 4}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_79.jpg', 'orig_size': [820, 1024], 'tile_top': 0, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 277, 'tile_index_in_img': 4}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_98.jpg', 'orig_size': [512, 1024], 'tile_top': 0, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 298, 'tile_index_in_img': 4}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_174.jpg', 'orig_size': [512, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 83, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_137.jpg', 'orig_size': [585, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 42, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_190.jpg', 'orig_size': [792, 1024], 'tile_top': 536, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 101, 'tile_index_in_img': 39}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_1.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 0, 'tile_index_in_img': 12}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_18.jpg', 'orig_size': [793, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 89, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_87.jpg', 'orig_size': [416, 620], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 286, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_300.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 224, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_247.jpg', 'orig_size': [681, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 164, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_86.jpg', 'orig_size': [387, 580], 'tile_top': 128, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 285, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_181.jpg', 'orig_size': [639, 1024], 'tile_top': 383, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 91, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_70.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 268, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_207.jpg', 'orig_size': [442, 650], 'tile_top': 186, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 120, 'tile_index_in_img': 12}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_245.jpg', 'orig_size': [825, 1024], 'tile_top': 569, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 162, 'tile_index_in_img': 38}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_262.jpg', 'orig_size': [576, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 181, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_32.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 226, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_32.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 226, 'tile_index_in_img': 12}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_130.jpg', 'orig_size': [680, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 35, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_124.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 28, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_16.jpg', 'orig_size': [1024, 1024], 'tile_top': 256, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 67, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_197.jpg', 'orig_size': [600, 800], 'tile_top': 344, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 108, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_141.jpg', 'orig_size': [427, 640], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 47, 'tile_index_in_img': 7}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_297.jpg', 'orig_size': [685, 1024], 'tile_top': 429, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 219, 'tile_index_in_img': 28}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_249.jpg', 'orig_size': [451, 800], 'tile_top': 128, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 166, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_20.jpg', 'orig_size': [688, 1024], 'tile_top': 128, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 112, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_251.jpg', 'orig_size': [661, 1024], 'tile_top': 128, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 169, 'tile_index_in_img': 9}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_285.jpg', 'orig_size': [694, 1024], 'tile_top': 438, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 206, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_281.jpg', 'orig_size': [680, 1024], 'tile_top': 424, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 202, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_251.jpg', 'orig_size': [661, 1024], 'tile_top': 256, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 169, 'tile_index_in_img': 20}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_289.jpg', 'orig_size': [682, 1024], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 210, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_257.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 175, 'tile_index_in_img': 31}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_177.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 86, 'tile_index_in_img': 30}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_140.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 46, 'tile_index_in_img': 31}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_292.jpg', 'orig_size': [665, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 214, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_15.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 56, 'tile_index_in_img': 12}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_169.jpg', 'orig_size': [649, 800], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 77, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_47.jpg', 'orig_size': [662, 962], 'tile_top': 0, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 242, 'tile_index_in_img': 4}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_160.jpg', 'orig_size': [540, 1024], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 68, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_56.jpg', 'orig_size': [663, 962], 'tile_top': 407, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 252, 'tile_index_in_img': 31}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_112.jpg', 'orig_size': [327, 1024], 'tile_top': 71, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 15, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_147.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 53, 'tile_index_in_img': 34}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_46.jpg', 'orig_size': [663, 962], 'tile_top': 0, 'tile_left': 706, 'tile_size': [256, 256], 'img_index': 241, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_41.jpg', 'orig_size': [683, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 236, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_76.jpg', 'orig_size': [563, 832], 'tile_top': 307, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 274, 'tile_index_in_img': 18}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_80.jpg', 'orig_size': [426, 634], 'tile_top': 170, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 279, 'tile_index_in_img': 9}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_20.jpg', 'orig_size': [688, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 112, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_34.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 228, 'tile_index_in_img': 31}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_96.jpg', 'orig_size': [530, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 296, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_271.jpg', 'orig_size': [438, 736], 'tile_top': 182, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 191, 'tile_index_in_img': 12}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_260.jpg', 'orig_size': [681, 1024], 'tile_top': 0, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 179, 'tile_index_in_img': 4}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_241.jpg', 'orig_size': [728, 1024], 'tile_top': 384, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 158, 'tile_index_in_img': 27}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_204.jpg', 'orig_size': [695, 1024], 'tile_top': 439, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 117, 'tile_index_in_img': 31}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_84.jpg', 'orig_size': [435, 1024], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 283, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_32.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 226, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_71.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 269, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_257.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 175, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_66.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 263, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_279.jpg', 'orig_size': [294, 488], 'tile_top': 0, 'tile_left': 232, 'tile_size': [256, 256], 'img_index': 199, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_247.jpg', 'orig_size': [681, 1024], 'tile_top': 0, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 164, 'tile_index_in_img': 4}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_143.jpg', 'orig_size': [605, 1024], 'tile_top': 349, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 49, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_102.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 4, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_129.jpg', 'orig_size': [689, 998], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 33, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_98.jpg', 'orig_size': [512, 1024], 'tile_top': 256, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 298, 'tile_index_in_img': 16}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_236.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 152, 'tile_index_in_img': 30}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_274.jpg', 'orig_size': [681, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 194, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_250.jpg', 'orig_size': [681, 1024], 'tile_top': 256, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 168, 'tile_index_in_img': 15}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_210.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 124, 'tile_index_in_img': 34}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_32.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 226, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_280.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 201, 'tile_index_in_img': 30}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_111.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 14, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_206.jpg', 'orig_size': [683, 1024], 'tile_top': 384, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 119, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_4.jpg', 'orig_size': [746, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 234, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_222.jpg', 'orig_size': [522, 1024], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 137, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_77.jpg', 'orig_size': [684, 1024], 'tile_top': 428, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 275, 'tile_index_in_img': 31}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_73.jpg', 'orig_size': [544, 932], 'tile_top': 0, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 271, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_222.jpg', 'orig_size': [522, 1024], 'tile_top': 0, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 137, 'tile_index_in_img': 6}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_123.jpg', 'orig_size': [774, 1024], 'tile_top': 384, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 27, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_108.jpg', 'orig_size': [767, 1024], 'tile_top': 128, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 10, 'tile_index_in_img': 13}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_235.jpg', 'orig_size': [683, 1024], 'tile_top': 427, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 151, 'tile_index_in_img': 30}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_232.jpg', 'orig_size': [279, 400], 'tile_top': 23, 'tile_left': 144, 'tile_size': [256, 256], 'img_index': 148, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_3.jpg', 'orig_size': [664, 1000], 'tile_top': 0, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 222, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_36.jpg', 'orig_size': [388, 690], 'tile_top': 132, 'tile_left': 434, 'tile_size': [256, 256], 'img_index': 230, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_282.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 203, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_108.jpg', 'orig_size': [767, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 10, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_2.jpg', 'orig_size': [713, 1024], 'tile_top': 128, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 111, 'tile_index_in_img': 8}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_213.jpg', 'orig_size': [749, 1000], 'tile_top': 493, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 127, 'tile_index_in_img': 28}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_37.jpg', 'orig_size': [683, 1024], 'tile_top': 427, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 231, 'tile_index_in_img': 31}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_209.jpg', 'orig_size': [619, 1000], 'tile_top': 363, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 122, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_18.jpg', 'orig_size': [793, 1024], 'tile_top': 384, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 89, 'tile_index_in_img': 26}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_108.jpg', 'orig_size': [767, 1024], 'tile_top': 0, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 10, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_34.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 228, 'tile_index_in_img': 16}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_60.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 257, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_61.jpg', 'orig_size': [683, 1024], 'tile_top': 384, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 258, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_280.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 201, 'tile_index_in_img': 3}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_16.jpg', 'orig_size': [1024, 1024], 'tile_top': 512, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 67, 'tile_index_in_img': 29}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_173.jpg', 'orig_size': [512, 1024], 'tile_top': 256, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 82, 'tile_index_in_img': 19}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_42.jpg', 'orig_size': [667, 1000], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 237, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_20.jpg', 'orig_size': [688, 1024], 'tile_top': 384, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 112, 'tile_index_in_img': 25}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_111.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 14, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_294.jpg', 'orig_size': [683, 1024], 'tile_top': 128, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 216, 'tile_index_in_img': 13}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_15.jpg', 'orig_size': [768, 1024], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 56, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_270.jpg', 'orig_size': [300, 416], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 190, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_105.jpg', 'orig_size': [632, 990], 'tile_top': 376, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 7, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_185.jpg', 'orig_size': [800, 583], 'tile_top': 512, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 95, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_158.jpg', 'orig_size': [671, 1024], 'tile_top': 384, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 65, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_57.jpg', 'orig_size': [1024, 1024], 'tile_top': 384, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 253, 'tile_index_in_img': 23}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_292.jpg', 'orig_size': [665, 1024], 'tile_top': 384, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 214, 'tile_index_in_img': 22}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_149.jpg', 'orig_size': [683, 1024], 'tile_top': 256, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 55, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_42.jpg', 'orig_size': [667, 1000], 'tile_top': 256, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 237, 'tile_index_in_img': 18}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_136.jpg', 'orig_size': [500, 666], 'tile_top': 244, 'tile_left': 410, 'tile_size': [256, 256], 'img_index': 41, 'tile_index_in_img': 14}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_290.jpg', 'orig_size': [768, 1024], 'tile_top': 512, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 212, 'tile_index_in_img': 28}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_128.jpg', 'orig_size': [683, 1024], 'tile_top': 384, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 32, 'tile_index_in_img': 21}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_22.jpg', 'orig_size': [630, 961], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 134, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_296.jpg', 'orig_size': [685, 1024], 'tile_top': 128, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 218, 'tile_index_in_img': 10}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_227.jpg', 'orig_size': [405, 609], 'tile_top': 128, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 142, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_19.jpg', 'orig_size': [600, 900], 'tile_top': 0, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 100, 'tile_index_in_img': 4}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_46.jpg', 'orig_size': [663, 962], 'tile_top': 407, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 241, 'tile_index_in_img': 28}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_31.jpg', 'orig_size': [1024, 768], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 225, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_212.jpg', 'orig_size': [688, 1024], 'tile_top': 256, 'tile_left': 640, 'tile_size': [256, 256], 'img_index': 126, 'tile_index_in_img': 19}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_101.jpg', 'orig_size': [768, 1024], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 3, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_4.jpg', 'orig_size': [746, 1024], 'tile_top': 384, 'tile_left': 512, 'tile_size': [256, 256], 'img_index': 234, 'tile_index_in_img': 25}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_254.jpg', 'orig_size': [683, 1024], 'tile_top': 0, 'tile_left': 256, 'tile_size': [256, 256], 'img_index': 172, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_207.jpg', 'orig_size': [442, 650], 'tile_top': 186, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 120, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_271.jpg', 'orig_size': [438, 736], 'tile_top': 182, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 191, 'tile_index_in_img': 11}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_84.jpg', 'orig_size': [435, 1024], 'tile_top': 179, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 283, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_55.jpg', 'orig_size': [551, 1024], 'tile_top': 128, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 251, 'tile_index_in_img': 13}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_261.jpg', 'orig_size': [359, 478], 'tile_top': 0, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 180, 'tile_index_in_img': 0}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_157.jpg', 'orig_size': [450, 299], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 64, 'tile_index_in_img': 2}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_33.jpg', 'orig_size': [768, 1024], 'tile_top': 384, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 227, 'tile_index_in_img': 24}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_166.jpg', 'orig_size': [683, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 74, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_287.jpg', 'orig_size': [716, 1024], 'tile_top': 128, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 208, 'tile_index_in_img': 13}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_11.jpg', 'orig_size': [686, 1024], 'tile_top': 384, 'tile_left': 768, 'tile_size': [256, 256], 'img_index': 12, 'tile_index_in_img': 27}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_169.jpg', 'orig_size': [649, 800], 'tile_top': 393, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 77, 'tile_index_in_img': 27}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_121.jpg', 'orig_size': [373, 561], 'tile_top': 117, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 25, 'tile_index_in_img': 5}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_33.jpg', 'orig_size': [768, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 227, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_5.jpg', 'orig_size': [683, 1024], 'tile_top': 256, 'tile_left': 384, 'tile_size': [256, 256], 'img_index': 245, 'tile_index_in_img': 17}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_245.jpg', 'orig_size': [825, 1024], 'tile_top': 0, 'tile_left': 128, 'tile_size': [256, 256], 'img_index': 162, 'tile_index_in_img': 1}, {'image_path': 'C:\\Users\\qwert\\PycharmProjects\\pythonProject\\dataset\\ShanghaiTech\\part_A\\train_data\\images\\IMG_200.jpg', 'orig_size': [500, 760], 'tile_top': 128, 'tile_left': 0, 'tile_size': [256, 256], 'img_index': 113, 'tile_index_in_img': 5}]
+2025-09-08 00:21:17,123 [INFO] [val] loss=4.3951 Lcnt=80.4003 Lex=1.0109 Leps=0.0931 predCnt=134.68 gtCnt=63.60
+2025-09-08 00:21:17,123 [INFO] [val-top5]  pred=214.1 gt=746.0 err=531.9 |  pred=192.4 gt=477.0 err=284.6 |  pred=211.8 gt=486.0 err=274.2 |  pred=311.3 gt=581.0 err=269.7 |  pred=239.9 gt=503.0 err=263.1
+2025-09-08 00:21:17,124 [INFO] [Epoch 0001] train=14.8455  val=4.3951
+2025-09-08 00:22:35,946 [INFO] [val] loss=4.4838 Lcnt=70.5552 Lex=1.0865 Leps=0.0865 predCnt=123.36 gtCnt=63.59
+2025-09-08 00:22:35,947 [INFO] [val-top5]  pred=296.8 gt=746.0 err=449.2 |  pred=218.2 gt=581.0 err=362.8 |  pred=220.6 gt=571.0 err=350.4 |  pred=175.7 gt=484.0 err=308.3 |  pred=192.5 gt=471.0 err=278.5
+2025-09-08 00:22:35,948 [INFO] [Epoch 0002] train=13.1491  val=4.4838
+2025-09-08 00:23:51,758 [INFO] [val] loss=4.4388 Lcnt=78.1134 Lex=1.0346 Leps=0.0923 predCnt=132.93 gtCnt=63.81
+2025-09-08 00:23:51,759 [INFO] [val-top5]  pred=208.6 gt=581.0 err=372.4 |  pred=408.4 gt=746.0 err=337.6 |  pred=325.5 gt=649.0 err=323.5 |  pred=209.3 gt=500.0 err=290.7 |  pred=227.3 gt=503.0 err=275.7
+2025-09-08 00:23:51,759 [INFO] [Epoch 0003] train=12.9637  val=4.4388
+2025-09-08 00:25:08,213 [INFO] [val] loss=4.4393 Lcnt=76.6156 Lex=1.0251 Leps=0.0996 predCnt=130.61 gtCnt=63.63
+2025-09-08 00:25:08,214 [INFO] [val-top5]  pred=205.4 gt=649.0 err=443.6 |  pred=206.8 gt=581.0 err=374.2 |  pred=173.0 gt=484.0 err=311.0 |  pred=228.5 gt=535.0 err=306.5 |  pred=199.3 gt=496.0 err=296.7
+2025-09-08 00:25:08,214 [INFO] [Epoch 0004] train=12.9976  val=4.4393
+2025-09-08 00:26:25,633 [INFO] [val] loss=4.4694 Lcnt=90.1679 Lex=0.9792 Leps=0.1050 predCnt=145.97 gtCnt=63.59
+2025-09-08 00:26:25,634 [INFO] [val-top5]  pred=221.6 gt=746.0 err=524.4 |  pred=226.5 gt=649.0 err=422.5 |  pred=217.0 gt=503.0 err=286.0 |  pred=253.4 gt=535.0 err=281.6 |  pred=236.6 gt=484.0 err=247.4
+2025-09-08 00:26:25,634 [INFO] [Epoch 0005] train=12.8828  val=4.4694
+2025-09-08 00:27:44,496 [INFO] [val] loss=4.3881 Lcnt=80.2449 Lex=0.9977 Leps=0.0988 predCnt=134.70 gtCnt=63.56
+2025-09-08 00:27:44,497 [INFO] [val-top5]  pred=234.7 gt=649.0 err=414.3 |  pred=343.1 gt=746.0 err=402.9 |  pred=242.9 gt=571.0 err=328.1 |  pred=216.4 gt=535.0 err=318.6 |  pred=232.1 gt=503.0 err=270.9
+2025-09-08 00:27:44,497 [INFO] [Epoch 0006] train=13.0075  val=4.3881
+2025-09-08 00:29:00,486 [INFO] [val] loss=4.4857 Lcnt=78.4044 Lex=1.0258 Leps=0.1040 predCnt=134.39 gtCnt=63.41
+2025-09-08 00:29:00,487 [INFO] [val-top5]  pred=234.3 gt=535.0 err=300.7 |  pred=205.5 gt=500.0 err=294.5 |  pred=209.7 gt=486.0 err=276.3 |  pred=234.4 gt=484.0 err=249.6 |  pred=248.0 gt=496.0 err=248.0
+2025-09-08 00:29:00,487 [INFO] [Epoch 0007] train=12.8589  val=4.4857
+2025-09-08 00:30:16,208 [INFO] [val] loss=4.4064 Lcnt=74.6156 Lex=1.0179 Leps=0.1011 predCnt=129.58 gtCnt=63.51
+2025-09-08 00:30:16,209 [INFO] [val-top5]  pred=298.8 gt=649.0 err=350.2 |  pred=191.2 gt=496.0 err=304.8 |  pred=314.9 gt=581.0 err=266.1 |  pred=204.2 gt=454.0 err=249.8 |  pred=512.8 gt=746.0 err=233.2
+2025-09-08 00:30:16,209 [INFO] [Epoch 0008] train=12.8424  val=4.4064
+2025-09-08 00:31:32,903 [INFO] [val] loss=4.4736 Lcnt=73.6189 Lex=1.0408 Leps=0.1025 predCnt=128.76 gtCnt=63.51
+2025-09-08 00:31:32,904 [INFO] [val-top5]  pred=277.0 gt=649.0 err=372.0 |  pred=189.7 gt=496.0 err=306.3 |  pred=281.4 gt=581.0 err=299.6 |  pred=203.8 gt=503.0 err=299.2 |  pred=195.5 gt=477.0 err=281.5
+2025-09-08 00:31:32,904 [INFO] [Epoch 0009] train=12.8433  val=4.4736
+2025-09-08 00:32:49,583 [INFO] [val] loss=4.5642 Lcnt=79.5070 Lex=1.0383 Leps=0.1090 predCnt=134.91 gtCnt=63.56
+2025-09-08 00:32:49,584 [INFO] [val-top5]  pred=327.9 gt=746.0 err=418.1 |  pred=244.5 gt=649.0 err=404.5 |  pred=223.8 gt=571.0 err=347.2 |  pred=212.8 gt=496.0 err=283.2 |  pred=220.8 gt=484.0 err=263.2
+2025-09-08 00:32:49,584 [INFO] [Epoch 0010] train=12.8569  val=4.5642
+2025-09-08 00:34:06,539 [INFO] [val] loss=4.5270 Lcnt=84.6318 Lex=1.0034 Leps=0.1118 predCnt=141.02 gtCnt=63.68
+2025-09-08 00:34:06,539 [INFO] [val-top5]  pred=345.7 gt=649.0 err=303.3 |  pred=203.0 gt=486.0 err=283.0 |  pred=232.5 gt=503.0 err=270.5 |  pred=219.9 gt=471.0 err=251.1 |  pred=171.5 gt=420.0 err=248.5
+2025-09-08 00:34:06,540 [INFO] [Epoch 0011] train=12.7995  val=4.5270
+2025-09-08 00:35:23,618 [INFO] [val] loss=4.4633 Lcnt=67.1521 Lex=1.0785 Leps=0.0927 predCnt=120.92 gtCnt=63.50
+2025-09-08 00:35:23,619 [INFO] [val-top5]  pred=203.0 gt=484.0 err=281.0 |  pred=223.3 gt=503.0 err=279.7 |  pred=309.1 gt=581.0 err=271.9 |  pred=161.6 gt=420.0 err=258.4 |  pred=192.4 gt=433.0 err=240.6
+2025-09-08 00:35:23,619 [INFO] [Epoch 0012] train=12.8083  val=4.4633
+2025-09-08 00:36:38,941 [INFO] [val] loss=4.5814 Lcnt=73.4081 Lex=1.0688 Leps=0.1068 predCnt=127.93 gtCnt=63.61
+2025-09-08 00:36:38,941 [INFO] [val-top5]  pred=212.7 gt=571.0 err=358.3 |  pred=210.0 gt=484.0 err=274.0 |  pred=402.2 gt=649.0 err=246.8 |  pred=250.4 gt=486.0 err=235.6 |  pred=199.3 gt=428.0 err=228.7
+2025-09-08 00:36:38,942 [INFO] [Epoch 0013] train=12.7454  val=4.5814
+2025-09-08 00:37:54,724 [INFO] [val] loss=4.5212 Lcnt=69.7032 Lex=1.0457 Leps=0.1145 predCnt=122.93 gtCnt=63.51
+2025-09-08 00:37:54,725 [INFO] [val-top5]  pred=355.6 gt=746.0 err=390.4 |  pred=228.2 gt=581.0 err=352.8 |  pred=237.9 gt=535.0 err=297.1 |  pred=227.1 gt=496.0 err=268.9 |  pred=219.5 gt=484.0 err=264.5
+2025-09-08 00:37:54,725 [INFO] [Epoch 0014] train=12.8366  val=4.5212
+2025-09-08 00:39:10,420 [INFO] [val] loss=4.5724 Lcnt=72.0913 Lex=1.0653 Leps=0.1093 predCnt=125.60 gtCnt=63.55
+2025-09-08 00:39:10,420 [INFO] [val-top5]  pred=216.3 gt=746.0 err=529.7 |  pred=217.3 gt=581.0 err=363.7 |  pred=223.3 gt=535.0 err=311.7 |  pred=276.7 gt=571.0 err=294.3 |  pred=192.8 gt=484.0 err=291.2
+2025-09-08 00:39:10,421 [INFO] [Epoch 0015] train=12.8207  val=4.5724
+2025-09-08 00:40:26,514 [INFO] [val] loss=4.6097 Lcnt=74.7214 Lex=1.0629 Leps=0.1123 predCnt=128.40 gtCnt=63.68
+2025-09-08 00:40:26,515 [INFO] [val-top5]  pred=205.3 gt=649.0 err=443.7 |  pred=232.6 gt=571.0 err=338.4 |  pred=219.2 gt=535.0 err=315.8 |  pred=189.2 gt=503.0 err=313.8 |  pred=323.0 gt=581.0 err=258.0
+2025-09-08 00:40:26,516 [INFO] [Epoch 0016] train=12.8129  val=4.6097
+2025-09-08 00:41:43,290 [INFO] [val] loss=4.4686 Lcnt=72.7545 Lex=1.0280 Leps=0.1095 predCnt=127.76 gtCnt=63.61
+2025-09-08 00:41:43,291 [INFO] [val-top5]  pred=226.6 gt=581.0 err=354.4 |  pred=427.2 gt=746.0 err=318.8 |  pred=186.5 gt=496.0 err=309.5 |  pred=238.2 gt=535.0 err=296.8 |  pred=208.6 gt=484.0 err=275.4
+2025-09-08 00:41:43,291 [INFO] [Epoch 0017] train=12.7436  val=4.4686
+2025-09-08 00:42:59,812 [INFO] [val] loss=4.5199 Lcnt=76.8231 Lex=1.0310 Leps=0.1098 predCnt=132.38 gtCnt=63.61
+2025-09-08 00:42:59,812 [INFO] [val-top5]  pred=232.4 gt=581.0 err=348.6 |  pred=425.9 gt=746.0 err=320.1 |  pred=270.4 gt=571.0 err=300.6 |  pred=217.1 gt=496.0 err=278.9 |  pred=229.8 gt=486.0 err=256.2
+2025-09-08 00:42:59,813 [INFO] [Epoch 0018] train=12.7833  val=4.5199
+2025-09-08 00:44:15,361 [INFO] [val] loss=4.5400 Lcnt=72.1940 Lex=1.0395 Leps=0.1166 predCnt=126.03 gtCnt=63.55
+2025-09-08 00:44:15,362 [INFO] [val-top5]  pred=192.4 gt=477.0 err=284.6 |  pred=200.2 gt=484.0 err=283.8 |  pred=203.3 gt=486.0 err=282.7 |  pred=230.5 gt=484.0 err=253.5 |  pred=167.1 gt=420.0 err=252.9
+2025-09-08 00:44:15,362 [INFO] [Epoch 0019] train=12.7801  val=4.5400
+2025-09-08 00:45:32,188 [INFO] [val] loss=4.5495 Lcnt=75.6218 Lex=1.0407 Leps=0.1118 predCnt=130.71 gtCnt=63.65
+2025-09-08 00:45:32,189 [INFO] [val-top5]  pred=222.6 gt=746.0 err=523.4 |  pred=291.5 gt=649.0 err=357.5 |  pred=224.6 gt=535.0 err=310.4 |  pred=254.2 gt=496.0 err=241.8 |  pred=244.5 gt=471.0 err=226.5
+2025-09-08 00:45:32,189 [INFO] [Epoch 0020] train=12.7694  val=4.5495
+2025-09-08 00:46:48,246 [INFO] [val] loss=4.5512 Lcnt=71.1652 Lex=1.0378 Leps=0.1210 predCnt=124.44 gtCnt=63.64
+2025-09-08 00:46:48,247 [INFO] [val-top5]  pred=248.1 gt=649.0 err=400.9 |  pred=221.1 gt=581.0 err=359.9 |  pred=225.8 gt=571.0 err=345.2 |  pred=213.4 gt=535.0 err=321.6 |  pred=438.5 gt=746.0 err=307.5
+2025-09-08 00:46:48,247 [INFO] [Epoch 0021] train=12.6667  val=4.5512
+2025-09-08 00:48:04,031 [INFO] [val] loss=4.6429 Lcnt=93.3061 Lex=0.9743 Leps=0.1311 predCnt=151.81 gtCnt=63.52
+2025-09-08 00:48:04,032 [INFO] [val-top5]  pred=388.1 gt=746.0 err=357.9 |  pred=239.4 gt=10.0 err=229.4 |  pred=342.7 gt=571.0 err=228.3 |  pred=228.4 gt=2.0 err=226.4 |  pred=239.0 gt=13.0 err=226.0
+2025-09-08 00:48:04,032 [INFO] [Epoch 0022] train=12.6744  val=4.6429
+2025-09-08 00:49:19,609 [INFO] [val] loss=4.6862 Lcnt=69.5598 Lex=1.1125 Leps=0.1089 predCnt=124.02 gtCnt=63.59
+2025-09-08 00:49:19,610 [INFO] [val-top5]  pred=223.2 gt=746.0 err=522.8 |  pred=234.6 gt=581.0 err=346.4 |  pred=192.6 gt=535.0 err=342.4 |  pred=198.9 gt=503.0 err=304.1 |  pred=194.8 gt=454.0 err=259.2
+2025-09-08 00:49:19,610 [INFO] [Epoch 0023] train=12.7177  val=4.6862
+2025-09-08 00:50:36,622 [INFO] [val] loss=4.6192 Lcnt=66.6314 Lex=1.0836 Leps=0.1170 predCnt=120.43 gtCnt=63.63
+2025-09-08 00:50:36,622 [INFO] [val-top5]  pred=188.7 gt=746.0 err=557.3 |  pred=174.3 gt=496.0 err=321.7 |  pred=165.1 gt=486.0 err=320.9 |  pred=169.0 gt=477.0 err=308.0 |  pred=179.4 gt=484.0 err=304.6
+2025-09-08 00:50:36,623 [INFO] [Epoch 0024] train=12.7697  val=4.6192
+2025-09-08 00:51:53,760 [INFO] [val] loss=4.6573 Lcnt=72.4882 Lex=1.0739 Leps=0.1185 predCnt=126.10 gtCnt=63.71
+2025-09-08 00:51:53,760 [INFO] [val-top5]  pred=232.4 gt=746.0 err=513.6 |  pred=248.0 gt=649.0 err=401.0 |  pred=196.0 gt=581.0 err=385.0 |  pred=223.0 gt=571.0 err=348.0 |  pred=192.9 gt=535.0 err=342.1
+2025-09-08 00:51:53,761 [INFO] [Epoch 0025] train=12.6643  val=4.6573
+2025-09-08 00:53:09,176 [INFO] [val] loss=4.6477 Lcnt=73.3718 Lex=1.0617 Leps=0.1215 predCnt=128.41 gtCnt=63.48
+2025-09-08 00:53:09,177 [INFO] [val-top5]  pred=200.1 gt=746.0 err=545.9 |  pred=208.8 gt=649.0 err=440.2 |  pred=184.5 gt=486.0 err=301.5 |  pred=195.1 gt=484.0 err=288.9 |  pred=211.6 gt=471.0 err=259.4
+2025-09-08 00:53:09,177 [INFO] [Epoch 0026] train=12.7045  val=4.6477
+2025-09-08 00:54:24,777 [INFO] [val] loss=4.6197 Lcnt=65.6920 Lex=1.0816 Leps=0.1196 predCnt=118.48 gtCnt=63.68
+2025-09-08 00:54:24,777 [INFO] [val-top5]  pred=218.0 gt=746.0 err=528.0 |  pred=274.4 gt=649.0 err=374.6 |  pred=179.9 gt=503.0 err=323.1 |  pred=213.1 gt=477.0 err=263.9 |  pred=234.5 gt=484.0 err=249.5
+2025-09-08 00:54:24,778 [INFO] [Epoch 0027] train=12.7181  val=4.6197
+2025-09-08 00:55:41,101 [INFO] [val] loss=4.6712 Lcnt=84.4537 Lex=1.0108 Leps=0.1323 predCnt=141.50 gtCnt=63.60
+2025-09-08 00:55:41,101 [INFO] [val-top5]  pred=366.1 gt=746.0 err=379.9 |  pred=216.4 gt=581.0 err=364.6 |  pred=211.5 gt=571.0 err=359.5 |  pred=255.8 gt=535.0 err=279.2 |  pred=377.5 gt=649.0 err=271.5
+2025-09-08 00:55:41,102 [INFO] [Epoch 0028] train=12.7357  val=4.6712
+2025-09-08 00:56:57,523 [INFO] [val] loss=4.5481 Lcnt=68.1792 Lex=1.0427 Leps=0.1230 predCnt=121.22 gtCnt=63.47
+2025-09-08 00:56:57,523 [INFO] [val-top5]  pred=240.7 gt=746.0 err=505.3 |  pred=251.0 gt=649.0 err=398.0 |  pred=212.7 gt=581.0 err=368.3 |  pred=192.6 gt=496.0 err=303.4 |  pred=217.8 gt=503.0 err=285.2
+2025-09-08 00:56:57,524 [INFO] [Epoch 0029] train=12.6408  val=4.5481
+2025-09-08 00:58:13,990 [INFO] [val] loss=4.6507 Lcnt=73.8867 Lex=1.0468 Leps=0.1286 predCnt=129.69 gtCnt=63.66
+2025-09-08 00:58:13,991 [INFO] [val-top5]  pred=191.3 gt=535.0 err=343.7 |  pred=182.8 gt=500.0 err=317.2 |  pred=198.1 gt=477.0 err=278.9 |  pred=206.6 gt=484.0 err=277.4 |  pred=231.8 gt=486.0 err=254.2
+2025-09-08 00:58:13,991 [INFO] [Epoch 0030] train=12.7502  val=4.6507
+2025-09-08 00:59:30,846 [INFO] [val] loss=4.7859 Lcnt=73.6793 Lex=1.0657 Leps=0.1420 predCnt=129.01 gtCnt=63.45
+2025-09-08 00:59:30,847 [INFO] [val-top5]  pred=279.6 gt=649.0 err=369.4 |  pred=427.8 gt=746.0 err=318.2 |  pred=195.1 gt=484.0 err=288.9 |  pred=204.2 gt=486.0 err=281.8 |  pred=199.2 gt=420.0 err=220.8
+2025-09-08 00:59:30,847 [INFO] [Epoch 0031] train=12.7500  val=4.7859
+2025-09-08 01:00:46,643 [INFO] [val] loss=4.6311 Lcnt=76.3846 Lex=1.0214 Leps=0.1338 predCnt=133.97 gtCnt=63.64
+2025-09-08 01:00:46,643 [INFO] [val-top5]  pred=292.2 gt=649.0 err=356.8 |  pred=265.2 gt=571.0 err=305.8 |  pred=236.7 gt=535.0 err=298.3 |  pred=231.5 gt=484.0 err=252.5 |  pred=247.6 gt=484.0 err=236.4
+2025-09-08 01:00:46,644 [INFO] [Epoch 0032] train=12.7667  val=4.6311
+2025-09-08 01:02:03,668 [INFO] [val] loss=4.7707 Lcnt=67.8982 Lex=1.1107 Leps=0.1266 predCnt=122.69 gtCnt=63.55
+2025-09-08 01:02:03,669 [INFO] [val-top5]  pred=243.2 gt=746.0 err=502.8 |  pred=195.3 gt=571.0 err=375.7 |  pred=193.4 gt=535.0 err=341.6 |  pred=180.4 gt=486.0 err=305.6 |  pred=169.9 gt=420.0 err=250.1
+2025-09-08 01:02:03,669 [INFO] [Epoch 0033] train=12.7557  val=4.7707
+2025-09-08 01:03:20,426 [INFO] [val] loss=4.6341 Lcnt=76.5959 Lex=1.0115 Leps=0.1389 predCnt=132.89 gtCnt=63.55
+2025-09-08 01:03:20,426 [INFO] [val-top5]  pred=372.2 gt=649.0 err=276.8 |  pred=260.4 gt=535.0 err=274.6 |  pred=234.1 gt=503.0 err=268.9 |  pred=478.5 gt=746.0 err=267.5 |  pred=326.1 gt=581.0 err=254.9
+2025-09-08 01:03:20,427 [INFO] [Epoch 0034] train=12.7154  val=4.6341
+2025-09-08 01:04:36,368 [INFO] [val] loss=4.7580 Lcnt=81.6261 Lex=1.0120 Leps=0.1509 predCnt=138.21 gtCnt=63.62
+2025-09-08 01:04:36,369 [INFO] [val-top5]  pred=234.9 gt=571.0 err=336.1 |  pred=245.2 gt=496.0 err=250.8 |  pred=339.5 gt=581.0 err=241.5 |  pred=252.8 gt=486.0 err=233.2 |  pred=243.6 gt=471.0 err=227.4
+2025-09-08 01:04:36,369 [INFO] [Epoch 0035] train=12.6892  val=4.7580
+2025-09-08 01:05:52,670 [INFO] [val] loss=4.6724 Lcnt=69.9727 Lex=1.0626 Leps=0.1308 predCnt=125.65 gtCnt=63.45
+2025-09-08 01:05:52,670 [INFO] [val-top5]  pred=279.2 gt=649.0 err=369.8 |  pred=228.8 gt=571.0 err=342.2 |  pred=262.3 gt=581.0 err=318.7 |  pred=225.3 gt=500.0 err=274.7 |  pred=183.7 gt=428.0 err=244.3
+2025-09-08 01:05:52,671 [INFO] [Epoch 0036] train=12.6790  val=4.6724
+2025-09-08 01:07:08,126 [INFO] [val] loss=4.7068 Lcnt=65.1906 Lex=1.0953 Leps=0.1282 predCnt=119.45 gtCnt=63.54
+2025-09-08 01:07:08,127 [INFO] [val-top5]  pred=218.6 gt=571.0 err=352.4 |  pred=254.8 gt=581.0 err=326.2 |  pred=225.7 gt=503.0 err=277.3 |  pred=227.2 gt=500.0 err=272.8 |  pred=179.3 gt=428.0 err=248.7
+2025-09-08 01:07:08,127 [INFO] [Epoch 0037] train=12.6137  val=4.7068
+2025-09-08 01:08:24,712 [INFO] [val] loss=4.6220 Lcnt=78.0551 Lex=1.0001 Leps=0.1402 predCnt=133.63 gtCnt=63.57
+2025-09-08 01:08:24,713 [INFO] [val-top5]  pred=234.3 gt=746.0 err=511.7 |  pred=327.2 gt=649.0 err=321.8 |  pred=259.2 gt=571.0 err=311.8 |  pred=204.8 gt=500.0 err=295.2 |  pred=248.2 gt=486.0 err=237.8
+2025-09-08 01:08:24,713 [INFO] [Epoch 0038] train=12.7598  val=4.6220
+2025-09-08 01:09:40,793 [INFO] [val] loss=4.7236 Lcnt=81.1074 Lex=1.0164 Leps=0.1439 predCnt=138.09 gtCnt=63.48
+2025-09-08 01:09:40,794 [INFO] [val-top5]  pred=278.8 gt=746.0 err=467.2 |  pred=351.6 gt=649.0 err=297.4 |  pred=296.4 gt=581.0 err=284.6 |  pred=328.5 gt=571.0 err=242.5 |  pred=302.8 gt=535.0 err=232.2
+2025-09-08 01:09:40,795 [INFO] [Epoch 0039] train=12.6714  val=4.7236
+2025-09-08 01:10:55,544 [INFO] [val] loss=4.8283 Lcnt=74.6870 Lex=1.0724 Leps=0.1440 predCnt=129.95 gtCnt=63.66
+2025-09-08 01:10:55,545 [INFO] [val-top5]  pred=325.7 gt=746.0 err=420.3 |  pred=228.9 gt=503.0 err=274.1 |  pred=213.0 gt=486.0 err=273.0 |  pred=263.5 gt=535.0 err=271.5 |  pred=227.2 gt=484.0 err=256.8
+2025-09-08 01:10:55,545 [INFO] [Epoch 0040] train=12.6478  val=4.8283
+2025-09-08 01:12:11,526 [INFO] [val] loss=4.6714 Lcnt=74.1551 Lex=1.0207 Leps=0.1446 predCnt=130.16 gtCnt=63.57
+2025-09-08 01:12:11,526 [INFO] [val-top5]  pred=253.0 gt=746.0 err=493.0 |  pred=278.6 gt=581.0 err=302.4 |  pred=226.7 gt=486.0 err=259.3 |  pred=246.6 gt=496.0 err=249.4 |  pred=271.0 gt=503.0 err=232.0
+2025-09-08 01:12:11,527 [INFO] [Epoch 0041] train=12.7039  val=4.6714
+2025-09-08 01:13:28,124 [INFO] [val] loss=4.7685 Lcnt=78.8608 Lex=1.0418 Leps=0.1424 predCnt=135.93 gtCnt=63.56
+2025-09-08 01:13:28,125 [INFO] [val-top5]  pred=274.4 gt=581.0 err=306.6 |  pred=227.7 gt=477.0 err=249.3 |  pred=255.7 gt=503.0 err=247.3 |  pred=403.3 gt=649.0 err=245.7 |  pred=265.3 gt=484.0 err=218.7
+2025-09-08 01:13:28,125 [INFO] [Epoch 0042] train=12.6855  val=4.7685
+2025-09-08 01:14:45,289 [INFO] [val] loss=4.7023 Lcnt=76.2973 Lex=1.0271 Leps=0.1430 predCnt=132.66 gtCnt=63.66
+2025-09-08 01:14:45,289 [INFO] [val-top5]  pred=342.7 gt=746.0 err=403.3 |  pred=286.1 gt=571.0 err=284.9 |  pred=233.0 gt=500.0 err=267.0 |  pred=401.8 gt=649.0 err=247.2 |  pred=257.3 gt=496.0 err=238.7
+2025-09-08 01:14:45,290 [INFO] [Epoch 0043] train=12.6836  val=4.7023
+2025-09-08 01:16:01,985 [INFO] [val] loss=4.8494 Lcnt=72.8317 Lex=1.0603 Leps=0.1567 predCnt=130.66 gtCnt=63.67
+2025-09-08 01:16:01,986 [INFO] [val-top5]  pred=297.5 gt=571.0 err=273.5 |  pred=216.3 gt=486.0 err=269.7 |  pred=237.8 gt=503.0 err=265.2 |  pred=251.2 gt=500.0 err=248.8 |  pred=290.4 gt=535.0 err=244.6
+2025-09-08 01:16:01,986 [INFO] [Epoch 0044] train=12.5957  val=4.8494
+2025-09-08 01:17:18,033 [INFO] [val] loss=4.6737 Lcnt=66.1396 Lex=1.0649 Leps=0.1363 predCnt=120.82 gtCnt=63.65
+2025-09-08 01:17:18,034 [INFO] [val-top5]  pred=203.0 gt=500.0 err=297.0 |  pred=204.6 gt=496.0 err=291.4 |  pred=213.4 gt=503.0 err=289.6 |  pred=207.8 gt=484.0 err=276.2 |  pred=214.1 gt=484.0 err=269.9
+2025-09-08 01:17:18,034 [INFO] [Epoch 0045] train=12.6506  val=4.6737
+2025-09-08 01:18:33,415 [INFO] [val] loss=4.7513 Lcnt=73.6025 Lex=1.0267 Leps=0.1559 predCnt=131.31 gtCnt=63.66
+2025-09-08 01:18:33,415 [INFO] [val-top5]  pred=233.3 gt=496.0 err=262.7 |  pred=225.4 gt=477.0 err=251.6 |  pred=295.9 gt=500.0 err=204.1 |  pred=206.5 gt=6.0 err=200.5 |  pred=285.8 gt=484.0 err=198.2
+2025-09-08 01:18:33,416 [INFO] [Epoch 0046] train=12.6466  val=4.7513
+2025-09-08 01:19:49,313 [INFO] [val] loss=4.7724 Lcnt=70.0404 Lex=1.0821 Leps=0.1376 predCnt=125.55 gtCnt=63.38
+2025-09-08 01:19:49,314 [INFO] [val-top5]  pred=256.5 gt=581.0 err=324.5 |  pred=332.5 gt=649.0 err=316.5 |  pred=255.2 gt=571.0 err=315.8 |  pred=222.6 gt=486.0 err=263.4 |  pred=227.1 gt=484.0 err=256.9
+2025-09-08 01:19:49,314 [INFO] [Epoch 0047] train=12.6986  val=4.7724
+2025-09-08 01:21:04,239 [INFO] [val] loss=4.7721 Lcnt=78.7850 Lex=1.0344 Leps=0.1469 predCnt=135.74 gtCnt=63.62
+2025-09-08 01:21:04,239 [INFO] [val-top5]  pred=284.8 gt=581.0 err=296.2 |  pred=364.6 gt=649.0 err=284.4 |  pred=212.4 gt=486.0 err=273.6 |  pred=208.9 gt=477.0 err=268.1 |  pred=229.3 gt=484.0 err=254.7
+2025-09-08 01:21:04,240 [INFO] [Epoch 0048] train=12.6524  val=4.7721
+2025-09-08 01:22:20,930 [INFO] [val] loss=4.6081 Lcnt=72.7317 Lex=1.0022 Leps=0.1457 predCnt=129.27 gtCnt=63.66
+2025-09-08 01:22:20,931 [INFO] [val-top5]  pred=223.6 gt=486.0 err=262.4 |  pred=485.4 gt=746.0 err=260.6 |  pred=330.3 gt=581.0 err=250.7 |  pred=255.1 gt=496.0 err=240.9 |  pred=250.3 gt=484.0 err=233.7
+2025-09-08 01:22:20,931 [INFO] [Epoch 0049] train=12.6025  val=4.6081
+2025-09-08 01:23:35,939 [INFO] [val] loss=4.7556 Lcnt=69.6254 Lex=1.0773 Leps=0.1379 predCnt=125.68 gtCnt=63.61
+2025-09-08 01:23:35,939 [INFO] [val-top5]  pred=234.0 gt=535.0 err=301.0 |  pred=230.0 gt=486.0 err=256.0 |  pred=254.4 gt=484.0 err=229.6 |  pred=273.5 gt=500.0 err=226.5 |  pred=436.1 gt=649.0 err=212.9
+2025-09-08 01:23:35,940 [INFO] [Epoch 0050] train=12.6465  val=4.7556
+2025-09-08 01:24:51,620 [INFO] [val] loss=4.6139 Lcnt=73.7185 Lex=1.0178 Leps=0.1372 predCnt=130.63 gtCnt=63.59
+2025-09-08 01:24:51,620 [INFO] [val-top5]  pred=371.4 gt=649.0 err=277.6 |  pred=485.3 gt=746.0 err=260.7 |  pred=243.1 gt=477.0 err=233.9 |  pred=348.8 gt=571.0 err=222.2 |  pred=382.1 gt=581.0 err=198.9
+2025-09-08 01:24:51,621 [INFO] [Epoch 0051] train=12.7101  val=4.6139
+2025-09-08 01:26:08,274 [INFO] [val] loss=4.6925 Lcnt=76.2018 Lex=1.0357 Leps=0.1372 predCnt=133.27 gtCnt=63.61
+2025-09-08 01:26:08,275 [INFO] [val-top5]  pred=409.0 gt=746.0 err=337.0 |  pred=259.2 gt=535.0 err=275.8 |  pred=256.8 gt=496.0 err=239.2 |  pred=183.2 gt=420.0 err=236.8 |  pred=267.3 gt=484.0 err=216.7
+2025-09-08 01:26:08,275 [INFO] [Epoch 0052] train=12.6053  val=4.6925
+2025-09-08 01:27:24,927 [INFO] [val] loss=4.7018 Lcnt=70.9753 Lex=1.0472 Leps=0.1418 predCnt=126.36 gtCnt=63.34
+2025-09-08 01:27:24,928 [INFO] [val-top5]  pred=228.9 gt=535.0 err=306.1 |  pred=216.3 gt=496.0 err=279.7 |  pred=211.3 gt=477.0 err=265.7 |  pred=245.1 gt=503.0 err=257.9 |  pred=222.6 gt=433.0 err=210.4
+2025-09-08 01:27:24,928 [INFO] [Epoch 0053] train=12.6422  val=4.7018
+2025-09-08 01:28:42,170 [INFO] [val] loss=4.7823 Lcnt=74.2431 Lex=1.0528 Leps=0.1469 predCnt=131.26 gtCnt=63.62
+2025-09-08 01:28:42,170 [INFO] [val-top5]  pred=246.9 gt=581.0 err=334.1 |  pred=190.2 gt=486.0 err=295.8 |  pred=268.8 gt=535.0 err=266.2 |  pred=194.3 gt=428.0 err=233.7 |  pred=424.7 gt=649.0 err=224.3
+2025-09-08 01:28:42,171 [INFO] [Epoch 0054] train=12.6671  val=4.7823
+2025-09-08 01:29:59,144 [INFO] [val] loss=4.6903 Lcnt=66.5214 Lex=1.0746 Leps=0.1335 predCnt=121.09 gtCnt=63.83
+2025-09-08 01:29:59,144 [INFO] [val-top5]  pred=367.8 gt=746.0 err=378.2 |  pred=203.5 gt=535.0 err=331.5 |  pred=253.1 gt=581.0 err=327.9 |  pred=206.2 gt=486.0 err=279.8 |  pred=268.5 gt=503.0 err=234.5
+2025-09-08 01:29:59,145 [INFO] [Epoch 0055] train=12.5805  val=4.6903
+2025-09-08 01:31:15,081 [INFO] [val] loss=4.7697 Lcnt=74.2230 Lex=1.0493 Leps=0.1466 predCnt=131.73 gtCnt=63.56
+2025-09-08 01:31:15,082 [INFO] [val-top5]  pred=408.3 gt=649.0 err=240.7 |  pred=250.2 gt=484.0 err=233.8 |  pred=270.0 gt=496.0 err=226.0 |  pred=262.0 gt=486.0 err=224.0 |  pred=207.8 gt=420.0 err=212.2
+2025-09-08 01:31:15,082 [INFO] [Epoch 0056] train=12.5179  val=4.7697
+2025-09-08 01:32:31,823 [INFO] [val] loss=4.7481 Lcnt=70.7193 Lex=1.0671 Leps=0.1399 predCnt=125.38 gtCnt=63.42
+2025-09-08 01:32:31,823 [INFO] [val-top5]  pred=242.1 gt=535.0 err=292.9 |  pred=457.7 gt=746.0 err=288.3 |  pred=209.1 gt=484.0 err=274.9 |  pred=232.6 gt=496.0 err=263.4 |  pred=245.6 gt=500.0 err=254.4
+2025-09-08 01:32:31,824 [INFO] [Epoch 0057] train=12.6336  val=4.7481
+2025-09-08 01:33:48,357 [INFO] [val] loss=4.6778 Lcnt=73.1871 Lex=1.0424 Leps=0.1364 predCnt=129.81 gtCnt=63.38
+2025-09-08 01:33:48,358 [INFO] [val-top5]  pred=240.4 gt=535.0 err=294.6 |  pred=371.1 gt=649.0 err=277.9 |  pred=217.1 gt=486.0 err=268.9 |  pred=219.3 gt=477.0 err=257.7 |  pred=249.3 gt=503.0 err=253.7
+2025-09-08 01:33:48,358 [INFO] [Epoch 0058] train=12.6080  val=4.6778
+2025-09-08 01:35:03,860 [INFO] [val] loss=4.7915 Lcnt=68.5356 Lex=1.1052 Leps=0.1318 predCnt=124.00 gtCnt=63.68
+2025-09-08 01:35:03,860 [INFO] [val-top5]  pred=269.7 gt=581.0 err=311.3 |  pred=235.9 gt=486.0 err=250.1 |  pred=194.1 gt=428.0 err=233.9 |  pred=309.0 gt=535.0 err=226.0 |  pred=350.6 gt=571.0 err=220.4
+2025-09-08 01:35:03,861 [INFO] [Epoch 0059] train=12.6051  val=4.7915
+2025-09-08 01:36:20,070 [INFO] [val] loss=4.7214 Lcnt=68.2545 Lex=1.0980 Leps=0.1242 predCnt=123.34 gtCnt=63.60
+2025-09-08 01:36:20,070 [INFO] [val-top5]  pred=246.9 gt=535.0 err=288.1 |  pred=189.1 gt=477.0 err=287.9 |  pred=217.1 gt=500.0 err=282.9 |  pred=243.5 gt=486.0 err=242.5 |  pred=185.9 gt=428.0 err=242.1
+2025-09-08 01:36:20,071 [INFO] [Epoch 0060] train=12.6368  val=4.7214
+2025-09-08 01:37:36,788 [INFO] [val] loss=4.7859 Lcnt=77.7004 Lex=1.0460 Leps=0.1452 predCnt=133.47 gtCnt=63.57
+2025-09-08 01:37:36,789 [INFO] [val-top5]  pred=307.9 gt=746.0 err=438.1 |  pred=296.8 gt=581.0 err=284.2 |  pred=307.5 gt=571.0 err=263.5 |  pred=389.5 gt=649.0 err=259.5 |  pred=219.6 gt=477.0 err=257.4
+2025-09-08 01:37:36,789 [INFO] [Epoch 0061] train=12.6195  val=4.7859
+2025-09-08 01:38:53,531 [INFO] [val] loss=4.6334 Lcnt=71.2648 Lex=1.0317 Leps=0.1376 predCnt=128.55 gtCnt=63.63
+2025-09-08 01:38:53,531 [INFO] [val-top5]  pred=294.6 gt=746.0 err=451.4 |  pred=203.1 gt=477.0 err=273.9 |  pred=233.9 gt=496.0 err=262.1 |  pred=250.3 gt=484.0 err=233.7 |  pred=276.1 gt=486.0 err=209.9
+2025-09-08 01:38:53,532 [INFO] [Epoch 0062] train=12.6629  val=4.6334
+2025-09-08 01:40:09,605 [INFO] [val] loss=4.8020 Lcnt=72.3249 Lex=1.0742 Leps=0.1427 predCnt=128.45 gtCnt=63.63
+2025-09-08 01:40:09,606 [INFO] [val-top5]  pred=204.2 gt=477.0 err=272.8 |  pred=377.0 gt=649.0 err=272.0 |  pred=242.1 gt=503.0 err=260.9 |  pred=241.8 gt=500.0 err=258.2 |  pred=233.0 gt=486.0 err=253.0
+2025-09-08 01:40:09,606 [INFO] [Epoch 0063] train=12.6677  val=4.8020
+2025-09-08 01:41:25,081 [INFO] [val] loss=4.7524 Lcnt=79.4180 Lex=1.0358 Leps=0.1418 predCnt=137.80 gtCnt=63.72
+2025-09-08 01:41:25,082 [INFO] [val-top5]  pred=392.5 gt=746.0 err=353.5 |  pred=228.1 gt=486.0 err=257.9 |  pred=246.9 gt=477.0 err=230.1 |  pred=309.8 gt=535.0 err=225.2 |  pred=222.1 gt=12.0 err=210.1
+2025-09-08 01:41:25,082 [INFO] [Epoch 0064] train=12.5899  val=4.7524
+2025-09-08 01:42:41,225 [INFO] [val] loss=4.6134 Lcnt=76.3515 Lex=0.9938 Leps=0.1447 predCnt=134.06 gtCnt=63.63
+2025-09-08 01:42:41,225 [INFO] [val-top5]  pred=242.2 gt=535.0 err=292.8 |  pred=221.1 gt=486.0 err=264.9 |  pred=354.6 gt=571.0 err=216.4 |  pred=207.5 gt=5.0 err=202.5 |  pred=205.3 gt=4.0 err=201.3
+2025-09-08 01:42:41,226 [INFO] [Epoch 0065] train=12.6827  val=4.6134
+2025-09-08 01:43:57,571 [INFO] [val] loss=4.7350 Lcnt=71.6823 Lex=1.0694 Leps=0.1350 predCnt=127.29 gtCnt=63.48
+2025-09-08 01:43:57,571 [INFO] [val-top5]  pred=336.9 gt=746.0 err=409.1 |  pred=255.1 gt=535.0 err=279.9 |  pred=201.0 gt=477.0 err=276.0 |  pred=216.1 gt=486.0 err=269.9 |  pred=263.0 gt=503.0 err=240.0
+2025-09-08 01:43:57,572 [INFO] [Epoch 0066] train=12.6419  val=4.7350
+2025-09-08 01:45:14,024 [INFO] [val] loss=4.7495 Lcnt=71.2357 Lex=1.0624 Leps=0.1417 predCnt=127.97 gtCnt=63.51
+2025-09-08 01:45:14,024 [INFO] [val-top5]  pred=249.0 gt=500.0 err=251.0 |  pred=235.0 gt=477.0 err=242.0 |  pred=264.8 gt=503.0 err=238.2 |  pred=197.2 gt=428.0 err=230.8 |  pred=259.7 gt=486.0 err=226.3
+2025-09-08 01:45:14,025 [INFO] [Epoch 0067] train=12.5812  val=4.7495
+2025-09-08 01:46:29,673 [INFO] [val] loss=4.6730 Lcnt=76.9555 Lex=1.0407 Leps=0.1302 predCnt=133.10 gtCnt=63.50
+2025-09-08 01:46:29,673 [INFO] [val-top5]  pred=295.4 gt=746.0 err=450.6 |  pred=287.7 gt=535.0 err=247.3 |  pred=226.9 gt=428.0 err=201.1 |  pred=198.6 gt=3.0 err=195.6 |  pred=198.3 gt=3.0 err=195.3
+2025-09-08 01:46:29,674 [INFO] [Epoch 0068] train=12.6387  val=4.6730
+2025-09-08 01:47:46,845 [INFO] [val] loss=4.7620 Lcnt=82.0831 Lex=1.0309 Leps=0.1414 predCnt=140.93 gtCnt=63.63
+2025-09-08 01:47:46,846 [INFO] [val-top5]  pred=340.7 gt=746.0 err=405.3 |  pred=235.6 gt=477.0 err=241.4 |  pred=263.8 gt=484.0 err=220.2 |  pred=203.2 gt=3.0 err=200.2 |  pred=200.0 gt=0.0 err=200.0
+2025-09-08 01:47:46,846 [INFO] [Epoch 0069] train=12.7070  val=4.7620
+2025-09-08 01:49:02,349 [INFO] [val] loss=4.7335 Lcnt=75.1066 Lex=1.0411 Leps=0.1432 predCnt=132.72 gtCnt=63.59
+2025-09-08 01:49:02,349 [INFO] [val-top5]  pred=237.3 gt=500.0 err=262.7 |  pred=243.6 gt=486.0 err=242.4 |  pred=217.9 gt=428.0 err=210.1 |  pred=203.5 gt=4.0 err=199.5 |  pred=205.2 gt=6.0 err=199.2
+2025-09-08 01:49:02,350 [INFO] [Epoch 0070] train=12.6486  val=4.7335
+2025-09-08 01:50:18,170 [INFO] [val] loss=4.7759 Lcnt=82.7638 Lex=1.0229 Leps=0.1466 predCnt=142.92 gtCnt=63.60
+2025-09-08 01:50:18,170 [INFO] [val-top5]  pred=437.8 gt=746.0 err=308.2 |  pred=233.9 gt=486.0 err=252.1 |  pred=226.5 gt=477.0 err=250.5 |  pred=209.9 gt=0.0 err=209.9 |  pred=212.4 gt=12.0 err=200.4
+2025-09-08 01:50:18,171 [INFO] [Epoch 0071] train=12.5281  val=4.7759
+2025-09-08 01:51:35,737 [INFO] [val] loss=4.8294 Lcnt=82.4776 Lex=1.0407 Leps=0.1471 predCnt=140.40 gtCnt=63.51
+2025-09-08 01:51:35,737 [INFO] [val-top5]  pred=230.1 gt=477.0 err=246.9 |  pred=500.2 gt=746.0 err=245.8 |  pred=292.7 gt=535.0 err=242.3 |  pred=298.5 gt=500.0 err=201.5 |  pred=202.3 gt=2.0 err=200.3
+2025-09-08 01:51:35,738 [INFO] [Epoch 0072] train=12.6734  val=4.8294
+2025-09-08 01:52:51,742 [INFO] [val] loss=4.5982 Lcnt=74.3247 Lex=1.0297 Leps=0.1276 predCnt=132.06 gtCnt=63.53
+2025-09-08 01:52:51,742 [INFO] [val-top5]  pred=354.4 gt=649.0 err=294.6 |  pred=300.3 gt=581.0 err=280.7 |  pred=212.3 gt=486.0 err=273.7 |  pred=304.7 gt=496.0 err=191.3 |  pred=194.1 gt=4.0 err=190.1
+2025-09-08 01:52:51,743 [INFO] [Epoch 0073] train=12.5899  val=4.5982
+2025-09-08 01:54:08,374 [INFO] [val] loss=4.7291 Lcnt=79.0148 Lex=1.0326 Leps=0.1402 predCnt=136.89 gtCnt=63.66
+2025-09-08 01:54:08,375 [INFO] [val-top5]  pred=418.6 gt=746.0 err=327.4 |  pred=306.5 gt=581.0 err=274.5 |  pred=395.7 gt=649.0 err=253.3 |  pred=261.3 gt=484.0 err=222.7 |  pred=362.3 gt=571.0 err=208.7
+2025-09-08 01:54:08,375 [INFO] [Epoch 0074] train=12.6198  val=4.7291
+2025-09-08 01:55:25,827 [INFO] [val] loss=4.7268 Lcnt=75.9201 Lex=1.0400 Leps=0.1413 predCnt=133.63 gtCnt=63.55
+2025-09-08 01:55:25,827 [INFO] [val-top5]  pred=346.9 gt=746.0 err=399.1 |  pred=242.6 gt=535.0 err=292.4 |  pred=314.3 gt=581.0 err=266.7 |  pred=250.5 gt=486.0 err=235.5 |  pred=261.0 gt=496.0 err=235.0
+2025-09-08 01:55:25,828 [INFO] [Epoch 0075] train=12.6132  val=4.7268
+2025-09-08 01:56:42,632 [INFO] [val] loss=4.7192 Lcnt=71.6553 Lex=1.0533 Leps=0.1404 predCnt=128.68 gtCnt=63.55
+2025-09-08 01:56:42,632 [INFO] [val-top5]  pred=194.7 gt=477.0 err=282.3 |  pred=245.8 gt=484.0 err=238.2 |  pred=253.1 gt=484.0 err=230.9 |  pred=273.3 gt=500.0 err=226.7 |  pred=201.8 gt=428.0 err=226.2
+2025-09-08 01:56:42,633 [INFO] [Epoch 0076] train=12.6436  val=4.7192
+2025-09-08 01:57:59,415 [INFO] [val] loss=4.7405 Lcnt=73.3915 Lex=1.0609 Leps=0.1373 predCnt=128.97 gtCnt=63.55
+2025-09-08 01:57:59,416 [INFO] [val-top5]  pred=214.8 gt=535.0 err=320.2 |  pred=321.4 gt=571.0 err=249.6 |  pred=334.2 gt=581.0 err=246.8 |  pred=176.5 gt=420.0 err=243.5 |  pred=251.0 gt=486.0 err=235.0
+2025-09-08 01:57:59,416 [INFO] [Epoch 0077] train=12.5035  val=4.7405
+2025-09-08 01:59:16,048 [INFO] [val] loss=4.6955 Lcnt=71.7957 Lex=1.0491 Leps=0.1384 predCnt=129.17 gtCnt=63.60
+2025-09-08 01:59:16,048 [INFO] [val-top5]  pred=308.2 gt=581.0 err=272.8 |  pred=221.5 gt=477.0 err=255.5 |  pred=295.2 gt=535.0 err=239.8 |  pred=216.6 gt=420.0 err=203.4 |  pred=282.0 gt=484.0 err=202.0
+2025-09-08 01:59:16,049 [INFO] [Epoch 0078] train=12.6250  val=4.6955
+2025-09-08 02:00:32,255 [INFO] [val] loss=4.6295 Lcnt=83.1389 Lex=0.9861 Leps=0.1400 predCnt=140.70 gtCnt=63.55
+2025-09-08 02:00:32,256 [INFO] [val-top5]  pred=274.1 gt=535.0 err=260.9 |  pred=225.9 gt=477.0 err=251.1 |  pred=263.9 gt=503.0 err=239.1 |  pred=346.4 gt=581.0 err=234.6 |  pred=278.4 gt=496.0 err=217.6
+2025-09-08 02:00:32,256 [INFO] [Epoch 0079] train=12.5518  val=4.6295
+2025-09-08 02:01:48,637 [INFO] [val] loss=4.6181 Lcnt=71.6001 Lex=1.0321 Leps=0.1343 predCnt=128.51 gtCnt=63.64
+2025-09-08 02:01:48,637 [INFO] [val-top5]  pred=447.7 gt=746.0 err=298.3 |  pred=283.1 gt=535.0 err=251.9 |  pred=242.2 gt=486.0 err=243.8 |  pred=198.7 gt=428.0 err=229.3 |  pred=249.4 gt=477.0 err=227.6
+2025-09-08 02:01:48,638 [INFO] [Epoch 0080] train=12.6122  val=4.6181
+2025-09-08 02:03:05,345 [INFO] [val] loss=4.6537 Lcnt=70.0195 Lex=1.0528 Leps=0.1325 predCnt=126.13 gtCnt=63.55
+2025-09-08 02:03:05,346 [INFO] [val-top5]  pred=383.8 gt=746.0 err=362.2 |  pred=381.0 gt=649.0 err=268.0 |  pred=324.8 gt=535.0 err=210.2 |  pred=291.3 gt=496.0 err=204.7 |  pred=279.3 gt=477.0 err=197.7
+2025-09-08 02:03:05,346 [INFO] [Epoch 0081] train=12.6506  val=4.6537
+2025-09-08 02:04:22,215 [INFO] [val] loss=4.6745 Lcnt=71.3945 Lex=1.0397 Leps=0.1402 predCnt=127.53 gtCnt=63.63
+2025-09-08 02:04:22,215 [INFO] [val-top5]  pred=308.3 gt=746.0 err=437.7 |  pred=304.6 gt=535.0 err=230.4 |  pred=254.3 gt=484.0 err=229.7 |  pred=261.3 gt=484.0 err=222.7 |  pred=352.3 gt=571.0 err=218.7
+2025-09-08 02:04:22,216 [INFO] [Epoch 0082] train=12.6237  val=4.6745
+2025-09-08 02:05:38,580 [INFO] [val] loss=4.6579 Lcnt=73.9363 Lex=1.0458 Leps=0.1302 predCnt=130.22 gtCnt=63.54
+2025-09-08 02:05:38,581 [INFO] [val-top5]  pred=201.7 gt=486.0 err=284.3 |  pred=294.3 gt=535.0 err=240.7 |  pred=409.9 gt=649.0 err=239.1 |  pred=191.4 gt=428.0 err=236.6 |  pred=266.1 gt=484.0 err=217.9
+2025-09-08 02:05:38,581 [INFO] [Epoch 0083] train=12.7036  val=4.6579
+2025-09-08 02:06:54,516 [INFO] [val] loss=4.7672 Lcnt=77.3304 Lex=1.0399 Leps=0.1457 predCnt=135.37 gtCnt=63.55
+2025-09-08 02:06:54,516 [INFO] [val-top5]  pred=457.3 gt=746.0 err=288.7 |  pred=235.8 gt=477.0 err=241.2 |  pred=266.1 gt=503.0 err=236.9 |  pred=286.5 gt=484.0 err=197.5 |  pred=345.2 gt=535.0 err=189.8
+2025-09-08 02:06:54,517 [INFO] [Epoch 0084] train=12.6951  val=4.7672
+2025-09-08 02:08:12,042 [INFO] [val] loss=4.6577 Lcnt=69.9232 Lex=1.0625 Leps=0.1285 predCnt=123.92 gtCnt=63.68
+2025-09-08 02:08:12,042 [INFO] [val-top5]  pred=263.6 gt=581.0 err=317.4 |  pred=431.5 gt=746.0 err=314.5 |  pred=234.8 gt=535.0 err=300.2 |  pred=245.1 gt=500.0 err=254.9 |  pred=223.9 gt=477.0 err=253.1
+2025-09-08 02:08:12,043 [INFO] [Epoch 0085] train=12.5663  val=4.6577
+2025-09-08 02:09:27,228 [INFO] [val] loss=4.5002 Lcnt=67.4033 Lex=1.0324 Leps=0.1215 predCnt=124.43 gtCnt=63.67
+2025-09-08 02:09:27,229 [INFO] [val-top5]  pred=365.4 gt=649.0 err=283.6 |  pred=160.9 gt=420.0 err=259.1 |  pred=258.2 gt=503.0 err=244.8 |  pred=504.4 gt=746.0 err=241.6 |  pred=299.5 gt=535.0 err=235.5
+2025-09-08 02:09:27,229 [INFO] [Epoch 0086] train=12.6155  val=4.5002
+2025-09-08 02:10:43,549 [INFO] [val] loss=4.6244 Lcnt=72.8459 Lex=1.0425 Leps=0.1281 predCnt=130.41 gtCnt=63.60
+2025-09-08 02:10:43,550 [INFO] [val-top5]  pred=349.5 gt=746.0 err=396.5 |  pred=248.6 gt=486.0 err=237.4 |  pred=219.0 gt=428.0 err=209.0 |  pred=276.2 gt=484.0 err=207.8 |  pred=199.9 gt=10.0 err=189.9
+2025-09-08 02:10:43,550 [INFO] [Epoch 0087] train=12.6042  val=4.6244
+2025-09-08 02:12:00,124 [INFO] [val] loss=4.5384 Lcnt=67.4986 Lex=1.0256 Leps=0.1311 predCnt=124.68 gtCnt=63.65
+2025-09-08 02:12:00,125 [INFO] [val-top5]  pred=364.1 gt=746.0 err=381.9 |  pred=258.2 gt=535.0 err=276.8 |  pred=199.6 gt=428.0 err=228.4 |  pred=345.5 gt=571.0 err=225.5 |  pred=186.0 gt=380.0 err=194.0
+2025-09-08 02:12:00,126 [INFO] [Epoch 0088] train=12.5119  val=4.5384
+2025-09-08 02:13:17,003 [INFO] [val] loss=4.6992 Lcnt=76.8822 Lex=1.0452 Leps=0.1325 predCnt=132.83 gtCnt=63.58
+2025-09-08 02:13:17,003 [INFO] [val-top5]  pred=279.1 gt=746.0 err=466.9 |  pred=205.8 gt=477.0 err=271.2 |  pred=303.5 gt=571.0 err=267.5 |  pred=237.0 gt=500.0 err=263.0 |  pred=227.8 gt=486.0 err=258.2
+2025-09-08 02:13:17,004 [INFO] [Epoch 0089] train=12.6285  val=4.6992
+2025-09-08 02:14:33,522 [INFO] [val] loss=4.6657 Lcnt=71.7937 Lex=1.0452 Leps=0.1354 predCnt=128.45 gtCnt=63.67
+2025-09-08 02:14:33,523 [INFO] [val-top5]  pred=206.2 gt=486.0 err=279.8 |  pred=393.2 gt=649.0 err=255.8 |  pred=234.4 gt=477.0 err=242.6 |  pred=250.1 gt=484.0 err=233.9 |  pred=258.7 gt=484.0 err=225.3
+2025-09-08 02:14:33,523 [INFO] [Epoch 0090] train=12.5825  val=4.6657
+2025-09-08 02:15:50,092 [INFO] [val] loss=4.6721 Lcnt=77.0832 Lex=1.0140 Leps=0.1432 predCnt=134.79 gtCnt=63.58
+2025-09-08 02:15:50,092 [INFO] [val-top5]  pred=233.0 gt=477.0 err=244.0 |  pred=248.7 gt=484.0 err=235.3 |  pred=255.9 gt=484.0 err=228.1 |  pred=204.3 gt=420.0 err=215.7 |  pred=214.9 gt=428.0 err=213.1
+2025-09-08 02:15:50,093 [INFO] [Epoch 0091] train=12.6519  val=4.6721
+2025-09-08 02:17:07,523 [INFO] [val] loss=4.7275 Lcnt=80.4349 Lex=1.0351 Leps=0.1363 predCnt=138.19 gtCnt=63.56
+2025-09-08 02:17:07,524 [INFO] [val-top5]  pred=260.7 gt=500.0 err=239.3 |  pred=265.7 gt=503.0 err=237.3 |  pred=419.2 gt=649.0 err=229.8 |  pred=266.6 gt=496.0 err=229.4 |  pred=216.8 gt=420.0 err=203.2
+2025-09-08 02:17:07,524 [INFO] [Epoch 0092] train=12.6305  val=4.7275
+2025-09-08 02:18:24,045 [INFO] [val] loss=4.7380 Lcnt=79.2668 Lex=1.0528 Leps=0.1311 predCnt=136.99 gtCnt=63.62
+2025-09-08 02:18:24,045 [INFO] [val-top5]  pred=372.8 gt=746.0 err=373.2 |  pred=307.1 gt=535.0 err=227.9 |  pred=258.3 gt=486.0 err=227.7 |  pred=272.6 gt=477.0 err=204.4 |  pred=201.1 gt=4.0 err=197.1
+2025-09-08 02:18:24,046 [INFO] [Epoch 0093] train=12.5772  val=4.7380
+2025-09-08 02:19:40,597 [INFO] [val] loss=4.7301 Lcnt=81.4860 Lex=1.0156 Leps=0.1447 predCnt=140.13 gtCnt=63.52
+2025-09-08 02:19:40,598 [INFO] [val-top5]  pred=482.2 gt=746.0 err=263.8 |  pred=229.8 gt=486.0 err=256.2 |  pred=284.4 gt=496.0 err=211.6 |  pred=216.7 gt=6.0 err=210.7 |  pred=203.5 gt=4.0 err=199.5
+2025-09-08 02:19:40,599 [INFO] [Epoch 0094] train=12.6405  val=4.7301
+2025-09-08 02:20:56,689 [INFO] [val] loss=4.5595 Lcnt=72.6179 Lex=1.0163 Leps=0.1307 predCnt=129.60 gtCnt=63.51
+2025-09-08 02:20:56,689 [INFO] [val-top5]  pred=342.7 gt=746.0 err=403.3 |  pred=198.3 gt=486.0 err=287.7 |  pred=308.9 gt=571.0 err=262.1 |  pred=253.8 gt=503.0 err=249.2 |  pred=215.8 gt=428.0 err=212.2
+2025-09-08 02:20:56,690 [INFO] [Epoch 0095] train=12.5151  val=4.5595
+2025-09-08 02:22:13,112 [INFO] [val] loss=4.6012 Lcnt=75.6314 Lex=1.0189 Leps=0.1313 predCnt=133.39 gtCnt=63.52
+2025-09-08 02:22:13,113 [INFO] [val-top5]  pred=363.5 gt=746.0 err=382.5 |  pred=208.4 gt=477.0 err=268.6 |  pred=417.2 gt=649.0 err=231.8 |  pred=281.3 gt=484.0 err=202.7 |  pred=302.3 gt=496.0 err=193.7
+2025-09-08 02:22:13,113 [INFO] [Epoch 0096] train=12.6904  val=4.6012
+2025-09-08 02:23:29,377 [INFO] [val] loss=4.6902 Lcnt=74.9377 Lex=1.0419 Leps=0.1358 predCnt=133.96 gtCnt=63.65
+2025-09-08 02:23:29,378 [INFO] [val-top5]  pred=454.9 gt=746.0 err=291.1 |  pred=326.9 gt=581.0 err=254.1 |  pred=250.4 gt=486.0 err=235.6 |  pred=322.8 gt=535.0 err=212.2 |  pred=206.5 gt=4.0 err=202.5
+2025-09-08 02:23:29,378 [INFO] [Epoch 0097] train=12.5847  val=4.6902
+2025-09-08 02:24:45,836 [INFO] [val] loss=4.6914 Lcnt=77.9016 Lex=1.0408 Leps=0.1317 predCnt=136.46 gtCnt=63.52
+2025-09-08 02:24:45,837 [INFO] [val-top5]  pred=215.5 gt=486.0 err=270.5 |  pred=243.5 gt=477.0 err=233.5 |  pred=291.5 gt=500.0 err=208.5 |  pred=214.2 gt=420.0 err=205.8 |  pred=203.2 gt=6.0 err=197.2
+2025-09-08 02:24:45,837 [INFO] [Epoch 0098] train=12.6332  val=4.6914
+2025-09-08 02:26:02,257 [INFO] [val] loss=4.6826 Lcnt=71.8422 Lex=1.0610 Leps=0.1302 predCnt=128.55 gtCnt=63.59
+2025-09-08 02:26:02,258 [INFO] [val-top5]  pred=417.0 gt=746.0 err=329.0 |  pred=236.7 gt=535.0 err=298.3 |  pred=246.4 gt=500.0 err=253.6 |  pred=336.1 gt=581.0 err=244.9 |  pred=240.7 gt=484.0 err=243.3
+2025-09-08 02:26:02,258 [INFO] [Epoch 0099] train=12.5633  val=4.6826
+2025-09-08 02:27:18,256 [INFO] [val] loss=4.5893 Lcnt=81.4746 Lex=0.9943 Leps=0.1319 predCnt=140.18 gtCnt=63.65
+2025-09-08 02:27:18,257 [INFO] [val-top5]  pred=413.5 gt=746.0 err=332.5 |  pred=238.4 gt=486.0 err=247.6 |  pred=258.3 gt=477.0 err=218.7 |  pred=438.5 gt=649.0 err=210.5 |  pred=326.4 gt=535.0 err=208.6
+2025-09-08 02:27:18,257 [INFO] [Epoch 0100] train=12.5566  val=4.5893
+2025-09-08 02:28:34,682 [INFO] [val] loss=4.6815 Lcnt=83.6411 Lex=1.0193 Leps=0.1312 predCnt=141.84 gtCnt=63.51
+2025-09-08 02:28:34,683 [INFO] [val-top5]  pred=356.8 gt=746.0 err=389.2 |  pred=286.7 gt=496.0 err=209.3 |  pred=205.8 gt=3.0 err=202.8 |  pred=284.2 gt=486.0 err=201.8 |  pred=204.7 gt=3.0 err=201.7
+2025-09-08 02:28:34,683 [INFO] [Epoch 0101] train=12.5572  val=4.6815
+2025-09-08 02:29:51,805 [INFO] [val] loss=4.6924 Lcnt=75.6762 Lex=1.0506 Leps=0.1306 predCnt=132.79 gtCnt=63.59
+2025-09-08 02:29:51,806 [INFO] [val-top5]  pred=256.0 gt=535.0 err=279.0 |  pred=239.1 gt=486.0 err=246.9 |  pred=279.1 gt=503.0 err=223.9 |  pred=268.7 gt=484.0 err=215.3 |  pred=450.1 gt=649.0 err=198.9
+2025-09-08 02:29:51,806 [INFO] [Epoch 0102] train=12.6240  val=4.6924
+2025-09-08 02:31:09,095 [INFO] [val] loss=4.6961 Lcnt=81.7603 Lex=1.0320 Leps=0.1304 predCnt=139.38 gtCnt=63.55
+2025-09-08 02:31:09,096 [INFO] [val-top5]  pred=298.2 gt=746.0 err=447.8 |  pred=305.0 gt=581.0 err=276.0 |  pred=262.4 gt=503.0 err=240.6 |  pred=264.1 gt=500.0 err=235.9 |  pred=206.2 gt=420.0 err=213.8
+2025-09-08 02:31:09,096 [INFO] [Epoch 0103] train=12.6734  val=4.6961
+2025-09-08 02:32:25,096 [INFO] [val] loss=4.6572 Lcnt=74.5004 Lex=1.0499 Leps=0.1271 predCnt=132.28 gtCnt=63.47
+2025-09-08 02:32:25,096 [INFO] [val-top5]  pred=354.1 gt=746.0 err=391.9 |  pred=265.8 gt=486.0 err=220.2 |  pred=326.7 gt=535.0 err=208.3 |  pred=221.6 gt=428.0 err=206.4 |  pred=186.7 gt=5.0 err=181.7
+2025-09-08 02:32:25,097 [INFO] [Epoch 0104] train=12.5500  val=4.6572
+2025-09-08 02:33:42,681 [INFO] [val] loss=4.6462 Lcnt=78.6784 Lex=1.0278 Leps=0.1293 predCnt=137.65 gtCnt=63.49
+2025-09-08 02:33:42,682 [INFO] [val-top5]  pred=257.5 gt=486.0 err=228.5 |  pred=279.2 gt=484.0 err=204.8 |  pred=198.0 gt=3.0 err=195.0 |  pred=195.5 gt=3.0 err=192.5 |  pred=195.1 gt=3.0 err=192.1
+2025-09-08 02:33:42,683 [INFO] [Epoch 0105] train=12.6231  val=4.6462
+2025-09-08 02:34:59,062 [INFO] [val] loss=4.6152 Lcnt=75.9459 Lex=1.0277 Leps=0.1288 predCnt=134.67 gtCnt=63.73
+2025-09-08 02:34:59,063 [INFO] [val-top5]  pred=402.5 gt=746.0 err=343.5 |  pred=218.4 gt=486.0 err=267.6 |  pred=215.8 gt=428.0 err=212.2 |  pred=267.0 gt=477.0 err=210.0 |  pred=340.0 gt=535.0 err=195.0
+2025-09-08 02:34:59,063 [INFO] [Epoch 0106] train=12.4833  val=4.6152
+2025-09-08 02:36:14,893 [INFO] [val] loss=4.4640 Lcnt=74.8860 Lex=0.9751 Leps=0.1316 predCnt=134.39 gtCnt=63.50
+2025-09-08 02:36:14,893 [INFO] [val-top5]  pred=427.3 gt=746.0 err=318.7 |  pred=221.6 gt=6.0 err=215.6 |  pred=266.2 gt=477.0 err=210.8 |  pred=206.7 gt=0.0 err=206.7 |  pred=204.8 gt=0.0 err=204.8
+2025-09-08 02:36:14,894 [INFO] [Epoch 0107] train=12.7622  val=4.4640
+2025-09-08 02:37:31,697 [INFO] [val] loss=4.6543 Lcnt=70.3029 Lex=1.0487 Leps=0.1342 predCnt=126.90 gtCnt=63.48
+2025-09-08 02:37:31,698 [INFO] [val-top5]  pred=201.9 gt=486.0 err=284.1 |  pred=263.2 gt=535.0 err=271.8 |  pred=235.8 gt=477.0 err=241.2 |  pred=275.8 gt=496.0 err=220.2 |  pred=230.5 gt=428.0 err=197.5
+2025-09-08 02:37:31,698 [INFO] [Epoch 0108] train=12.6388  val=4.6543
+2025-09-08 02:38:48,564 [INFO] [val] loss=4.6780 Lcnt=77.2515 Lex=1.0315 Leps=0.1352 predCnt=135.42 gtCnt=63.55
+2025-09-08 02:38:48,565 [INFO] [val-top5]  pred=433.6 gt=746.0 err=312.4 |  pred=309.8 gt=571.0 err=261.2 |  pred=228.3 gt=486.0 err=257.7 |  pred=253.1 gt=484.0 err=230.9 |  pred=261.5 gt=484.0 err=222.5
+2025-09-08 02:38:48,565 [INFO] [Epoch 0109] train=12.5735  val=4.6780
+2025-09-08 02:40:04,683 [INFO] [val] loss=4.6733 Lcnt=74.9970 Lex=1.0419 Leps=0.1329 predCnt=132.55 gtCnt=63.65
+2025-09-08 02:40:04,684 [INFO] [val-top5]  pred=258.3 gt=581.0 err=322.7 |  pred=225.2 gt=477.0 err=251.8 |  pred=330.6 gt=571.0 err=240.4 |  pred=192.8 gt=420.0 err=227.2 |  pred=213.2 gt=428.0 err=214.8
+2025-09-08 02:40:04,684 [INFO] [Epoch 0110] train=12.5808  val=4.6733
+2025-09-08 02:41:21,127 [INFO] [val] loss=4.5824 Lcnt=77.0476 Lex=0.9923 Leps=0.1392 predCnt=135.45 gtCnt=63.56
+2025-09-08 02:41:21,128 [INFO] [val-top5]  pred=315.2 gt=571.0 err=255.8 |  pred=284.4 gt=535.0 err=250.6 |  pred=245.0 gt=477.0 err=232.0 |  pred=263.4 gt=486.0 err=222.6 |  pred=293.2 gt=503.0 err=209.8
+2025-09-08 02:41:21,129 [INFO] [Epoch 0111] train=12.6188  val=4.5824
+2025-09-08 02:42:36,959 [INFO] [val] loss=4.6454 Lcnt=77.4881 Lex=1.0282 Leps=0.1310 predCnt=136.04 gtCnt=63.63
+2025-09-08 02:42:36,959 [INFO] [val-top5]  pred=263.5 gt=535.0 err=271.5 |  pred=492.9 gt=746.0 err=253.1 |  pred=253.5 gt=486.0 err=232.5 |  pred=289.3 gt=503.0 err=213.7 |  pred=266.5 gt=477.0 err=210.5
+2025-09-08 02:42:36,960 [INFO] [Epoch 0112] train=12.5554  val=4.6454
+2025-09-08 02:43:53,611 [INFO] [val] loss=4.6562 Lcnt=75.6707 Lex=1.0356 Leps=0.1321 predCnt=134.55 gtCnt=63.58
+2025-09-08 02:43:53,611 [INFO] [val-top5]  pred=372.8 gt=746.0 err=373.2 |  pred=250.3 gt=486.0 err=235.7 |  pred=267.1 gt=477.0 err=209.9 |  pred=218.4 gt=420.0 err=201.6 |  pred=197.3 gt=0.0 err=197.3
+2025-09-08 02:43:53,612 [INFO] [Epoch 0113] train=12.5718  val=4.6562
+2025-09-08 02:45:09,471 [INFO] [val] loss=4.6448 Lcnt=76.2838 Lex=1.0374 Leps=0.1283 predCnt=134.50 gtCnt=63.52
+2025-09-08 02:45:09,471 [INFO] [val-top5]  pred=302.6 gt=746.0 err=443.4 |  pred=257.8 gt=535.0 err=277.2 |  pred=220.2 gt=486.0 err=265.8 |  pred=227.4 gt=477.0 err=249.6 |  pred=275.7 gt=503.0 err=227.3
+2025-09-08 02:45:09,472 [INFO] [Epoch 0114] train=12.5482  val=4.6448
+2025-09-08 02:46:25,631 [INFO] [val] loss=4.8059 Lcnt=85.3752 Lex=1.0378 Leps=0.1398 predCnt=143.63 gtCnt=63.62
+2025-09-08 02:46:25,632 [INFO] [val-top5]  pred=336.8 gt=746.0 err=409.2 |  pred=271.9 gt=535.0 err=263.1 |  pred=237.4 gt=6.0 err=231.4 |  pred=256.9 gt=486.0 err=229.1 |  pred=216.7 gt=1.0 err=215.7
+2025-09-08 02:46:25,633 [INFO] [Epoch 0115] train=12.5753  val=4.8059
+2025-09-08 02:47:41,659 [INFO] [val] loss=4.7665 Lcnt=78.5664 Lex=1.0527 Leps=0.1371 predCnt=136.73 gtCnt=63.56
+2025-09-08 02:47:41,660 [INFO] [val-top5]  pred=320.0 gt=746.0 err=426.0 |  pred=250.7 gt=535.0 err=284.3 |  pred=302.3 gt=581.0 err=278.7 |  pred=246.8 gt=477.0 err=230.2 |  pred=426.7 gt=649.0 err=222.3
+2025-09-08 02:47:41,660 [INFO] [Epoch 0116] train=12.6317  val=4.7665
+2025-09-08 02:48:58,167 [INFO] [val] loss=4.5603 Lcnt=75.6028 Lex=0.9970 Leps=0.1355 predCnt=133.93 gtCnt=63.52
+2025-09-08 02:48:58,168 [INFO] [val-top5]  pred=329.9 gt=746.0 err=416.1 |  pred=236.0 gt=486.0 err=250.0 |  pred=353.6 gt=581.0 err=227.4 |  pred=294.7 gt=500.0 err=205.3 |  pred=206.5 gt=3.0 err=203.5
+2025-09-08 02:48:58,169 [INFO] [Epoch 0117] train=12.5828  val=4.5603
+2025-09-08 02:50:15,116 [INFO] [val] loss=4.6176 Lcnt=79.0994 Lex=1.0229 Leps=0.1263 predCnt=135.53 gtCnt=63.47
+2025-09-08 02:50:15,117 [INFO] [val-top5]  pred=245.4 gt=535.0 err=289.6 |  pred=467.9 gt=746.0 err=278.1 |  pred=391.3 gt=649.0 err=257.7 |  pred=236.7 gt=486.0 err=249.3 |  pred=240.8 gt=484.0 err=243.2
+2025-09-08 02:50:15,117 [INFO] [Epoch 0118] train=12.5817  val=4.6176
+2025-09-08 02:51:31,752 [INFO] [val] loss=4.6027 Lcnt=65.1497 Lex=1.0607 Leps=0.1282 predCnt=121.83 gtCnt=63.51
+2025-09-08 02:51:31,752 [INFO] [val-top5]  pred=204.4 gt=477.0 err=272.6 |  pred=315.3 gt=581.0 err=265.7 |  pred=265.4 gt=503.0 err=237.6 |  pred=189.5 gt=420.0 err=230.5 |  pred=273.9 gt=496.0 err=222.1
+2025-09-08 02:51:31,753 [INFO] [Epoch 0119] train=12.5842  val=4.6027
+2025-09-08 02:52:49,125 [INFO] [val] loss=4.5796 Lcnt=76.0597 Lex=1.0129 Leps=0.1301 predCnt=134.50 gtCnt=63.73
+2025-09-08 02:52:49,125 [INFO] [val-top5]  pred=197.2 gt=486.0 err=288.8 |  pred=231.2 gt=500.0 err=268.8 |  pred=229.5 gt=477.0 err=247.5 |  pred=289.2 gt=503.0 err=213.8 |  pred=371.8 gt=571.0 err=199.2
+2025-09-08 02:52:49,126 [INFO] [Epoch 0120] train=12.6611  val=4.5796
+2025-09-08 02:54:06,788 [INFO] [val] loss=4.6331 Lcnt=75.3659 Lex=1.0456 Leps=0.1238 predCnt=133.38 gtCnt=63.61
+2025-09-08 02:54:06,789 [INFO] [val-top5]  pred=308.1 gt=746.0 err=437.9 |  pred=245.3 gt=535.0 err=289.7 |  pred=220.1 gt=486.0 err=265.9 |  pred=264.4 gt=477.0 err=212.6 |  pred=287.9 gt=500.0 err=212.1
+2025-09-08 02:54:06,789 [INFO] [Epoch 0121] train=12.5938  val=4.6331
+2025-09-08 02:55:22,761 [INFO] [val] loss=4.5433 Lcnt=79.0905 Lex=0.9851 Leps=0.1328 predCnt=136.70 gtCnt=63.59
+2025-09-08 02:55:22,762 [INFO] [val-top5]  pred=340.5 gt=746.0 err=405.5 |  pred=271.0 gt=535.0 err=264.0 |  pred=224.0 gt=486.0 err=262.0 |  pred=323.8 gt=571.0 err=247.2 |  pred=403.1 gt=649.0 err=245.9
+2025-09-08 02:55:22,762 [INFO] [Epoch 0122] train=12.5529  val=4.5433
+2025-09-08 02:56:39,467 [INFO] [val] loss=4.5826 Lcnt=75.6754 Lex=1.0232 Leps=0.1260 predCnt=133.88 gtCnt=63.59
+2025-09-08 02:56:39,468 [INFO] [val-top5]  pred=227.6 gt=486.0 err=258.4 |  pred=330.4 gt=581.0 err=250.6 |  pred=500.1 gt=746.0 err=245.9 |  pred=254.4 gt=477.0 err=222.6 |  pred=271.2 gt=484.0 err=212.8
+2025-09-08 02:56:39,468 [INFO] [Epoch 0123] train=12.5075  val=4.5826
+2025-09-08 02:57:56,047 [INFO] [val] loss=4.5299 Lcnt=72.7471 Lex=1.0158 Leps=0.1258 predCnt=130.32 gtCnt=63.49
+2025-09-08 02:57:56,047 [INFO] [val-top5]  pred=305.6 gt=581.0 err=275.4 |  pred=299.4 gt=535.0 err=235.6 |  pred=251.1 gt=486.0 err=234.9 |  pred=187.2 gt=0.0 err=187.2 |  pred=191.5 gt=5.0 err=186.5
+2025-09-08 02:57:56,048 [INFO] [Epoch 0124] train=12.5696  val=4.5299
+2025-09-08 02:59:13,591 [INFO] [val] loss=4.7082 Lcnt=70.6617 Lex=1.0597 Leps=0.1371 predCnt=129.23 gtCnt=63.75
+2025-09-08 02:59:13,591 [INFO] [val-top5]  pred=252.8 gt=535.0 err=282.2 |  pred=225.3 gt=477.0 err=251.7 |  pred=213.8 gt=420.0 err=206.2 |  pred=183.8 gt=6.0 err=177.8 |  pred=176.3 gt=0.0 err=176.3
+2025-09-08 02:59:13,592 [INFO] [Epoch 0125] train=12.5558  val=4.7082
+2025-09-08 03:00:31,278 [INFO] [val] loss=4.7465 Lcnt=70.8650 Lex=1.0875 Leps=0.1292 predCnt=127.27 gtCnt=63.68
+2025-09-08 03:00:31,278 [INFO] [val-top5]  pred=345.2 gt=746.0 err=400.8 |  pred=207.8 gt=486.0 err=278.2 |  pred=245.6 gt=500.0 err=254.4 |  pred=243.7 gt=477.0 err=233.3 |  pred=431.6 gt=649.0 err=217.4
+2025-09-08 03:00:31,279 [INFO] [Epoch 0126] train=12.6101  val=4.7465
+2025-09-08 03:01:47,815 [INFO] [val] loss=4.6210 Lcnt=73.7277 Lex=1.0542 Leps=0.1202 predCnt=129.38 gtCnt=63.52
+2025-09-08 03:01:47,816 [INFO] [val-top5]  pred=305.5 gt=746.0 err=440.5 |  pred=296.6 gt=581.0 err=284.4 |  pred=209.6 gt=486.0 err=276.4 |  pred=266.0 gt=535.0 err=269.0 |  pred=210.8 gt=477.0 err=266.2
+2025-09-08 03:01:47,816 [INFO] [Epoch 0127] train=12.6202  val=4.6210
+2025-09-08 03:03:04,448 [INFO] [val] loss=4.5927 Lcnt=78.8237 Lex=1.0182 Leps=0.1250 predCnt=137.43 gtCnt=63.49
+2025-09-08 03:03:04,448 [INFO] [val-top5]  pred=277.8 gt=535.0 err=257.2 |  pred=225.8 gt=477.0 err=251.2 |  pred=365.1 gt=581.0 err=215.9 |  pred=535.3 gt=746.0 err=210.7 |  pred=210.0 gt=6.0 err=204.0
+2025-09-08 03:03:04,449 [INFO] [Epoch 0128] train=12.4662  val=4.5927
+2025-09-08 03:04:22,151 [INFO] [val] loss=4.6132 Lcnt=73.9028 Lex=1.0190 Leps=0.1362 predCnt=130.25 gtCnt=63.64
+2025-09-08 03:04:22,151 [INFO] [val-top5]  pred=356.4 gt=746.0 err=389.6 |  pred=199.4 gt=477.0 err=277.6 |  pred=267.5 gt=535.0 err=267.5 |  pred=239.7 gt=486.0 err=246.3 |  pred=251.9 gt=496.0 err=244.1
+2025-09-08 03:04:22,152 [INFO] [Epoch 0129] train=12.5771  val=4.6132
+2025-09-08 03:05:37,935 [INFO] [val] loss=4.6679 Lcnt=76.3145 Lex=1.0386 Leps=0.1315 predCnt=133.78 gtCnt=63.63
+2025-09-08 03:05:37,935 [INFO] [val-top5]  pred=451.9 gt=746.0 err=294.1 |  pred=211.1 gt=477.0 err=265.9 |  pred=220.2 gt=428.0 err=207.8 |  pred=299.8 gt=503.0 err=203.2 |  pred=289.1 gt=486.0 err=196.9
+2025-09-08 03:05:37,936 [INFO] [Epoch 0130] train=12.5383  val=4.6679
+2025-09-08 03:06:54,094 [INFO] [val] loss=4.6483 Lcnt=77.7134 Lex=1.0273 Leps=0.1315 predCnt=135.72 gtCnt=63.48
+2025-09-08 03:06:54,095 [INFO] [val-top5]  pred=236.4 gt=535.0 err=298.6 |  pred=208.4 gt=486.0 err=277.6 |  pred=324.8 gt=581.0 err=256.2 |  pred=497.1 gt=746.0 err=248.9 |  pred=282.0 gt=484.0 err=202.0
+2025-09-08 03:06:54,095 [INFO] [Epoch 0131] train=12.5398  val=4.6483
+2025-09-08 03:08:11,313 [INFO] [val] loss=4.6473 Lcnt=77.4022 Lex=1.0335 Leps=0.1288 predCnt=135.67 gtCnt=63.66
+2025-09-08 03:08:11,314 [INFO] [val-top5]  pred=214.2 gt=477.0 err=262.8 |  pred=197.5 gt=10.0 err=187.5 |  pred=190.3 gt=3.0 err=187.3 |  pred=189.9 gt=3.0 err=186.9 |  pred=186.6 gt=0.0 err=186.6
+2025-09-08 03:08:11,315 [INFO] [Epoch 0132] train=12.6542  val=4.6473
+2025-09-08 03:09:29,404 [INFO] [val] loss=4.6234 Lcnt=77.9958 Lex=1.0315 Leps=0.1248 predCnt=134.84 gtCnt=63.57
+2025-09-08 03:09:29,405 [INFO] [val-top5]  pred=221.6 gt=535.0 err=313.4 |  pred=267.5 gt=484.0 err=216.5 |  pred=206.4 gt=420.0 err=213.6 |  pred=292.9 gt=500.0 err=207.1 |  pred=300.8 gt=503.0 err=202.2
+2025-09-08 03:09:29,406 [INFO] [Epoch 0133] train=12.6377  val=4.6234
+2025-09-08 03:10:45,429 [INFO] [val] loss=4.5457 Lcnt=69.3849 Lex=1.0293 Leps=0.1273 predCnt=124.90 gtCnt=63.57
+2025-09-08 03:10:45,430 [INFO] [val-top5]  pred=349.8 gt=746.0 err=396.2 |  pred=254.6 gt=581.0 err=326.4 |  pred=247.2 gt=535.0 err=287.8 |  pred=204.0 gt=477.0 err=273.0 |  pred=239.8 gt=484.0 err=244.2
+2025-09-08 03:10:45,430 [INFO] [Epoch 0134] train=12.4853  val=4.5457
+2025-09-08 03:12:01,369 [INFO] [val] loss=4.5879 Lcnt=72.5246 Lex=1.0360 Leps=0.1258 predCnt=129.42 gtCnt=63.52
+2025-09-08 03:12:01,369 [INFO] [val-top5]  pred=403.8 gt=746.0 err=342.2 |  pred=315.2 gt=581.0 err=265.8 |  pred=245.5 gt=484.0 err=238.5 |  pred=243.9 gt=477.0 err=233.1 |  pred=323.1 gt=535.0 err=211.9
+2025-09-08 03:12:01,370 [INFO] [Epoch 0135] train=12.5796  val=4.5879
+2025-09-08 03:13:18,136 [INFO] [val] loss=4.5698 Lcnt=76.8203 Lex=1.0059 Leps=0.1306 predCnt=133.96 gtCnt=63.53
+2025-09-08 03:13:18,136 [INFO] [val-top5]  pred=472.7 gt=746.0 err=273.3 |  pred=266.4 gt=486.0 err=219.6 |  pred=328.8 gt=535.0 err=206.2 |  pred=196.3 gt=5.0 err=191.3 |  pred=196.3 gt=6.0 err=190.3
+2025-09-08 03:13:18,137 [INFO] [Epoch 0136] train=12.6398  val=4.5698
+2025-09-08 03:14:35,128 [INFO] [val] loss=4.5833 Lcnt=75.5545 Lex=1.0245 Leps=0.1257 predCnt=133.31 gtCnt=63.71
+2025-09-08 03:14:35,129 [INFO] [val-top5]  pred=382.7 gt=746.0 err=363.3 |  pred=234.6 gt=535.0 err=300.4 |  pred=253.0 gt=486.0 err=233.0 |  pred=278.7 gt=496.0 err=217.3 |  pred=294.3 gt=500.0 err=205.7
+2025-09-08 03:14:35,129 [INFO] [Epoch 0137] train=12.5915  val=4.5833
+2025-09-08 03:15:52,538 [INFO] [val] loss=4.5617 Lcnt=74.2978 Lex=1.0270 Leps=0.1230 predCnt=132.67 gtCnt=63.60
+2025-09-08 03:15:52,539 [INFO] [val-top5]  pred=363.1 gt=746.0 err=382.9 |  pred=233.7 gt=477.0 err=243.3 |  pred=294.3 gt=500.0 err=205.7 |  pred=226.9 gt=428.0 err=201.1 |  pred=284.7 gt=484.0 err=199.3
+2025-09-08 03:15:52,539 [INFO] [Epoch 0138] train=12.5901  val=4.5617
+2025-09-08 03:17:10,756 [INFO] [val] loss=4.5266 Lcnt=71.1465 Lex=1.0111 Leps=0.1303 predCnt=129.57 gtCnt=63.63
+2025-09-08 03:17:10,756 [INFO] [val-top5]  pred=277.4 gt=535.0 err=257.6 |  pred=234.3 gt=486.0 err=251.7 |  pred=235.6 gt=477.0 err=241.4 |  pred=220.8 gt=428.0 err=207.2 |  pred=199.8 gt=6.0 err=193.8
+2025-09-08 03:17:10,757 [INFO] [Epoch 0139] train=12.5278  val=4.5266
+2025-09-08 03:18:26,426 [INFO] [val] loss=4.4572 Lcnt=71.1348 Lex=1.0039 Leps=0.1223 predCnt=129.42 gtCnt=63.53
+2025-09-08 03:18:26,426 [INFO] [val-top5]  pred=269.2 gt=535.0 err=265.8 |  pred=222.7 gt=486.0 err=263.3 |  pred=232.3 gt=477.0 err=244.7 |  pred=289.6 gt=496.0 err=206.4 |  pred=218.0 gt=420.0 err=202.0
+2025-09-08 03:18:26,427 [INFO] [Epoch 0140] train=12.5414  val=4.4572
+2025-09-08 03:19:42,763 [INFO] [val] loss=4.5179 Lcnt=75.5204 Lex=1.0042 Leps=0.1250 predCnt=133.79 gtCnt=63.53
+2025-09-08 03:19:42,764 [INFO] [val-top5]  pred=339.9 gt=746.0 err=406.1 |  pred=251.1 gt=477.0 err=225.9 |  pred=330.7 gt=535.0 err=204.3 |  pred=302.1 gt=503.0 err=200.9 |  pred=192.2 gt=0.0 err=192.2
+2025-09-08 03:19:42,764 [INFO] [Epoch 0141] train=12.5854  val=4.5179
+2025-09-08 03:20:59,248 [INFO] [val] loss=4.6588 Lcnt=74.6819 Lex=1.0498 Leps=0.1271 predCnt=132.45 gtCnt=63.43
+2025-09-08 03:20:59,249 [INFO] [val-top5]  pred=309.0 gt=746.0 err=437.0 |  pred=315.3 gt=581.0 err=265.7 |  pred=216.7 gt=477.0 err=260.3 |  pred=296.8 gt=535.0 err=238.2 |  pred=270.5 gt=500.0 err=229.5
+2025-09-08 03:20:59,250 [INFO] [Epoch 0142] train=12.5392  val=4.6588
+2025-09-08 03:22:16,243 [INFO] [val] loss=4.6490 Lcnt=72.1786 Lex=1.0566 Leps=0.1262 predCnt=129.65 gtCnt=63.61
+2025-09-08 03:22:16,244 [INFO] [val-top5]  pred=388.6 gt=746.0 err=357.4 |  pred=299.8 gt=581.0 err=281.2 |  pred=275.2 gt=535.0 err=259.8 |  pred=238.2 gt=486.0 err=247.8 |  pred=277.1 gt=500.0 err=222.9
+2025-09-08 03:22:16,244 [INFO] [Epoch 0143] train=12.6383  val=4.6490
+2025-09-08 03:23:31,698 [INFO] [val] loss=4.5754 Lcnt=77.4009 Lex=1.0068 Leps=0.1302 predCnt=136.98 gtCnt=63.64
+2025-09-08 03:23:31,698 [INFO] [val-top5]  pred=336.5 gt=581.0 err=244.5 |  pred=370.8 gt=571.0 err=200.2 |  pred=193.8 gt=3.0 err=190.8 |  pred=195.6 gt=6.0 err=189.6 |  pred=192.9 gt=4.0 err=188.9
+2025-09-08 03:23:31,699 [INFO] [Epoch 0144] train=12.6317  val=4.5754
+2025-09-08 03:24:49,299 [INFO] [val] loss=4.5691 Lcnt=75.0484 Lex=1.0233 Leps=0.1248 predCnt=130.87 gtCnt=63.49
+2025-09-08 03:24:49,299 [INFO] [val-top5]  pred=270.8 gt=746.0 err=475.2 |  pred=283.9 gt=581.0 err=297.1 |  pred=215.0 gt=477.0 err=262.0 |  pred=248.7 gt=486.0 err=237.3 |  pred=260.1 gt=484.0 err=223.9
+2025-09-08 03:24:49,300 [INFO] [Epoch 0145] train=12.5896  val=4.5691
+2025-09-08 03:26:05,423 [INFO] [val] loss=4.5760 Lcnt=74.7194 Lex=1.0092 Leps=0.1335 predCnt=132.86 gtCnt=63.58
+2025-09-08 03:26:05,423 [INFO] [val-top5]  pred=207.3 gt=477.0 err=269.7 |  pred=272.0 gt=535.0 err=263.0 |  pred=226.5 gt=486.0 err=259.5 |  pred=296.6 gt=496.0 err=199.4 |  pred=229.9 gt=420.0 err=190.1
+2025-09-08 03:26:05,424 [INFO] [Epoch 0146] train=12.6010  val=4.5760
+2025-09-08 03:27:22,072 [INFO] [val] loss=4.6923 Lcnt=74.7978 Lex=1.0605 Leps=0.1271 predCnt=132.07 gtCnt=63.65
+2025-09-08 03:27:22,072 [INFO] [val-top5]  pred=308.4 gt=746.0 err=437.6 |  pred=169.1 gt=420.0 err=250.9 |  pred=280.5 gt=503.0 err=222.5 |  pred=292.1 gt=500.0 err=207.9 |  pred=281.4 gt=484.0 err=202.6
+2025-09-08 03:27:22,073 [INFO] [Epoch 0147] train=12.5402  val=4.6923
+2025-09-08 03:28:38,109 [INFO] [val] loss=4.5806 Lcnt=77.2528 Lex=1.0098 Leps=0.1298 predCnt=136.16 gtCnt=63.63
+2025-09-08 03:28:38,110 [INFO] [val-top5]  pred=230.9 gt=477.0 err=246.1 |  pred=527.3 gt=746.0 err=218.7 |  pred=277.3 gt=486.0 err=208.7 |  pred=216.5 gt=420.0 err=203.5 |  pred=200.0 gt=3.0 err=197.0
+2025-09-08 03:28:38,110 [INFO] [Epoch 0148] train=12.5533  val=4.5806
+2025-09-08 03:29:54,741 [INFO] [val] loss=4.6050 Lcnt=76.0328 Lex=1.0139 Leps=0.1338 predCnt=133.07 gtCnt=63.51
+2025-09-08 03:29:54,742 [INFO] [val-top5]  pred=409.5 gt=746.0 err=336.5 |  pred=236.9 gt=535.0 err=298.1 |  pred=227.5 gt=477.0 err=249.5 |  pred=416.8 gt=649.0 err=232.2 |  pred=231.5 gt=428.0 err=196.5
+2025-09-08 03:29:54,742 [INFO] [Epoch 0149] train=12.5661  val=4.6050
+2025-09-08 03:31:11,035 [INFO] [val] loss=4.5421 Lcnt=67.6990 Lex=1.0417 Leps=0.1233 predCnt=124.50 gtCnt=63.51
+2025-09-08 03:31:11,036 [INFO] [val-top5]  pred=248.0 gt=535.0 err=287.0 |  pred=198.6 gt=477.0 err=278.4 |  pred=258.8 gt=496.0 err=237.2 |  pred=248.7 gt=484.0 err=235.3 |  pred=299.6 gt=503.0 err=203.4
+2025-09-08 03:31:11,036 [INFO] [Epoch 0150] train=12.6114  val=4.5421
+2025-09-08 03:32:28,479 [INFO] [val] loss=4.5559 Lcnt=78.1759 Lex=1.0038 Leps=0.1271 predCnt=137.81 gtCnt=63.53
+2025-09-08 03:32:28,480 [INFO] [val-top5]  pred=231.8 gt=486.0 err=254.2 |  pred=220.5 gt=6.0 err=214.5 |  pred=281.0 gt=477.0 err=196.0 |  pred=198.9 gt=3.0 err=195.9 |  pred=213.7 gt=19.0 err=194.7
+2025-09-08 03:32:28,480 [INFO] [Epoch 0151] train=12.6058  val=4.5559
+2025-09-08 03:33:44,506 [INFO] [val] loss=4.6195 Lcnt=72.1988 Lex=1.0438 Leps=0.1277 predCnt=129.71 gtCnt=63.37
+2025-09-08 03:33:44,506 [INFO] [val-top5]  pred=222.1 gt=486.0 err=263.9 |  pred=276.0 gt=535.0 err=259.0 |  pred=231.6 gt=477.0 err=245.4 |  pred=206.1 gt=428.0 err=221.9 |  pred=282.2 gt=503.0 err=220.8
+2025-09-08 03:33:44,507 [INFO] [Epoch 0152] train=12.6122  val=4.6195
+2025-09-08 03:35:00,345 [INFO] [val] loss=4.6543 Lcnt=77.2523 Lex=1.0106 Leps=0.1417 predCnt=135.98 gtCnt=63.52
+2025-09-08 03:35:00,346 [INFO] [val-top5]  pred=459.7 gt=746.0 err=286.3 |  pred=226.5 gt=486.0 err=259.5 |  pred=287.2 gt=535.0 err=247.8 |  pred=206.1 gt=6.0 err=200.1 |  pred=205.8 gt=10.0 err=195.8
+2025-09-08 03:35:00,346 [INFO] [Epoch 0153] train=12.5474  val=4.6543
+2025-09-08 03:36:16,427 [INFO] [val] loss=4.6839 Lcnt=76.9640 Lex=1.0296 Leps=0.1376 predCnt=134.55 gtCnt=63.48
+2025-09-08 03:36:16,428 [INFO] [val-top5]  pred=356.1 gt=746.0 err=389.9 |  pred=287.6 gt=581.0 err=293.4 |  pred=242.3 gt=477.0 err=234.7 |  pred=269.0 gt=496.0 err=227.0 |  pred=223.8 gt=420.0 err=196.2
+2025-09-08 03:36:16,428 [INFO] [Epoch 0154] train=12.6220  val=4.6839
+2025-09-08 03:37:33,736 [INFO] [val] loss=4.6092 Lcnt=78.1453 Lex=1.0099 Leps=0.1330 predCnt=136.41 gtCnt=63.57
+2025-09-08 03:37:33,737 [INFO] [val-top5]  pred=357.5 gt=746.0 err=388.5 |  pred=226.9 gt=486.0 err=259.1 |  pred=245.3 gt=477.0 err=231.7 |  pred=256.1 gt=484.0 err=227.9 |  pred=297.1 gt=503.0 err=205.9
+2025-09-08 03:37:33,737 [INFO] [Epoch 0155] train=12.5253  val=4.6092
+2025-09-08 03:38:49,546 [INFO] [val] loss=4.7226 Lcnt=75.5374 Lex=1.0656 Leps=0.1284 predCnt=131.89 gtCnt=63.62
+2025-09-08 03:38:49,547 [INFO] [val-top5]  pred=267.2 gt=746.0 err=478.8 |  pred=228.9 gt=535.0 err=306.1 |  pred=193.2 gt=486.0 err=292.8 |  pred=292.2 gt=500.0 err=207.8 |  pred=254.2 gt=454.0 err=199.8
+2025-09-08 03:38:49,547 [INFO] [Epoch 0156] train=12.5502  val=4.7226
+2025-09-08 03:40:05,596 [INFO] [val] loss=4.5870 Lcnt=70.1775 Lex=1.0432 Leps=0.1259 predCnt=127.77 gtCnt=63.55
+2025-09-08 03:40:05,596 [INFO] [val-top5]  pred=265.4 gt=581.0 err=315.6 |  pred=252.2 gt=496.0 err=243.8 |  pred=182.3 gt=420.0 err=237.7 |  pred=311.8 gt=535.0 err=223.2 |  pred=210.9 gt=428.0 err=217.1
+2025-09-08 03:40:05,597 [INFO] [Epoch 0157] train=12.5729  val=4.5870
+2025-09-08 03:41:21,420 [INFO] [val] loss=4.6852 Lcnt=78.8992 Lex=1.0282 Leps=0.1352 predCnt=137.80 gtCnt=63.60
+2025-09-08 03:41:21,420 [INFO] [val-top5]  pred=412.0 gt=746.0 err=334.0 |  pred=275.2 gt=581.0 err=305.8 |  pred=280.3 gt=486.0 err=205.7 |  pred=205.5 gt=6.0 err=199.5 |  pred=200.3 gt=6.0 err=194.3
+2025-09-08 03:41:21,421 [INFO] [Epoch 0158] train=12.6148  val=4.6852
+2025-09-08 03:42:37,805 [INFO] [val] loss=4.7066 Lcnt=71.5999 Lex=1.0822 Leps=0.1240 predCnt=129.51 gtCnt=63.74
+2025-09-08 03:42:37,805 [INFO] [val-top5]  pred=320.7 gt=746.0 err=425.3 |  pred=254.0 gt=535.0 err=281.0 |  pred=250.2 gt=486.0 err=235.8 |  pred=304.3 gt=503.0 err=198.7 |  pred=185.2 gt=6.0 err=179.2
+2025-09-08 03:42:37,806 [INFO] [Epoch 0159] train=12.5562  val=4.7066
+2025-09-08 03:43:54,229 [INFO] [val] loss=4.5170 Lcnt=69.7985 Lex=1.0294 Leps=0.1218 predCnt=126.56 gtCnt=63.68
+2025-09-08 03:43:54,229 [INFO] [val-top5]  pred=387.4 gt=746.0 err=358.6 |  pred=237.1 gt=535.0 err=297.9 |  pred=231.4 gt=486.0 err=254.6 |  pred=248.7 gt=484.0 err=235.3 |  pred=207.1 gt=428.0 err=220.9
+2025-09-08 03:43:54,230 [INFO] [Epoch 0160] train=12.5220  val=4.5170
+2025-09-08 03:45:11,569 [INFO] [val] loss=4.6628 Lcnt=80.1862 Lex=1.0190 Leps=0.1340 predCnt=137.51 gtCnt=63.56
+2025-09-08 03:45:11,569 [INFO] [val-top5]  pred=208.9 gt=486.0 err=277.1 |  pred=269.8 gt=535.0 err=265.2 |  pred=409.6 gt=649.0 err=239.4 |  pred=244.1 gt=477.0 err=232.9 |  pred=272.4 gt=500.0 err=227.6
+2025-09-08 03:45:11,570 [INFO] [Epoch 0161] train=12.5971  val=4.6628
+2025-09-08 03:46:28,201 [INFO] [val] loss=4.5610 Lcnt=80.3089 Lex=0.9883 Leps=0.1322 predCnt=139.12 gtCnt=63.68
+2025-09-08 03:46:28,201 [INFO] [val-top5]  pred=438.0 gt=746.0 err=308.0 |  pred=311.5 gt=535.0 err=223.5 |  pred=218.0 gt=6.0 err=212.0 |  pred=208.3 gt=5.0 err=203.3 |  pred=205.8 gt=5.0 err=200.8
+2025-09-08 03:46:28,202 [INFO] [Epoch 0162] train=12.6623  val=4.5610
+2025-09-08 03:47:44,222 [INFO] [val] loss=4.5638 Lcnt=74.4923 Lex=1.0181 Leps=0.1275 predCnt=131.52 gtCnt=63.53
+2025-09-08 03:47:44,223 [INFO] [val-top5]  pred=325.9 gt=746.0 err=420.1 |  pred=302.5 gt=581.0 err=278.5 |  pred=235.4 gt=477.0 err=241.6 |  pred=188.7 gt=420.0 err=231.3 |  pred=332.1 gt=535.0 err=202.9
+2025-09-08 03:47:44,224 [INFO] [Epoch 0163] train=12.5454  val=4.5638
+2025-09-08 03:49:01,574 [INFO] [val] loss=4.5848 Lcnt=79.8789 Lex=0.9983 Leps=0.1318 predCnt=138.21 gtCnt=63.71
+2025-09-08 03:49:01,575 [INFO] [val-top5]  pred=348.8 gt=746.0 err=397.2 |  pred=234.7 gt=486.0 err=251.3 |  pred=340.1 gt=581.0 err=240.9 |  pred=199.7 gt=4.0 err=195.7 |  pred=201.0 gt=6.0 err=195.0
+2025-09-08 03:49:01,575 [INFO] [Epoch 0164] train=12.5741  val=4.5848
+2025-09-08 03:50:18,283 [INFO] [val] loss=4.5511 Lcnt=73.9945 Lex=1.0235 Leps=0.1235 predCnt=131.44 gtCnt=63.57
+2025-09-08 03:50:18,283 [INFO] [val-top5]  pred=226.6 gt=477.0 err=250.4 |  pred=276.6 gt=503.0 err=226.4 |  pred=361.8 gt=581.0 err=219.2 |  pred=286.5 gt=500.0 err=213.5 |  pred=272.6 gt=486.0 err=213.4
+2025-09-08 03:50:18,284 [INFO] [Epoch 0165] train=12.5604  val=4.5511
+2025-09-08 03:51:34,512 [INFO] [val] loss=4.6045 Lcnt=72.0960 Lex=1.0431 Leps=0.1257 predCnt=129.68 gtCnt=63.60
+2025-09-08 03:51:34,513 [INFO] [val-top5]  pred=324.8 gt=746.0 err=421.2 |  pred=247.0 gt=535.0 err=288.0 |  pred=208.5 gt=486.0 err=277.5 |  pred=275.2 gt=500.0 err=224.8 |  pred=210.1 gt=6.0 err=204.1
+2025-09-08 03:51:34,514 [INFO] [Epoch 0166] train=12.6211  val=4.6045
+2025-09-08 03:52:52,159 [INFO] [val] loss=4.6766 Lcnt=74.9403 Lex=1.0406 Leps=0.1342 predCnt=132.08 gtCnt=63.59
+2025-09-08 03:52:52,159 [INFO] [val-top5]  pred=424.7 gt=746.0 err=321.3 |  pred=213.3 gt=486.0 err=272.7 |  pred=210.9 gt=477.0 err=266.1 |  pred=271.4 gt=535.0 err=263.6 |  pred=283.5 gt=503.0 err=219.5
+2025-09-08 03:52:52,160 [INFO] [Epoch 0167] train=12.5602  val=4.6766
+2025-09-08 03:54:08,758 [INFO] [val] loss=4.5439 Lcnt=73.1969 Lex=0.9986 Leps=0.1360 predCnt=130.88 gtCnt=63.56
+2025-09-08 03:54:08,758 [INFO] [val-top5]  pred=284.2 gt=581.0 err=296.8 |  pred=233.3 gt=486.0 err=252.7 |  pred=289.4 gt=535.0 err=245.6 |  pred=337.1 gt=571.0 err=233.9 |  pred=416.2 gt=649.0 err=232.8
+2025-09-08 03:54:08,759 [INFO] [Epoch 0168] train=12.4535  val=4.5439
+2025-09-08 03:55:26,216 [INFO] [val] loss=4.6729 Lcnt=78.0796 Lex=1.0392 Leps=0.1291 predCnt=136.94 gtCnt=63.62
+2025-09-08 03:55:26,217 [INFO] [val-top5]  pred=320.2 gt=746.0 err=425.8 |  pred=353.6 gt=581.0 err=227.4 |  pred=252.4 gt=477.0 err=224.6 |  pred=356.4 gt=571.0 err=214.6 |  pred=190.4 gt=4.0 err=186.4
+2025-09-08 03:55:26,217 [INFO] [Epoch 0169] train=12.6066  val=4.6729
+2025-09-08 03:56:45,790 [INFO] [val] loss=4.5843 Lcnt=75.8655 Lex=1.0089 Leps=0.1332 predCnt=135.29 gtCnt=63.40
+2025-09-08 03:56:45,791 [INFO] [val-top5]  pred=265.2 gt=535.0 err=269.8 |  pred=259.0 gt=477.0 err=218.0 |  pred=528.5 gt=746.0 err=217.5 |  pred=438.8 gt=649.0 err=210.2 |  pred=204.2 gt=6.0 err=198.2
+2025-09-08 03:56:45,791 [INFO] [Epoch 0170] train=12.6490  val=4.5843
+2025-09-08 03:58:01,916 [INFO] [val] loss=4.6132 Lcnt=77.2899 Lex=1.0211 Leps=0.1295 predCnt=136.61 gtCnt=63.59
+2025-09-08 03:58:01,916 [INFO] [val-top5]  pred=425.6 gt=746.0 err=320.4 |  pred=234.0 gt=477.0 err=243.0 |  pred=311.5 gt=535.0 err=223.5 |  pred=276.9 gt=486.0 err=209.1 |  pred=291.9 gt=496.0 err=204.1
+2025-09-08 03:58:01,917 [INFO] [Epoch 0171] train=12.5427  val=4.6132
+2025-09-08 03:59:18,031 [INFO] [val] loss=4.7056 Lcnt=71.8631 Lex=1.0633 Leps=0.1328 predCnt=129.06 gtCnt=63.47
+2025-09-08 03:59:18,032 [INFO] [val-top5]  pred=311.4 gt=746.0 err=434.6 |  pred=265.3 gt=535.0 err=269.7 |  pred=223.6 gt=428.0 err=204.4 |  pred=283.0 gt=477.0 err=194.0 |  pred=176.5 gt=362.0 err=185.5
+2025-09-08 03:59:18,032 [INFO] [Epoch 0172] train=12.4849  val=4.7056
+2025-09-08 04:00:33,277 [INFO] [val] loss=4.6076 Lcnt=78.7670 Lex=1.0063 Leps=0.1335 predCnt=137.72 gtCnt=63.51
+2025-09-08 04:00:33,278 [INFO] [val-top5]  pred=367.9 gt=746.0 err=378.1 |  pred=215.3 gt=486.0 err=270.7 |  pred=224.4 gt=477.0 err=252.6 |  pred=273.5 gt=484.0 err=210.5 |  pred=194.0 gt=0.0 err=194.0
+2025-09-08 04:00:33,278 [INFO] [Epoch 0173] train=12.5346  val=4.6076
+2025-09-08 04:01:50,906 [INFO] [val] loss=4.4578 Lcnt=74.1766 Lex=0.9805 Leps=0.1291 predCnt=132.80 gtCnt=63.60
+2025-09-08 04:01:50,906 [INFO] [val-top5]  pred=284.8 gt=535.0 err=250.2 |  pred=242.0 gt=477.0 err=235.0 |  pred=384.3 gt=581.0 err=196.7 |  pred=197.8 gt=4.0 err=193.8 |  pred=192.1 gt=3.0 err=189.1
+2025-09-08 04:01:50,907 [INFO] [Epoch 0174] train=12.5190  val=4.4578
+2025-09-08 04:03:07,054 [INFO] [val] loss=4.6661 Lcnt=75.2570 Lex=1.0399 Leps=0.1323 predCnt=133.05 gtCnt=63.55
+2025-09-08 04:03:07,055 [INFO] [val-top5]  pred=287.6 gt=581.0 err=293.4 |  pred=265.6 gt=535.0 err=269.4 |  pred=225.0 gt=486.0 err=261.0 |  pred=494.0 gt=746.0 err=252.0 |  pred=267.1 gt=484.0 err=216.9
+2025-09-08 04:03:07,055 [INFO] [Epoch 0175] train=12.5420  val=4.6661
+2025-09-08 04:04:24,007 [INFO] [val] loss=4.5110 Lcnt=68.0902 Lex=1.0269 Leps=0.1249 predCnt=124.84 gtCnt=63.68
+2025-09-08 04:04:24,007 [INFO] [val-top5]  pred=322.8 gt=746.0 err=423.2 |  pred=235.5 gt=486.0 err=250.5 |  pred=321.1 gt=535.0 err=213.9 |  pred=298.6 gt=496.0 err=197.4 |  pred=286.9 gt=484.0 err=197.1
+2025-09-08 04:04:24,008 [INFO] [Epoch 0176] train=12.5392  val=4.5110
+2025-09-08 04:05:40,238 [INFO] [val] loss=4.6250 Lcnt=76.4952 Lex=1.0225 Leps=0.1321 predCnt=133.25 gtCnt=63.72
+2025-09-08 04:05:40,238 [INFO] [val-top5]  pred=302.0 gt=746.0 err=444.0 |  pred=206.9 gt=486.0 err=279.1 |  pred=345.3 gt=581.0 err=235.7 |  pred=271.6 gt=500.0 err=228.4 |  pred=313.6 gt=535.0 err=221.4
+2025-09-08 04:05:40,239 [INFO] [Epoch 0177] train=12.5389  val=4.6250
+2025-09-08 04:06:57,948 [INFO] [val] loss=4.6394 Lcnt=70.6945 Lex=1.0442 Leps=0.1333 predCnt=128.07 gtCnt=63.52
+2025-09-08 04:06:57,948 [INFO] [val-top5]  pred=357.3 gt=746.0 err=388.7 |  pred=241.7 gt=535.0 err=293.3 |  pred=240.1 gt=486.0 err=245.9 |  pred=364.4 gt=571.0 err=206.6 |  pred=244.2 gt=433.0 err=188.8
+2025-09-08 04:06:57,949 [INFO] [Epoch 0178] train=12.5525  val=4.6394
+2025-09-08 04:08:15,366 [INFO] [val] loss=4.6003 Lcnt=72.3915 Lex=1.0338 Leps=0.1292 predCnt=130.60 gtCnt=63.55
+2025-09-08 04:08:15,366 [INFO] [val-top5]  pred=227.3 gt=477.0 err=249.7 |  pred=338.5 gt=581.0 err=242.5 |  pred=280.9 gt=484.0 err=203.1 |  pred=343.5 gt=535.0 err=191.5 |  pred=297.2 gt=484.0 err=186.8
+2025-09-08 04:08:15,367 [INFO] [Epoch 0179] train=12.5433  val=4.6003
+2025-09-08 04:09:32,729 [INFO] [val] loss=4.6114 Lcnt=77.9149 Lex=1.0043 Leps=0.1365 predCnt=137.60 gtCnt=63.50
+2025-09-08 04:09:32,730 [INFO] [val-top5]  pred=335.2 gt=535.0 err=199.8 |  pred=203.5 gt=4.0 err=199.5 |  pred=196.1 gt=1.0 err=195.1 |  pred=194.0 gt=0.0 err=194.0 |  pred=193.2 gt=0.0 err=193.2
+2025-09-08 04:09:32,730 [INFO] [Epoch 0180] train=12.6178  val=4.6114
+2025-09-08 04:10:48,650 [INFO] [val] loss=4.6295 Lcnt=84.2511 Lex=0.9759 Leps=0.1432 predCnt=144.44 gtCnt=63.66
+2025-09-08 04:10:48,650 [INFO] [val-top5]  pred=248.0 gt=486.0 err=238.0 |  pred=289.1 gt=500.0 err=210.9 |  pred=212.1 gt=5.0 err=207.1 |  pred=207.6 gt=2.0 err=205.6 |  pred=216.0 gt=12.0 err=204.0
+2025-09-08 04:10:48,651 [INFO] [Epoch 0181] train=12.5188  val=4.6295
+2025-09-08 04:12:04,714 [INFO] [val] loss=4.5188 Lcnt=77.0742 Lex=0.9986 Leps=0.1254 predCnt=134.91 gtCnt=63.62
+2025-09-08 04:12:04,714 [INFO] [val-top5]  pred=309.9 gt=746.0 err=436.1 |  pred=289.0 gt=581.0 err=292.0 |  pred=266.1 gt=535.0 err=268.9 |  pred=217.0 gt=477.0 err=260.0 |  pred=223.7 gt=428.0 err=204.3
+2025-09-08 04:12:04,715 [INFO] [Epoch 0182] train=12.6449  val=4.5188
+2025-09-08 04:13:21,035 [INFO] [val] loss=4.6367 Lcnt=73.1180 Lex=1.0495 Leps=0.1262 predCnt=131.12 gtCnt=63.67
+2025-09-08 04:13:21,035 [INFO] [val-top5]  pred=286.6 gt=581.0 err=294.4 |  pred=479.0 gt=746.0 err=267.0 |  pred=243.2 gt=486.0 err=242.8 |  pred=269.3 gt=500.0 err=230.7 |  pred=276.7 gt=484.0 err=207.3
+2025-09-08 04:13:21,036 [INFO] [Epoch 0183] train=12.4900  val=4.6367
+2025-09-08 04:14:37,036 [INFO] [val] loss=4.6198 Lcnt=73.1866 Lex=1.0203 Leps=0.1378 predCnt=132.14 gtCnt=63.49
+2025-09-08 04:14:37,036 [INFO] [val-top5]  pred=237.8 gt=477.0 err=239.2 |  pred=247.0 gt=486.0 err=239.0 |  pred=280.8 gt=500.0 err=219.2 |  pred=199.6 gt=10.0 err=189.6 |  pred=188.0 gt=1.0 err=187.0
+2025-09-08 04:14:37,037 [INFO] [Epoch 0184] train=12.5793  val=4.6198
+2025-09-08 04:15:54,015 [INFO] [val] loss=4.5585 Lcnt=72.5977 Lex=1.0181 Leps=0.1297 predCnt=130.73 gtCnt=63.59
+2025-09-08 04:15:54,015 [INFO] [val-top5]  pred=262.1 gt=535.0 err=272.9 |  pred=235.2 gt=486.0 err=250.8 |  pred=252.6 gt=477.0 err=224.4 |  pred=264.3 gt=484.0 err=219.7 |  pred=294.0 gt=500.0 err=206.0
+2025-09-08 04:15:54,016 [INFO] [Epoch 0185] train=12.5698  val=4.5585
+2025-09-08 04:17:10,364 [INFO] [val] loss=4.6749 Lcnt=76.7913 Lex=1.0412 Leps=0.1306 predCnt=134.96 gtCnt=63.69
+2025-09-08 04:17:10,365 [INFO] [val-top5]  pred=219.3 gt=486.0 err=266.7 |  pred=209.1 gt=428.0 err=218.9 |  pred=269.4 gt=484.0 err=214.6 |  pred=263.9 gt=477.0 err=213.1 |  pred=332.1 gt=535.0 err=202.9
+2025-09-08 04:17:10,366 [INFO] [Epoch 0186] train=12.5251  val=4.6749
+2025-09-08 04:18:26,436 [INFO] [val] loss=4.5537 Lcnt=74.6291 Lex=1.0093 Leps=0.1299 predCnt=132.63 gtCnt=63.63
+2025-09-08 04:18:26,437 [INFO] [val-top5]  pred=470.1 gt=746.0 err=275.9 |  pred=275.2 gt=535.0 err=259.8 |  pred=231.9 gt=486.0 err=254.1 |  pred=348.3 gt=581.0 err=232.7 |  pred=206.5 gt=7.0 err=199.5
+2025-09-08 04:18:26,437 [INFO] [Epoch 0187] train=12.5130  val=4.5537
+2025-09-08 04:19:43,572 [INFO] [val] loss=4.7581 Lcnt=76.1379 Lex=1.0581 Leps=0.1371 predCnt=133.30 gtCnt=63.58
+2025-09-08 04:19:43,573 [INFO] [val-top5]  pred=326.1 gt=746.0 err=419.9 |  pred=263.1 gt=503.0 err=239.9 |  pred=264.1 gt=486.0 err=221.9 |  pred=361.8 gt=581.0 err=219.2 |  pred=233.3 gt=428.0 err=194.7
+2025-09-08 04:19:43,573 [INFO] [Epoch 0188] train=12.5548  val=4.7581
+2025-09-08 04:20:59,035 [INFO] [val] loss=4.6446 Lcnt=76.3283 Lex=1.0352 Leps=0.1293 predCnt=133.20 gtCnt=63.61
+2025-09-08 04:20:59,035 [INFO] [val-top5]  pred=357.5 gt=746.0 err=388.5 |  pred=354.6 gt=649.0 err=294.4 |  pred=213.6 gt=486.0 err=272.4 |  pred=274.1 gt=503.0 err=228.9 |  pred=269.7 gt=484.0 err=214.3
+2025-09-08 04:20:59,036 [INFO] [Epoch 0189] train=12.4914  val=4.6446
+2025-09-08 04:22:15,800 [INFO] [val] loss=4.5866 Lcnt=73.6509 Lex=1.0245 Leps=0.1294 predCnt=131.55 gtCnt=63.46
+2025-09-08 04:22:15,801 [INFO] [val-top5]  pred=381.1 gt=746.0 err=364.9 |  pred=251.3 gt=535.0 err=283.7 |  pred=264.3 gt=503.0 err=238.7 |  pred=189.5 gt=6.0 err=183.5 |  pred=210.2 gt=392.0 err=181.8
+2025-09-08 04:22:15,801 [INFO] [Epoch 0190] train=12.5131  val=4.5866
+2025-09-08 04:23:32,748 [INFO] [val] loss=4.5587 Lcnt=67.7395 Lex=1.0446 Leps=0.1246 predCnt=123.76 gtCnt=63.59
+2025-09-08 04:23:32,749 [INFO] [val-top5]  pred=476.0 gt=746.0 err=270.0 |  pred=275.1 gt=535.0 err=259.9 |  pred=219.6 gt=477.0 err=257.4 |  pred=261.4 gt=500.0 err=238.6 |  pred=288.2 gt=503.0 err=214.8
+2025-09-08 04:23:32,749 [INFO] [Epoch 0191] train=12.5445  val=4.5587
+2025-09-08 04:24:50,099 [INFO] [val] loss=4.5275 Lcnt=78.1457 Lex=0.9850 Leps=0.1318 predCnt=135.15 gtCnt=63.54
+2025-09-08 04:24:50,099 [INFO] [val-top5]  pred=412.6 gt=746.0 err=333.4 |  pred=379.3 gt=649.0 err=269.7 |  pred=239.6 gt=477.0 err=237.4 |  pred=274.9 gt=503.0 err=228.1 |  pred=355.1 gt=571.0 err=215.9
+2025-09-08 04:24:50,100 [INFO] [Epoch 0192] train=12.6378  val=4.5275
+2025-09-08 04:26:06,302 [INFO] [val] loss=4.6084 Lcnt=75.7666 Lex=1.0150 Leps=0.1343 predCnt=134.50 gtCnt=63.66
+2025-09-08 04:26:06,303 [INFO] [val-top5]  pred=346.9 gt=581.0 err=234.1 |  pred=192.3 gt=420.0 err=227.7 |  pred=195.0 gt=4.0 err=191.0 |  pred=192.0 gt=3.0 err=189.0 |  pred=194.8 gt=9.0 err=185.8
+2025-09-08 04:26:06,303 [INFO] [Epoch 0193] train=12.5496  val=4.6084
+2025-09-08 04:27:23,117 [INFO] [val] loss=4.6011 Lcnt=75.8850 Lex=1.0156 Leps=0.1326 predCnt=133.93 gtCnt=63.62
+2025-09-08 04:27:23,118 [INFO] [val-top5]  pred=423.3 gt=746.0 err=322.7 |  pred=215.1 gt=477.0 err=261.9 |  pred=256.9 gt=486.0 err=229.1 |  pred=293.0 gt=500.0 err=207.0 |  pred=451.2 gt=649.0 err=197.8
+2025-09-08 04:27:23,118 [INFO] [Epoch 0194] train=12.5266  val=4.6011
+2025-09-08 04:28:39,425 [INFO] [val] loss=4.7183 Lcnt=77.1199 Lex=1.0342 Leps=0.1408 predCnt=136.64 gtCnt=63.62
+2025-09-08 04:28:39,425 [INFO] [val-top5]  pred=285.6 gt=581.0 err=295.4 |  pred=516.5 gt=746.0 err=229.5 |  pred=261.3 gt=486.0 err=224.7 |  pred=277.0 gt=477.0 err=200.0 |  pred=345.3 gt=535.0 err=189.7
+2025-09-08 04:28:39,426 [INFO] [Epoch 0195] train=12.5874  val=4.7183
+2025-09-08 04:29:56,203 [INFO] [val] loss=4.6206 Lcnt=73.0255 Lex=1.0304 Leps=0.1332 predCnt=131.50 gtCnt=63.57
+2025-09-08 04:29:56,203 [INFO] [val-top5]  pred=341.0 gt=746.0 err=405.0 |  pred=318.1 gt=535.0 err=216.9 |  pred=364.3 gt=571.0 err=206.7 |  pred=185.9 gt=6.0 err=179.9 |  pred=179.9 gt=1.0 err=178.9
+2025-09-08 04:29:56,204 [INFO] [Epoch 0196] train=12.4922  val=4.6206
+2025-09-08 04:31:13,810 [INFO] [val] loss=4.5935 Lcnt=77.1689 Lex=1.0193 Leps=0.1273 predCnt=135.27 gtCnt=63.59
+2025-09-08 04:31:13,811 [INFO] [val-top5]  pred=478.6 gt=746.0 err=267.4 |  pred=267.4 gt=486.0 err=218.6 |  pred=290.3 gt=503.0 err=212.7 |  pred=220.2 gt=428.0 err=207.8 |  pred=194.4 gt=6.0 err=188.4
+2025-09-08 04:31:13,811 [INFO] [Epoch 0197] train=12.5452  val=4.5935
+2025-09-08 04:32:29,941 [INFO] [val] loss=4.6195 Lcnt=81.8553 Lex=0.9980 Leps=0.1345 predCnt=140.14 gtCnt=63.58
+2025-09-08 04:32:29,942 [INFO] [val-top5]  pred=352.6 gt=746.0 err=393.4 |  pred=247.2 gt=486.0 err=238.8 |  pred=281.3 gt=503.0 err=221.7 |  pred=440.9 gt=649.0 err=208.1 |  pred=204.6 gt=6.0 err=198.6
+2025-09-08 04:32:29,942 [INFO] [Epoch 0198] train=12.4821  val=4.6195
+2025-09-08 04:33:45,544 [INFO] [val] loss=4.5613 Lcnt=72.4667 Lex=1.0204 Leps=0.1292 predCnt=129.80 gtCnt=63.51
+2025-09-08 04:33:45,545 [INFO] [val-top5]  pred=205.9 gt=486.0 err=280.1 |  pred=326.0 gt=581.0 err=255.0 |  pred=408.3 gt=649.0 err=240.7 |  pred=276.3 gt=503.0 err=226.7 |  pred=265.9 gt=477.0 err=211.1
+2025-09-08 04:33:45,545 [INFO] [Epoch 0199] train=12.5470  val=4.5613
+2025-09-08 04:35:01,899 [INFO] [val] loss=4.6542 Lcnt=75.8088 Lex=1.0339 Leps=0.1324 predCnt=132.88 gtCnt=63.56
+2025-09-08 04:35:01,899 [INFO] [val-top5]  pred=312.1 gt=746.0 err=433.9 |  pred=260.8 gt=535.0 err=274.2 |  pred=379.5 gt=649.0 err=269.5 |  pred=325.3 gt=581.0 err=255.7 |  pred=251.6 gt=486.0 err=234.4
+2025-09-08 04:35:01,900 [INFO] [Epoch 0200] train=12.5179  val=4.6542
+2025-09-08 04:36:19,691 [INFO] [val] loss=4.7119 Lcnt=77.0839 Lex=1.0354 Leps=0.1391 predCnt=136.33 gtCnt=63.56
+2025-09-08 04:36:19,692 [INFO] [val-top5]  pred=241.5 gt=486.0 err=244.5 |  pred=237.2 gt=477.0 err=239.8 |  pred=339.0 gt=535.0 err=196.0 |  pred=198.0 gt=7.0 err=191.0 |  pred=310.6 gt=500.0 err=189.4
+2025-09-08 04:36:19,692 [INFO] [Epoch 0201] train=12.5510  val=4.7119
+2025-09-08 04:37:36,422 [INFO] [val] loss=4.7430 Lcnt=79.3754 Lex=1.0513 Leps=0.1326 predCnt=138.76 gtCnt=63.48
+2025-09-08 04:37:36,422 [INFO] [val-top5]  pred=437.0 gt=746.0 err=309.0 |  pred=193.2 gt=5.0 err=188.2 |  pred=192.8 gt=6.0 err=186.8 |  pred=191.5 gt=5.0 err=186.5 |  pred=192.3 gt=6.0 err=186.3
+2025-09-08 04:37:36,423 [INFO] [Epoch 0202] train=12.5230  val=4.7430
+2025-09-08 04:38:53,858 [INFO] [val] loss=4.6248 Lcnt=76.2558 Lex=1.0301 Leps=0.1287 predCnt=134.56 gtCnt=63.55
+2025-09-08 04:38:53,859 [INFO] [val-top5]  pred=327.7 gt=746.0 err=418.3 |  pred=219.2 gt=486.0 err=266.8 |  pred=224.9 gt=477.0 err=252.1 |  pred=264.3 gt=484.0 err=219.7 |  pred=218.9 gt=420.0 err=201.1
+2025-09-08 04:38:53,859 [INFO] [Epoch 0203] train=12.5484  val=4.6248
+2025-09-08 04:40:11,476 [INFO] [val] loss=4.6406 Lcnt=77.8683 Lex=1.0130 Leps=0.1372 predCnt=135.77 gtCnt=63.53
+2025-09-08 04:40:11,476 [INFO] [val-top5]  pred=371.3 gt=746.0 err=374.7 |  pred=252.9 gt=535.0 err=282.1 |  pred=269.6 gt=486.0 err=216.4 |  pred=285.2 gt=500.0 err=214.8 |  pred=203.3 gt=7.0 err=196.3
+2025-09-08 04:40:11,477 [INFO] [Epoch 0204] train=12.4622  val=4.6406
+2025-09-08 04:41:28,152 [INFO] [val] loss=4.6452 Lcnt=68.3322 Lex=1.0722 Leps=0.1242 predCnt=124.58 gtCnt=63.66
+2025-09-08 04:41:28,153 [INFO] [val-top5]  pred=411.7 gt=746.0 err=334.3 |  pred=250.5 gt=535.0 err=284.5 |  pred=310.9 gt=581.0 err=270.1 |  pred=219.4 gt=486.0 err=266.6 |  pred=216.0 gt=477.0 err=261.0
+2025-09-08 04:41:28,153 [INFO] [Epoch 0205] train=12.5334  val=4.6452
+2025-09-08 04:42:44,777 [INFO] [val] loss=4.5659 Lcnt=71.6283 Lex=1.0348 Leps=0.1242 predCnt=128.68 gtCnt=63.56
+2025-09-08 04:42:44,778 [INFO] [val-top5]  pred=297.8 gt=746.0 err=448.2 |  pred=235.4 gt=535.0 err=299.6 |  pred=230.8 gt=486.0 err=255.2 |  pred=277.5 gt=500.0 err=222.5 |  pred=231.7 gt=428.0 err=196.3
+2025-09-08 04:42:44,778 [INFO] [Epoch 0206] train=12.5361  val=4.5659
+2025-09-08 04:44:01,681 [INFO] [val] loss=4.6868 Lcnt=74.6074 Lex=1.0530 Leps=0.1303 predCnt=131.94 gtCnt=63.67
+2025-09-08 04:44:01,682 [INFO] [val-top5]  pred=346.9 gt=746.0 err=399.1 |  pred=213.6 gt=477.0 err=263.4 |  pred=223.0 gt=486.0 err=263.0 |  pred=345.9 gt=581.0 err=235.1 |  pred=305.4 gt=535.0 err=229.6
+2025-09-08 04:44:01,682 [INFO] [Epoch 0207] train=12.3815  val=4.6868
+2025-09-08 04:45:18,486 [INFO] [val] loss=4.5886 Lcnt=75.8109 Lex=1.0131 Leps=0.1319 predCnt=134.27 gtCnt=63.58
+2025-09-08 04:45:18,486 [INFO] [val-top5]  pred=456.8 gt=746.0 err=289.2 |  pred=260.0 gt=535.0 err=275.0 |  pred=254.0 gt=486.0 err=232.0 |  pred=292.1 gt=500.0 err=207.9 |  pred=292.0 gt=496.0 err=204.0
+2025-09-08 04:45:18,487 [INFO] [Epoch 0208] train=12.5432  val=4.5886
+2025-09-08 04:46:34,291 [INFO] [val] loss=4.5721 Lcnt=69.2629 Lex=1.0501 Leps=0.1215 predCnt=126.91 gtCnt=63.56
+2025-09-08 04:46:34,291 [INFO] [val-top5]  pred=240.6 gt=486.0 err=245.4 |  pred=272.0 gt=500.0 err=228.0 |  pred=423.0 gt=649.0 err=226.0 |  pred=264.4 gt=484.0 err=219.6 |  pred=181.9 gt=6.0 err=175.9
+2025-09-08 04:46:34,292 [INFO] [Epoch 0209] train=12.5145  val=4.5721
+2025-09-08 04:47:49,925 [INFO] [val] loss=4.5938 Lcnt=73.5599 Lex=1.0367 Leps=0.1247 predCnt=129.80 gtCnt=63.65
+2025-09-08 04:47:49,926 [INFO] [val-top5]  pred=324.8 gt=746.0 err=421.2 |  pred=280.0 gt=581.0 err=301.0 |  pred=215.7 gt=486.0 err=270.3 |  pred=216.4 gt=477.0 err=260.6 |  pred=281.2 gt=535.0 err=253.8
+2025-09-08 04:47:49,927 [INFO] [Epoch 0210] train=12.5532  val=4.5938
+2025-09-08 04:49:06,836 [INFO] [val] loss=4.5740 Lcnt=75.9580 Lex=1.0071 Leps=0.1322 predCnt=133.82 gtCnt=63.61
+2025-09-08 04:49:06,837 [INFO] [val-top5]  pred=261.0 gt=535.0 err=274.0 |  pred=313.3 gt=581.0 err=267.7 |  pred=230.4 gt=486.0 err=255.6 |  pred=269.2 gt=500.0 err=230.8 |  pred=265.7 gt=484.0 err=218.3
+2025-09-08 04:49:06,837 [INFO] [Epoch 0211] train=12.4901  val=4.5740
+2025-09-08 04:50:23,269 [INFO] [val] loss=4.7289 Lcnt=77.3110 Lex=1.0561 Leps=0.1312 predCnt=135.19 gtCnt=63.67
+2025-09-08 04:50:23,269 [INFO] [val-top5]  pred=479.9 gt=746.0 err=266.1 |  pred=316.9 gt=581.0 err=264.1 |  pred=399.3 gt=649.0 err=249.7 |  pred=263.1 gt=477.0 err=213.9 |  pred=291.3 gt=484.0 err=192.7
+2025-09-08 04:50:23,270 [INFO] [Epoch 0212] train=12.6417  val=4.7289
+2025-09-08 04:51:39,855 [INFO] [val] loss=4.7326 Lcnt=71.0269 Lex=1.0807 Leps=0.1300 predCnt=129.20 gtCnt=63.63
+2025-09-08 04:51:39,855 [INFO] [val-top5]  pred=197.8 gt=486.0 err=288.2 |  pred=228.9 gt=477.0 err=248.1 |  pred=336.7 gt=535.0 err=198.3 |  pred=201.6 gt=380.0 err=178.4 |  pred=178.1 gt=0.0 err=178.1
+2025-09-08 04:51:39,856 [INFO] [Epoch 0213] train=12.4781  val=4.7326
+2025-09-08 04:52:55,307 [INFO] [val] loss=4.7574 Lcnt=74.6842 Lex=1.0719 Leps=0.1325 predCnt=131.51 gtCnt=63.58
+2025-09-08 04:52:55,307 [INFO] [val-top5]  pred=320.4 gt=746.0 err=425.6 |  pred=254.5 gt=535.0 err=280.5 |  pred=214.1 gt=486.0 err=271.9 |  pred=247.4 gt=477.0 err=229.6 |  pred=278.4 gt=500.0 err=221.6
+2025-09-08 04:52:55,308 [INFO] [Epoch 0214] train=12.5379  val=4.7574
+2025-09-08 04:54:12,192 [INFO] [val] loss=4.5606 Lcnt=74.6675 Lex=1.0172 Leps=0.1271 predCnt=132.15 gtCnt=63.54
+2025-09-08 04:54:12,192 [INFO] [val-top5]  pred=365.8 gt=746.0 err=380.2 |  pred=253.9 gt=535.0 err=281.1 |  pred=310.1 gt=581.0 err=270.9 |  pred=237.0 gt=477.0 err=240.0 |  pred=245.3 gt=484.0 err=238.7
+2025-09-08 04:54:12,193 [INFO] [Epoch 0215] train=12.5008  val=4.5606
+2025-09-08 04:55:28,501 [INFO] [val] loss=4.7459 Lcnt=76.4223 Lex=1.0601 Leps=0.1336 predCnt=134.19 gtCnt=63.57
+2025-09-08 04:55:28,502 [INFO] [val-top5]  pred=214.7 gt=477.0 err=262.3 |  pred=497.5 gt=746.0 err=248.5 |  pred=286.8 gt=500.0 err=213.2 |  pred=339.7 gt=535.0 err=195.3 |  pred=289.4 gt=484.0 err=194.6
+2025-09-08 04:55:28,503 [INFO] [Epoch 0216] train=12.5851  val=4.7459
+2025-09-08 04:56:44,788 [INFO] [val] loss=4.6957 Lcnt=78.1460 Lex=1.0522 Leps=0.1263 predCnt=136.80 gtCnt=63.65
+2025-09-08 04:56:44,789 [INFO] [val-top5]  pred=218.1 gt=486.0 err=267.9 |  pred=304.1 gt=535.0 err=230.9 |  pred=205.8 gt=6.0 err=199.8 |  pred=450.2 gt=649.0 err=198.8 |  pred=200.4 gt=2.0 err=198.4
+2025-09-08 04:56:44,789 [INFO] [Epoch 0217] train=12.5750  val=4.6957
+2025-09-08 04:58:01,865 [INFO] [val] loss=4.5770 Lcnt=72.0344 Lex=1.0289 Leps=0.1283 predCnt=130.85 gtCnt=63.50
+2025-09-08 04:58:01,866 [INFO] [val-top5]  pred=446.0 gt=746.0 err=300.0 |  pred=288.2 gt=581.0 err=292.8 |  pred=258.1 gt=535.0 err=276.9 |  pred=238.9 gt=486.0 err=247.1 |  pred=279.7 gt=477.0 err=197.3
+2025-09-08 04:58:01,867 [INFO] [Epoch 0218] train=12.5824  val=4.5770
+2025-09-08 04:59:19,097 [INFO] [val] loss=4.6667 Lcnt=70.7088 Lex=1.0577 Leps=0.1311 predCnt=128.56 gtCnt=63.60
+2025-09-08 04:59:19,098 [INFO] [val-top5]  pred=248.9 gt=486.0 err=237.1 |  pred=298.0 gt=535.0 err=237.0 |  pred=201.0 gt=420.0 err=219.0 |  pred=297.5 gt=484.0 err=186.5 |  pred=312.3 gt=496.0 err=183.7
+2025-09-08 04:59:19,098 [INFO] [Epoch 0219] train=12.5292  val=4.6667
+2025-09-08 05:00:36,151 [INFO] [val] loss=4.7097 Lcnt=72.8341 Lex=1.0655 Leps=0.1308 predCnt=131.20 gtCnt=63.55
+2025-09-08 05:00:36,151 [INFO] [val-top5]  pred=412.1 gt=746.0 err=333.9 |  pred=243.2 gt=486.0 err=242.8 |  pred=428.5 gt=649.0 err=220.5 |  pred=220.1 gt=428.0 err=207.9 |  pred=182.2 gt=5.0 err=177.2
+2025-09-08 05:00:36,152 [INFO] [Epoch 0220] train=12.5177  val=4.7097
+2025-09-08 05:01:52,824 [INFO] [val] loss=4.6421 Lcnt=73.6680 Lex=1.0424 Leps=0.1297 predCnt=130.84 gtCnt=63.52
+2025-09-08 05:01:52,824 [INFO] [val-top5]  pred=321.2 gt=746.0 err=424.8 |  pred=273.7 gt=535.0 err=261.3 |  pred=347.1 gt=581.0 err=233.9 |  pred=288.9 gt=500.0 err=211.1 |  pred=219.7 gt=428.0 err=208.3
+2025-09-08 05:01:52,825 [INFO] [Epoch 0221] train=12.5552  val=4.6421
+2025-09-08 05:03:09,463 [INFO] [val] loss=4.7407 Lcnt=75.3487 Lex=1.0637 Leps=0.1327 predCnt=132.22 gtCnt=63.55
+2025-09-08 05:03:09,463 [INFO] [val-top5]  pred=291.7 gt=581.0 err=289.3 |  pred=403.8 gt=649.0 err=245.2 |  pred=273.0 gt=503.0 err=230.0 |  pred=191.8 gt=420.0 err=228.2 |  pred=274.6 gt=484.0 err=209.4
+2025-09-08 05:03:09,464 [INFO] [Epoch 0222] train=12.4764  val=4.7407
+2025-09-08 05:04:25,433 [INFO] [val] loss=4.5876 Lcnt=75.4001 Lex=1.0216 Leps=0.1281 predCnt=133.80 gtCnt=63.52
+2025-09-08 05:04:25,433 [INFO] [val-top5]  pred=226.4 gt=477.0 err=250.6 |  pred=430.8 gt=649.0 err=218.2 |  pred=194.1 gt=0.0 err=194.1 |  pred=197.8 gt=6.0 err=191.8 |  pred=236.7 gt=428.0 err=191.3
+2025-09-08 05:04:25,434 [INFO] [Epoch 0223] train=12.5513  val=4.5876
+2025-09-08 05:05:42,172 [INFO] [val] loss=4.5284 Lcnt=71.2065 Lex=1.0180 Leps=0.1271 predCnt=129.02 gtCnt=63.67
+2025-09-08 05:05:42,172 [INFO] [val-top5]  pred=308.7 gt=581.0 err=272.3 |  pred=230.3 gt=477.0 err=246.7 |  pred=514.9 gt=746.0 err=231.1 |  pred=213.8 gt=420.0 err=206.2 |  pred=445.8 gt=649.0 err=203.2
+2025-09-08 05:05:42,173 [INFO] [Epoch 0224] train=12.4758  val=4.5284
+2025-09-08 05:06:59,917 [INFO] [val] loss=4.5596 Lcnt=82.6717 Lex=0.9763 Leps=0.1340 predCnt=141.54 gtCnt=63.44
+2025-09-08 05:06:59,918 [INFO] [val-top5]  pred=380.6 gt=746.0 err=365.4 |  pred=278.9 gt=535.0 err=256.1 |  pred=279.7 gt=486.0 err=206.3 |  pred=207.3 gt=5.0 err=202.3 |  pred=205.2 gt=3.0 err=202.2
+2025-09-08 05:06:59,918 [INFO] [Epoch 0225] train=12.4948  val=4.5596
+2025-09-08 05:08:17,156 [INFO] [val] loss=4.5468 Lcnt=74.4854 Lex=1.0165 Leps=0.1254 predCnt=132.89 gtCnt=63.70
+2025-09-08 05:08:17,156 [INFO] [val-top5]  pred=405.0 gt=746.0 err=341.0 |  pred=324.3 gt=581.0 err=256.7 |  pred=242.7 gt=477.0 err=234.3 |  pred=300.2 gt=500.0 err=199.8 |  pred=306.3 gt=503.0 err=196.7
+2025-09-08 05:08:17,157 [INFO] [Epoch 0226] train=12.4946  val=4.5468
+2025-09-08 05:09:33,522 [INFO] [val] loss=4.5221 Lcnt=74.0318 Lex=1.0022 Leps=0.1292 predCnt=131.79 gtCnt=63.75
+2025-09-08 05:09:33,522 [INFO] [val-top5]  pred=468.1 gt=746.0 err=277.9 |  pred=273.4 gt=535.0 err=261.6 |  pred=262.9 gt=477.0 err=214.1 |  pred=293.8 gt=500.0 err=206.2 |  pred=195.7 gt=4.0 err=191.7
+2025-09-08 05:09:33,523 [INFO] [Epoch 0227] train=12.5465  val=4.5221
+2025-09-08 05:10:49,583 [INFO] [val] loss=4.6198 Lcnt=77.5139 Lex=1.0208 Leps=0.1304 predCnt=135.60 gtCnt=63.51
+2025-09-08 05:10:49,583 [INFO] [val-top5]  pred=324.3 gt=746.0 err=421.7 |  pred=279.7 gt=535.0 err=255.3 |  pred=267.0 gt=477.0 err=210.0 |  pred=217.7 gt=420.0 err=202.3 |  pred=382.4 gt=581.0 err=198.6
+2025-09-08 05:10:49,584 [INFO] [Epoch 0228] train=12.5369  val=4.6198
+2025-09-08 05:12:05,762 [INFO] [val] loss=4.6254 Lcnt=74.9577 Lex=1.0222 Leps=0.1348 predCnt=132.75 gtCnt=63.58
+2025-09-08 05:12:05,762 [INFO] [val-top5]  pred=292.2 gt=581.0 err=288.8 |  pred=236.5 gt=477.0 err=240.5 |  pred=315.8 gt=535.0 err=219.2 |  pred=286.5 gt=500.0 err=213.5 |  pred=536.6 gt=746.0 err=209.4
+2025-09-08 05:12:05,763 [INFO] [Epoch 0229] train=12.5170  val=4.6254
+2025-09-08 05:13:22,747 [INFO] [val] loss=4.6065 Lcnt=73.5794 Lex=1.0197 Leps=0.1353 predCnt=131.98 gtCnt=63.60
+2025-09-08 05:13:22,748 [INFO] [val-top5]  pred=224.5 gt=477.0 err=252.5 |  pred=310.5 gt=503.0 err=192.5 |  pred=193.2 gt=3.0 err=190.2 |  pred=194.0 gt=4.0 err=190.0 |  pred=189.9 gt=0.0 err=189.9
+2025-09-08 05:13:22,748 [INFO] [Epoch 0230] train=12.5238  val=4.6065
+2025-09-08 05:14:39,397 [INFO] [val] loss=4.6636 Lcnt=73.7492 Lex=1.0404 Leps=0.1341 predCnt=131.57 gtCnt=63.56
+2025-09-08 05:14:39,397 [INFO] [val-top5]  pred=379.5 gt=746.0 err=366.5 |  pred=264.6 gt=535.0 err=270.4 |  pred=227.3 gt=486.0 err=258.7 |  pred=347.8 gt=581.0 err=233.2 |  pred=263.0 gt=477.0 err=214.0
+2025-09-08 05:14:39,398 [INFO] [Epoch 0231] train=12.5437  val=4.6636
+2025-09-08 05:15:57,228 [INFO] [val] loss=4.6181 Lcnt=75.2915 Lex=1.0185 Leps=0.1350 predCnt=134.18 gtCnt=63.73
+2025-09-08 05:15:57,229 [INFO] [val-top5]  pred=383.3 gt=746.0 err=362.7 |  pred=265.2 gt=535.0 err=269.8 |  pred=239.8 gt=486.0 err=246.2 |  pred=275.6 gt=477.0 err=201.4 |  pred=192.3 gt=5.0 err=187.3
+2025-09-08 05:15:57,229 [INFO] [Epoch 0232] train=12.5675  val=4.6181
+2025-09-08 05:17:14,252 [INFO] [val] loss=4.7241 Lcnt=74.3098 Lex=1.0628 Leps=0.1321 predCnt=131.69 gtCnt=63.77
+2025-09-08 05:17:14,252 [INFO] [val-top5]  pred=256.1 gt=535.0 err=278.9 |  pred=209.7 gt=486.0 err=276.3 |  pred=202.9 gt=428.0 err=225.1 |  pred=306.6 gt=496.0 err=189.4 |  pred=295.0 gt=484.0 err=189.0
+2025-09-08 05:17:14,253 [INFO] [Epoch 0233] train=12.5654  val=4.7241
+2025-09-08 05:18:31,292 [INFO] [val] loss=4.7776 Lcnt=76.0608 Lex=1.0789 Leps=0.1301 predCnt=134.98 gtCnt=63.64
+2025-09-08 05:18:31,292 [INFO] [val-top5]  pred=249.2 gt=486.0 err=236.8 |  pred=316.8 gt=535.0 err=218.2 |  pred=210.8 gt=428.0 err=217.2 |  pred=297.7 gt=503.0 err=205.3 |  pred=196.2 gt=13.0 err=183.2
+2025-09-08 05:18:31,293 [INFO] [Epoch 0234] train=12.5374  val=4.7776
+2025-09-08 05:19:47,593 [INFO] [val] loss=4.6677 Lcnt=74.7528 Lex=1.0359 Leps=0.1354 predCnt=133.59 gtCnt=63.63
+2025-09-08 05:19:47,594 [INFO] [val-top5]  pred=211.9 gt=428.0 err=216.1 |  pred=290.1 gt=503.0 err=212.9 |  pred=190.2 gt=3.0 err=187.2 |  pred=185.3 gt=0.0 err=185.3 |  pred=189.2 gt=5.0 err=184.2
+2025-09-08 05:19:47,595 [INFO] [Epoch 0235] train=12.5270  val=4.6677
+2025-09-08 05:21:04,130 [INFO] [val] loss=4.6855 Lcnt=71.3961 Lex=1.0556 Leps=0.1341 predCnt=128.81 gtCnt=63.70
+2025-09-08 05:21:04,130 [INFO] [val-top5]  pred=370.0 gt=746.0 err=376.0 |  pred=210.4 gt=486.0 err=275.6 |  pred=270.3 gt=535.0 err=264.7 |  pred=274.4 gt=500.0 err=225.6 |  pred=189.2 gt=2.0 err=187.2
+2025-09-08 05:21:04,131 [INFO] [Epoch 0236] train=12.5972  val=4.6855
+2025-09-08 05:22:20,532 [INFO] [val] loss=4.7221 Lcnt=80.0529 Lex=1.0310 Leps=0.1381 predCnt=138.41 gtCnt=63.63
+2025-09-08 05:22:20,532 [INFO] [val-top5]  pred=276.8 gt=500.0 err=223.2 |  pred=285.6 gt=503.0 err=217.4 |  pred=281.7 gt=484.0 err=202.3 |  pred=205.3 gt=6.0 err=199.3 |  pred=201.5 gt=6.0 err=195.5
+2025-09-08 05:22:20,533 [INFO] [Epoch 0237] train=12.5511  val=4.7221
+2025-09-08 05:23:36,449 [INFO] [val] loss=4.6957 Lcnt=77.1179 Lex=1.0295 Leps=0.1393 predCnt=135.09 gtCnt=63.57
+2025-09-08 05:23:36,449 [INFO] [val-top5]  pred=384.2 gt=649.0 err=264.8 |  pred=238.9 gt=486.0 err=247.1 |  pred=301.9 gt=535.0 err=233.1 |  pred=526.7 gt=746.0 err=219.3 |  pred=236.6 gt=428.0 err=191.4
+2025-09-08 05:23:36,450 [INFO] [Epoch 0238] train=12.5233  val=4.6957
+2025-09-08 05:24:52,074 [INFO] [val] loss=4.7106 Lcnt=75.1961 Lex=1.0437 Leps=0.1379 predCnt=134.29 gtCnt=63.63
+2025-09-08 05:24:52,075 [INFO] [val-top5]  pred=318.1 gt=581.0 err=262.9 |  pred=230.9 gt=486.0 err=255.1 |  pred=432.8 gt=649.0 err=216.2 |  pred=195.6 gt=2.0 err=193.6 |  pred=196.7 gt=4.0 err=192.7
+2025-09-08 05:24:52,075 [INFO] [Epoch 0239] train=12.5428  val=4.7106
+2025-09-08 05:26:08,871 [INFO] [val] loss=4.6505 Lcnt=70.6895 Lex=1.0562 Leps=0.1292 predCnt=128.39 gtCnt=63.49
+2025-09-08 05:26:08,871 [INFO] [val-top5]  pred=245.0 gt=477.0 err=232.0 |  pred=212.6 gt=428.0 err=215.4 |  pred=288.8 gt=496.0 err=207.2 |  pred=367.8 gt=571.0 err=203.2 |  pred=182.0 gt=2.0 err=180.0
+2025-09-08 05:26:08,872 [INFO] [Epoch 0240] train=12.5765  val=4.6505
+2025-09-08 05:27:25,021 [INFO] [val] loss=4.5565 Lcnt=68.7242 Lex=1.0295 Leps=0.1301 predCnt=126.01 gtCnt=63.64
+2025-09-08 05:27:25,022 [INFO] [val-top5]  pred=298.6 gt=581.0 err=282.4 |  pred=201.2 gt=477.0 err=275.8 |  pred=282.5 gt=535.0 err=252.5 |  pred=189.2 gt=420.0 err=230.8 |  pred=517.4 gt=746.0 err=228.6
+2025-09-08 05:27:25,022 [INFO] [Epoch 0241] train=12.5768  val=4.5565
+2025-09-08 05:28:41,745 [INFO] [val] loss=4.5415 Lcnt=71.9463 Lex=1.0012 Leps=0.1364 predCnt=130.50 gtCnt=63.59
+2025-09-08 05:28:41,746 [INFO] [val-top5]  pred=319.2 gt=746.0 err=426.8 |  pred=272.8 gt=496.0 err=223.2 |  pred=294.4 gt=486.0 err=191.6 |  pred=387.3 gt=571.0 err=183.7 |  pred=244.4 gt=428.0 err=183.6
+2025-09-08 05:28:41,747 [INFO] [Epoch 0242] train=12.5484  val=4.5415
+2025-09-08 05:29:57,963 [INFO] [val] loss=4.5505 Lcnt=72.6392 Lex=1.0105 Leps=0.1321 predCnt=131.76 gtCnt=63.76
+2025-09-08 05:29:57,963 [INFO] [val-top5]  pred=356.5 gt=746.0 err=389.5 |  pred=281.3 gt=535.0 err=253.7 |  pred=271.7 gt=486.0 err=214.3 |  pred=195.1 gt=6.0 err=189.1 |  pred=196.9 gt=9.0 err=187.9
+2025-09-08 05:29:57,964 [INFO] [Epoch 0243] train=12.5311  val=4.5505
+2025-09-08 05:31:14,039 [INFO] [val] loss=4.5519 Lcnt=76.4077 Lex=0.9977 Leps=0.1324 predCnt=134.67 gtCnt=63.63
+2025-09-08 05:31:14,040 [INFO] [val-top5]  pred=319.1 gt=581.0 err=261.9 |  pred=275.4 gt=535.0 err=259.6 |  pred=261.0 gt=486.0 err=225.0 |  pred=292.7 gt=500.0 err=207.3 |  pred=447.4 gt=649.0 err=201.6
+2025-09-08 05:31:14,040 [INFO] [Epoch 0244] train=12.5173  val=4.5519
+2025-09-08 05:32:30,002 [INFO] [val] loss=4.7321 Lcnt=74.1236 Lex=1.0557 Leps=0.1373 predCnt=132.25 gtCnt=63.45
+2025-09-08 05:32:30,003 [INFO] [val-top5]  pred=244.4 gt=477.0 err=232.6 |  pred=322.4 gt=535.0 err=212.6 |  pred=549.5 gt=746.0 err=196.5 |  pred=318.2 gt=503.0 err=184.8 |  pred=184.8 gt=6.0 err=178.8
+2025-09-08 05:32:30,003 [INFO] [Epoch 0245] train=12.5227  val=4.7321
+2025-09-08 05:33:45,964 [INFO] [val] loss=4.6229 Lcnt=76.5941 Lex=1.0280 Leps=0.1288 predCnt=134.17 gtCnt=63.52
+2025-09-08 05:33:45,965 [INFO] [val-top5]  pred=287.6 gt=581.0 err=293.4 |  pred=240.4 gt=486.0 err=245.6 |  pred=298.9 gt=535.0 err=236.1 |  pred=255.3 gt=477.0 err=221.7 |  pred=267.8 gt=484.0 err=216.2
+2025-09-08 05:33:45,965 [INFO] [Epoch 0246] train=12.5305  val=4.6229
+2025-09-08 05:35:01,940 [INFO] [val] loss=4.6562 Lcnt=79.5677 Lex=1.0246 Leps=0.1311 predCnt=138.47 gtCnt=63.61
+2025-09-08 05:35:01,941 [INFO] [val-top5]  pred=317.0 gt=746.0 err=429.0 |  pred=279.4 gt=535.0 err=255.6 |  pred=270.9 gt=500.0 err=229.1 |  pred=234.9 gt=428.0 err=193.1 |  pred=192.8 gt=2.0 err=190.8
+2025-09-08 05:35:01,941 [INFO] [Epoch 0247] train=12.5441  val=4.6562
+2025-09-08 05:36:18,247 [INFO] [val] loss=4.6835 Lcnt=77.6616 Lex=1.0200 Leps=0.1411 predCnt=135.41 gtCnt=63.72
+2025-09-08 05:36:18,248 [INFO] [val-top5]  pred=374.8 gt=746.0 err=371.2 |  pred=215.2 gt=486.0 err=270.8 |  pred=314.9 gt=581.0 err=266.1 |  pred=287.6 gt=535.0 err=247.4 |  pred=244.7 gt=477.0 err=232.3
+2025-09-08 05:36:18,248 [INFO] [Epoch 0248] train=12.5389  val=4.6835
+2025-09-08 05:37:35,482 [INFO] [val] loss=4.6402 Lcnt=75.6388 Lex=1.0406 Leps=0.1270 predCnt=134.58 gtCnt=63.63
+2025-09-08 05:37:35,483 [INFO] [val-top5]  pred=262.6 gt=535.0 err=272.4 |  pred=267.1 gt=486.0 err=218.9 |  pred=306.4 gt=503.0 err=196.6 |  pred=299.8 gt=484.0 err=184.2 |  pred=184.4 gt=5.0 err=179.4
+2025-09-08 05:37:35,483 [INFO] [Epoch 0249] train=12.4110  val=4.6402
+2025-09-08 05:38:52,431 [INFO] [val] loss=4.6028 Lcnt=72.2046 Lex=1.0376 Leps=0.1280 predCnt=130.21 gtCnt=63.65
+2025-09-08 05:38:52,432 [INFO] [val-top5]  pred=300.3 gt=581.0 err=280.7 |  pred=214.1 gt=486.0 err=271.9 |  pred=240.2 gt=477.0 err=236.8 |  pred=200.3 gt=420.0 err=219.7 |  pred=181.1 gt=0.0 err=181.1
+2025-09-08 05:38:52,432 [INFO] [Epoch 0250] train=12.5393  val=4.6028
+2025-09-08 05:40:08,296 [INFO] [val] loss=4.5503 Lcnt=75.2706 Lex=1.0001 Leps=0.1329 predCnt=133.44 gtCnt=63.57
+2025-09-08 05:40:08,296 [INFO] [val-top5]  pred=366.1 gt=746.0 err=379.9 |  pred=323.4 gt=581.0 err=257.6 |  pred=295.7 gt=535.0 err=239.3 |  pred=264.5 gt=486.0 err=221.5 |  pred=454.5 gt=649.0 err=194.5
+2025-09-08 05:40:08,297 [INFO] [Epoch 0251] train=12.4975  val=4.5503
+2025-09-08 05:41:24,389 [INFO] [val] loss=4.5590 Lcnt=73.6957 Lex=1.0125 Leps=0.1308 predCnt=132.60 gtCnt=63.63
+2025-09-08 05:41:24,389 [INFO] [val-top5]  pred=344.0 gt=746.0 err=402.0 |  pred=226.8 gt=486.0 err=259.2 |  pred=349.3 gt=581.0 err=231.7 |  pred=344.0 gt=535.0 err=191.0 |  pred=193.7 gt=5.0 err=188.7
+2025-09-08 05:41:24,390 [INFO] [Epoch 0252] train=12.5674  val=4.5590
+2025-09-08 05:42:40,543 [INFO] [val] loss=4.6920 Lcnt=77.9515 Lex=1.0267 Leps=0.1387 predCnt=136.19 gtCnt=63.66
+2025-09-08 05:42:40,544 [INFO] [val-top5]  pred=312.4 gt=581.0 err=268.6 |  pred=226.7 gt=477.0 err=250.3 |  pred=287.1 gt=535.0 err=247.9 |  pred=404.2 gt=649.0 err=244.8 |  pred=306.9 gt=503.0 err=196.1
+2025-09-08 05:42:40,544 [INFO] [Epoch 0253] train=12.5592  val=4.6920
+2025-09-08 05:43:57,141 [INFO] [val] loss=4.6917 Lcnt=73.7089 Lex=1.0753 Leps=0.1215 predCnt=131.39 gtCnt=63.56
+2025-09-08 05:43:57,142 [INFO] [val-top5]  pred=241.8 gt=535.0 err=293.2 |  pred=266.6 gt=503.0 err=236.4 |  pred=181.7 gt=6.0 err=175.7 |  pred=178.4 gt=4.0 err=174.4 |  pred=571.6 gt=746.0 err=174.4
+2025-09-08 05:43:57,142 [INFO] [Epoch 0254] train=12.4595  val=4.6917
+2025-09-08 05:45:13,301 [INFO] [val] loss=4.7091 Lcnt=76.5303 Lex=1.0509 Leps=0.1318 predCnt=135.23 gtCnt=63.50
+2025-09-08 05:45:13,301 [INFO] [val-top5]  pred=315.1 gt=581.0 err=265.9 |  pred=223.6 gt=477.0 err=253.4 |  pred=212.0 gt=420.0 err=208.0 |  pred=309.2 gt=503.0 err=193.8 |  pred=199.3 gt=6.0 err=193.3
+2025-09-08 05:45:13,302 [INFO] [Epoch 0255] train=12.5107  val=4.7091
+2025-09-08 05:46:30,798 [INFO] [val] loss=4.7143 Lcnt=79.1657 Lex=1.0418 Leps=0.1329 predCnt=138.09 gtCnt=63.73
+2025-09-08 05:46:30,798 [INFO] [val-top5]  pred=282.0 gt=535.0 err=253.0 |  pred=428.5 gt=649.0 err=220.5 |  pred=217.3 gt=420.0 err=202.7 |  pred=302.0 gt=496.0 err=194.0 |  pred=294.7 gt=486.0 err=191.3
+2025-09-08 05:46:30,799 [INFO] [Epoch 0256] train=12.5413  val=4.7143
+2025-09-08 05:47:46,870 [INFO] [val] loss=4.6733 Lcnt=66.4927 Lex=1.0771 Leps=0.1295 predCnt=122.71 gtCnt=63.56
+2025-09-08 05:47:46,871 [INFO] [val-top5]  pred=400.2 gt=746.0 err=345.8 |  pred=244.8 gt=535.0 err=290.2 |  pred=210.0 gt=486.0 err=276.0 |  pred=255.3 gt=500.0 err=244.7 |  pred=261.0 gt=503.0 err=242.0
+2025-09-08 05:47:46,872 [INFO] [Epoch 0257] train=12.5799  val=4.6733
+2025-09-08 05:49:03,600 [INFO] [val] loss=4.6672 Lcnt=71.3307 Lex=1.0685 Leps=0.1247 predCnt=127.56 gtCnt=63.58
+2025-09-08 05:49:03,601 [INFO] [val-top5]  pred=408.6 gt=746.0 err=337.4 |  pred=311.5 gt=581.0 err=269.5 |  pred=225.8 gt=477.0 err=251.2 |  pred=244.5 gt=486.0 err=241.5 |  pred=260.8 gt=500.0 err=239.2
+2025-09-08 05:49:03,601 [INFO] [Epoch 0258] train=12.5097  val=4.6672
+2025-09-08 05:50:19,910 [INFO] [val] loss=4.7169 Lcnt=74.4757 Lex=1.0584 Leps=0.1328 predCnt=131.91 gtCnt=63.59
+2025-09-08 05:50:19,911 [INFO] [val-top5]  pred=334.4 gt=746.0 err=411.6 |  pred=270.8 gt=535.0 err=264.2 |  pred=331.1 gt=581.0 err=249.9 |  pred=197.0 gt=4.0 err=193.0 |  pred=197.7 gt=6.0 err=191.7
+2025-09-08 05:50:19,911 [INFO] [Epoch 0259] train=12.5234  val=4.7169
+2025-09-08 05:51:36,602 [INFO] [val] loss=4.6048 Lcnt=77.8910 Lex=1.0123 Leps=0.1315 predCnt=136.94 gtCnt=63.59
+2025-09-08 05:51:36,603 [INFO] [val-top5]  pred=275.8 gt=535.0 err=259.2 |  pred=244.7 gt=486.0 err=241.3 |  pred=260.7 gt=477.0 err=216.3 |  pred=214.1 gt=6.0 err=208.1 |  pred=441.3 gt=649.0 err=207.7
+2025-09-08 05:51:36,603 [INFO] [Epoch 0260] train=12.4908  val=4.6048
+2025-09-08 05:52:53,828 [INFO] [val] loss=4.6830 Lcnt=80.6859 Lex=1.0234 Leps=0.1343 predCnt=140.06 gtCnt=63.51
+2025-09-08 05:52:53,829 [INFO] [val-top5]  pred=371.8 gt=746.0 err=374.2 |  pred=334.6 gt=581.0 err=246.4 |  pred=203.6 gt=7.0 err=196.6 |  pred=200.5 gt=4.0 err=196.5 |  pred=197.3 gt=1.0 err=196.3
+2025-09-08 05:52:53,829 [INFO] [Epoch 0261] train=12.4282  val=4.6830
+2025-09-08 05:54:10,543 [INFO] [val] loss=4.6781 Lcnt=71.4867 Lex=1.0627 Leps=0.1292 predCnt=127.99 gtCnt=63.65
+2025-09-08 05:54:10,544 [INFO] [val-top5]  pred=284.9 gt=581.0 err=296.1 |  pred=325.0 gt=535.0 err=210.0 |  pred=288.8 gt=496.0 err=207.2 |  pred=301.3 gt=503.0 err=201.7 |  pred=381.2 gt=571.0 err=189.8
+2025-09-08 05:54:10,544 [INFO] [Epoch 0262] train=12.5102  val=4.6781
+2025-09-08 05:55:26,955 [INFO] [val] loss=4.6797 Lcnt=79.1458 Lex=1.0166 Leps=0.1397 predCnt=139.28 gtCnt=63.61
+2025-09-08 05:55:26,956 [INFO] [val-top5]  pred=278.3 gt=535.0 err=256.7 |  pred=297.0 gt=500.0 err=203.0 |  pred=455.9 gt=649.0 err=193.1 |  pred=192.8 gt=0.0 err=192.8 |  pred=203.9 gt=13.0 err=190.9
+2025-09-08 05:55:26,956 [INFO] [Epoch 0263] train=12.4035  val=4.6797
+2025-09-08 05:56:43,028 [INFO] [val] loss=4.5960 Lcnt=75.6690 Lex=1.0178 Leps=0.1310 predCnt=133.67 gtCnt=63.66
+2025-09-08 05:56:43,029 [INFO] [val-top5]  pred=269.0 gt=535.0 err=266.0 |  pred=220.5 gt=477.0 err=256.5 |  pred=238.5 gt=486.0 err=247.5 |  pred=290.0 gt=503.0 err=213.0 |  pred=222.9 gt=428.0 err=205.1
+2025-09-08 05:56:43,029 [INFO] [Epoch 0264] train=12.4692  val=4.5960
+2025-09-08 05:57:58,899 [INFO] [val] loss=4.5810 Lcnt=73.1246 Lex=1.0275 Leps=0.1279 predCnt=132.21 gtCnt=63.57
+2025-09-08 05:57:58,900 [INFO] [val-top5]  pred=224.2 gt=486.0 err=261.8 |  pred=230.4 gt=428.0 err=197.6 |  pred=194.3 gt=6.0 err=188.3 |  pred=315.1 gt=503.0 err=187.9 |  pred=192.4 gt=5.0 err=187.4
+2025-09-08 05:57:58,900 [INFO] [Epoch 0265] train=12.5021  val=4.5810
+2025-09-08 05:59:15,262 [INFO] [val] loss=4.6349 Lcnt=72.0227 Lex=1.0504 Leps=0.1273 predCnt=129.89 gtCnt=63.44
+2025-09-08 05:59:15,262 [INFO] [val-top5]  pred=208.2 gt=477.0 err=268.8 |  pred=275.0 gt=486.0 err=211.0 |  pred=386.6 gt=581.0 err=194.4 |  pred=347.8 gt=535.0 err=187.2 |  pred=173.8 gt=1.0 err=172.8
+2025-09-08 05:59:15,263 [INFO] [Epoch 0266] train=12.3947  val=4.6349
+2025-09-08 06:00:30,727 [INFO] [val] loss=4.6025 Lcnt=74.1426 Lex=1.0202 Leps=0.1334 predCnt=132.72 gtCnt=63.49
+2025-09-08 06:00:30,727 [INFO] [val-top5]  pred=322.0 gt=746.0 err=424.0 |  pred=245.0 gt=486.0 err=241.0 |  pred=353.6 gt=581.0 err=227.4 |  pred=288.8 gt=484.0 err=195.2 |  pred=237.2 gt=428.0 err=190.8
+2025-09-08 06:00:30,728 [INFO] [Epoch 0267] train=12.5651  val=4.6025
+2025-09-08 06:01:47,853 [INFO] [val] loss=4.6946 Lcnt=74.2090 Lex=1.0536 Leps=0.1319 predCnt=132.35 gtCnt=63.59
+2025-09-08 06:01:47,854 [INFO] [val-top5]  pred=322.3 gt=746.0 err=423.7 |  pred=270.0 gt=535.0 err=265.0 |  pred=280.3 gt=477.0 err=196.7 |  pred=193.7 gt=6.0 err=187.7 |  pred=187.8 gt=1.0 err=186.8
+2025-09-08 06:01:47,854 [INFO] [Epoch 0268] train=12.4766  val=4.6946
+2025-09-08 06:03:05,200 [INFO] [val] loss=4.5876 Lcnt=73.3740 Lex=1.0355 Leps=0.1246 predCnt=131.26 gtCnt=63.48
+2025-09-08 06:03:05,200 [INFO] [val-top5]  pred=249.5 gt=535.0 err=285.5 |  pred=313.1 gt=581.0 err=267.9 |  pred=235.8 gt=486.0 err=250.2 |  pred=426.7 gt=649.0 err=222.3 |  pred=201.1 gt=420.0 err=218.9
+2025-09-08 06:03:05,201 [INFO] [Epoch 0269] train=12.5427  val=4.5876
+2025-09-08 06:04:21,008 [INFO] [val] loss=4.6269 Lcnt=76.0610 Lex=1.0224 Leps=0.1332 predCnt=135.71 gtCnt=63.68
+2025-09-08 06:04:21,009 [INFO] [val-top5]  pred=353.6 gt=746.0 err=392.4 |  pred=233.8 gt=486.0 err=252.2 |  pred=326.9 gt=535.0 err=208.1 |  pred=191.7 gt=0.0 err=191.7 |  pred=196.5 gt=5.0 err=191.5
+2025-09-08 06:04:21,009 [INFO] [Epoch 0270] train=12.5044  val=4.6269
+2025-09-08 06:05:38,625 [INFO] [val] loss=4.5570 Lcnt=73.7778 Lex=1.0224 Leps=0.1253 predCnt=130.75 gtCnt=63.59
+2025-09-08 06:05:38,625 [INFO] [val-top5]  pred=355.7 gt=746.0 err=390.3 |  pred=188.0 gt=420.0 err=232.0 |  pred=261.0 gt=484.0 err=223.0 |  pred=215.1 gt=428.0 err=212.9 |  pred=265.2 gt=477.0 err=211.8
+2025-09-08 06:05:38,626 [INFO] [Epoch 0271] train=12.5510  val=4.5570
+2025-09-08 06:06:55,292 [INFO] [val] loss=4.5188 Lcnt=76.8103 Lex=0.9895 Leps=0.1304 predCnt=134.95 gtCnt=63.52
+2025-09-08 06:06:55,293 [INFO] [val-top5]  pred=316.7 gt=581.0 err=264.3 |  pred=428.1 gt=649.0 err=220.9 |  pred=265.7 gt=477.0 err=211.3 |  pred=210.3 gt=420.0 err=209.7 |  pred=229.7 gt=428.0 err=198.3
+2025-09-08 06:06:55,294 [INFO] [Epoch 0272] train=12.4715  val=4.5188
+2025-09-08 06:08:10,955 [INFO] [val] loss=4.5897 Lcnt=72.3889 Lex=1.0165 Leps=0.1361 predCnt=130.95 gtCnt=63.61
+2025-09-08 06:08:10,955 [INFO] [val-top5]  pred=414.1 gt=746.0 err=331.9 |  pred=368.2 gt=581.0 err=212.8 |  pred=198.3 gt=13.0 err=185.3 |  pred=293.1 gt=477.0 err=183.9 |  pred=184.0 gt=3.0 err=181.0
+2025-09-08 06:08:10,956 [INFO] [Epoch 0273] train=12.4702  val=4.5897
+2025-09-08 06:09:27,650 [INFO] [val] loss=4.6310 Lcnt=71.8326 Lex=1.0610 Leps=0.1216 predCnt=129.56 gtCnt=63.63
+2025-09-08 06:09:27,651 [INFO] [val-top5]  pred=203.8 gt=486.0 err=282.2 |  pred=308.9 gt=581.0 err=272.1 |  pred=267.0 gt=503.0 err=236.0 |  pred=278.3 gt=500.0 err=221.7 |  pred=239.8 gt=433.0 err=193.2
+2025-09-08 06:09:27,651 [INFO] [Epoch 0274] train=12.5682  val=4.6310
+2025-09-08 06:10:43,632 [INFO] [val] loss=4.6278 Lcnt=74.8842 Lex=1.0229 Leps=0.1351 predCnt=134.65 gtCnt=63.58
+2025-09-08 06:10:43,632 [INFO] [val-top5]  pred=378.3 gt=581.0 err=202.7 |  pred=304.1 gt=500.0 err=195.9 |  pred=238.2 gt=428.0 err=189.8 |  pred=198.6 gt=13.0 err=185.6 |  pred=191.9 gt=8.0 err=183.9
+2025-09-08 06:10:43,633 [INFO] [Epoch 0275] train=12.4850  val=4.6278
+2025-09-08 06:12:01,693 [INFO] [val] loss=4.6827 Lcnt=76.2988 Lex=1.0403 Leps=0.1331 predCnt=134.15 gtCnt=63.69
+2025-09-08 06:12:01,693 [INFO] [val-top5]  pred=289.3 gt=581.0 err=291.7 |  pred=286.6 gt=535.0 err=248.4 |  pred=257.0 gt=486.0 err=229.0 |  pred=517.3 gt=746.0 err=228.7 |  pred=279.1 gt=500.0 err=220.9
+2025-09-08 06:12:01,694 [INFO] [Epoch 0276] train=12.5019  val=4.6827
+2025-09-08 06:13:17,624 [INFO] [val] loss=4.7154 Lcnt=81.7780 Lex=1.0219 Leps=0.1387 predCnt=141.63 gtCnt=63.70
+2025-09-08 06:13:17,625 [INFO] [val-top5]  pred=439.5 gt=746.0 err=306.5 |  pred=309.8 gt=535.0 err=225.2 |  pred=200.0 gt=2.0 err=198.0 |  pred=286.5 gt=484.0 err=197.5 |  pred=198.1 gt=3.0 err=195.1
+2025-09-08 06:13:17,625 [INFO] [Epoch 0277] train=12.4782  val=4.7154
+2025-09-08 06:14:34,691 [INFO] [val] loss=4.6644 Lcnt=75.6600 Lex=1.0456 Leps=0.1285 predCnt=132.49 gtCnt=63.63
+2025-09-08 06:14:34,691 [INFO] [val-top5]  pred=328.9 gt=746.0 err=417.1 |  pred=221.4 gt=477.0 err=255.6 |  pred=300.1 gt=535.0 err=234.9 |  pred=217.8 gt=428.0 err=210.2 |  pred=277.4 gt=484.0 err=206.6
+2025-09-08 06:14:34,692 [INFO] [Epoch 0278] train=12.5211  val=4.6644
+2025-09-08 06:15:51,154 [INFO] [val] loss=4.7066 Lcnt=72.5760 Lex=1.0520 Leps=0.1375 predCnt=130.77 gtCnt=63.46
+2025-09-08 06:15:51,155 [INFO] [val-top5]  pred=442.7 gt=746.0 err=303.3 |  pred=324.2 gt=535.0 err=210.8 |  pred=294.3 gt=496.0 err=201.7 |  pred=293.4 gt=484.0 err=190.6 |  pred=382.8 gt=571.0 err=188.2
+2025-09-08 06:15:51,155 [INFO] [Epoch 0279] train=12.4916  val=4.7066
+2025-09-08 06:17:07,350 [INFO] [val] loss=4.6122 Lcnt=82.8066 Lex=1.0134 Leps=0.1240 predCnt=142.20 gtCnt=63.56
+2025-09-08 06:17:07,351 [INFO] [val-top5]  pred=350.4 gt=746.0 err=395.6 |  pred=197.1 gt=5.0 err=192.1 |  pred=194.8 gt=3.0 err=191.8 |  pred=194.8 gt=3.0 err=191.8 |  pred=194.4 gt=3.0 err=191.4
+2025-09-08 06:17:07,352 [INFO] [Epoch 0280] train=12.5200  val=4.6122
+2025-09-08 06:18:23,090 [INFO] [val] loss=4.6390 Lcnt=74.8234 Lex=1.0452 Leps=0.1258 predCnt=133.94 gtCnt=63.48
+2025-09-08 06:18:23,090 [INFO] [val-top5]  pred=383.4 gt=746.0 err=362.6 |  pred=198.8 gt=13.0 err=185.8 |  pred=186.7 gt=3.0 err=183.7 |  pred=185.3 gt=2.0 err=183.3 |  pred=184.7 gt=3.0 err=181.7
+2025-09-08 06:18:23,091 [INFO] [Epoch 0281] train=12.5914  val=4.6390
+2025-09-08 06:19:38,949 [INFO] [val] loss=4.6157 Lcnt=78.6524 Lex=1.0098 Leps=0.1333 predCnt=137.08 gtCnt=63.53
+2025-09-08 06:19:38,949 [INFO] [val-top5]  pred=423.4 gt=746.0 err=322.6 |  pred=198.9 gt=420.0 err=221.1 |  pred=284.3 gt=500.0 err=215.7 |  pred=261.4 gt=477.0 err=215.6 |  pred=289.6 gt=503.0 err=213.4
+2025-09-08 06:19:38,950 [INFO] [Epoch 0282] train=12.5223  val=4.6157
+2025-09-08 06:20:54,591 [INFO] [val] loss=4.5768 Lcnt=69.1560 Lex=1.0526 Leps=0.1213 predCnt=126.80 gtCnt=63.56
+2025-09-08 06:20:54,592 [INFO] [val-top5]  pred=266.1 gt=535.0 err=268.9 |  pred=482.1 gt=746.0 err=263.9 |  pred=251.7 gt=477.0 err=225.3 |  pred=201.6 gt=420.0 err=218.4 |  pred=289.7 gt=500.0 err=210.3
+2025-09-08 06:20:54,592 [INFO] [Epoch 0283] train=12.4867  val=4.5768
+2025-09-08 06:22:11,674 [INFO] [val] loss=4.6983 Lcnt=81.3862 Lex=1.0119 Leps=0.1415 predCnt=139.86 gtCnt=63.59
+2025-09-08 06:22:11,675 [INFO] [val-top5]  pred=223.0 gt=486.0 err=263.0 |  pred=415.1 gt=649.0 err=233.9 |  pred=206.3 gt=8.0 err=198.3 |  pred=205.9 gt=8.0 err=197.9 |  pred=197.2 gt=1.0 err=196.2
+2025-09-08 06:22:11,675 [INFO] [Epoch 0284] train=12.4586  val=4.6983
+2025-09-08 06:23:27,919 [INFO] [val] loss=4.6171 Lcnt=75.7040 Lex=1.0209 Leps=0.1329 predCnt=133.96 gtCnt=63.63
+2025-09-08 06:23:27,919 [INFO] [val-top5]  pred=288.4 gt=500.0 err=211.6 |  pred=279.8 gt=477.0 err=197.2 |  pred=191.8 gt=4.0 err=187.8 |  pred=240.5 gt=428.0 err=187.5 |  pred=189.1 gt=2.0 err=187.1
+2025-09-08 06:23:27,920 [INFO] [Epoch 0285] train=12.4991  val=4.6171
+2025-09-08 06:24:44,655 [INFO] [val] loss=4.7018 Lcnt=80.1729 Lex=1.0312 Leps=0.1344 predCnt=138.63 gtCnt=63.68
+2025-09-08 06:24:44,655 [INFO] [val-top5]  pred=229.5 gt=486.0 err=256.5 |  pred=279.6 gt=535.0 err=255.4 |  pred=295.7 gt=500.0 err=204.3 |  pred=201.4 gt=1.0 err=200.4 |  pred=202.9 gt=7.0 err=195.9
+2025-09-08 06:24:44,656 [INFO] [Epoch 0286] train=12.4475  val=4.7018
+2025-09-08 06:26:01,452 [INFO] [val] loss=4.6194 Lcnt=78.9777 Lex=0.9998 Leps=0.1384 predCnt=138.32 gtCnt=63.54
+2025-09-08 06:26:01,452 [INFO] [val-top5]  pred=293.9 gt=535.0 err=241.1 |  pred=246.8 gt=477.0 err=230.2 |  pred=283.0 gt=500.0 err=217.0 |  pred=269.6 gt=484.0 err=214.4 |  pred=543.0 gt=746.0 err=203.0
+2025-09-08 06:26:01,453 [INFO] [Epoch 0287] train=12.4862  val=4.6194
+2025-09-08 06:27:18,830 [INFO] [val] loss=4.6578 Lcnt=81.4287 Lex=1.0109 Leps=0.1351 predCnt=140.29 gtCnt=63.47
+2025-09-08 06:27:18,831 [INFO] [val-top5]  pred=306.5 gt=581.0 err=274.5 |  pred=228.6 gt=477.0 err=248.4 |  pred=203.0 gt=3.0 err=200.0 |  pred=286.8 gt=486.0 err=199.2 |  pred=209.8 gt=13.0 err=196.8
+2025-09-08 06:27:18,831 [INFO] [Epoch 0288] train=12.4396  val=4.6578
+2025-09-08 06:28:34,364 [INFO] [val] loss=4.6320 Lcnt=72.1708 Lex=1.0381 Leps=0.1327 predCnt=131.03 gtCnt=63.52
+2025-09-08 06:28:34,365 [INFO] [val-top5]  pred=217.8 gt=477.0 err=259.2 |  pred=276.1 gt=486.0 err=209.9 |  pred=334.0 gt=535.0 err=201.0 |  pred=389.4 gt=581.0 err=191.6 |  pred=203.6 gt=13.0 err=190.6
+2025-09-08 06:28:34,365 [INFO] [Epoch 0289] train=12.5046  val=4.6320
+2025-09-08 06:29:50,267 [INFO] [val] loss=4.5596 Lcnt=75.3883 Lex=0.9986 Leps=0.1350 predCnt=134.11 gtCnt=63.58
+2025-09-08 06:29:50,267 [INFO] [val-top5]  pred=237.4 gt=477.0 err=239.6 |  pred=542.0 gt=746.0 err=204.0 |  pred=299.9 gt=503.0 err=203.1 |  pred=238.7 gt=428.0 err=189.3 |  pred=188.9 gt=4.0 err=184.9
+2025-09-08 06:29:50,268 [INFO] [Epoch 0290] train=12.4776  val=4.5596
+2025-09-08 06:31:06,130 [INFO] [val] loss=4.6376 Lcnt=82.5704 Lex=1.0002 Leps=0.1352 predCnt=141.88 gtCnt=63.64
+2025-09-08 06:31:06,131 [INFO] [val-top5]  pred=215.6 gt=13.0 err=202.6 |  pred=202.2 gt=1.0 err=201.2 |  pred=199.7 gt=0.0 err=199.7 |  pred=203.0 gt=4.0 err=199.0 |  pred=201.3 gt=3.0 err=198.3
+2025-09-08 06:31:06,131 [INFO] [Epoch 0291] train=12.4908  val=4.6376
+2025-09-08 06:32:22,333 [INFO] [val] loss=4.7006 Lcnt=72.5476 Lex=1.0539 Leps=0.1355 predCnt=130.14 gtCnt=63.60
+2025-09-08 06:32:22,335 [INFO] [val-top5]  pred=467.0 gt=746.0 err=279.0 |  pred=303.6 gt=581.0 err=277.4 |  pred=211.1 gt=486.0 err=274.9 |  pred=415.3 gt=649.0 err=233.7 |  pred=188.8 gt=420.0 err=231.2
+2025-09-08 06:32:22,337 [INFO] [Epoch 0292] train=12.4260  val=4.7006
+2025-09-08 06:33:39,011 [INFO] [val] loss=4.6046 Lcnt=72.6365 Lex=1.0219 Leps=0.1354 predCnt=130.60 gtCnt=63.53
+2025-09-08 06:33:39,012 [INFO] [val-top5]  pred=296.9 gt=581.0 err=284.1 |  pred=214.2 gt=486.0 err=271.8 |  pred=277.4 gt=535.0 err=257.6 |  pred=425.3 gt=649.0 err=223.7 |  pred=260.8 gt=477.0 err=216.2
+2025-09-08 06:33:39,013 [INFO] [Epoch 0293] train=12.4737  val=4.6046
+2025-09-08 06:34:54,803 [INFO] [val] loss=4.7334 Lcnt=73.9460 Lex=1.0571 Leps=0.1371 predCnt=131.59 gtCnt=63.49
+2025-09-08 06:34:54,803 [INFO] [val-top5]  pred=328.6 gt=581.0 err=252.4 |  pred=293.7 gt=503.0 err=209.3 |  pred=222.0 gt=428.0 err=206.0 |  pred=281.9 gt=484.0 err=202.1 |  pred=308.4 gt=500.0 err=191.6
+2025-09-08 06:34:54,804 [INFO] [Epoch 0294] train=12.5937  val=4.7334
+2025-09-08 06:36:12,543 [INFO] [val] loss=4.6184 Lcnt=77.2105 Lex=1.0034 Leps=0.1393 predCnt=135.90 gtCnt=63.57
+2025-09-08 06:36:12,543 [INFO] [val-top5]  pred=410.9 gt=746.0 err=335.1 |  pred=246.5 gt=477.0 err=230.5 |  pred=265.9 gt=486.0 err=220.1 |  pred=440.4 gt=649.0 err=208.6 |  pred=196.2 gt=3.0 err=193.2
+2025-09-08 06:36:12,543 [INFO] [Epoch 0295] train=12.5280  val=4.6184
+2025-09-08 06:37:28,582 [INFO] [val] loss=4.6624 Lcnt=75.1588 Lex=1.0399 Leps=0.1318 predCnt=133.29 gtCnt=63.54
+2025-09-08 06:37:28,583 [INFO] [val-top5]  pred=296.4 gt=581.0 err=284.6 |  pred=247.6 gt=477.0 err=229.4 |  pred=285.8 gt=486.0 err=200.2 |  pred=300.1 gt=500.0 err=199.9 |  pred=286.0 gt=484.0 err=198.0
+2025-09-08 06:37:28,583 [INFO] [Epoch 0296] train=12.5937  val=4.6624
+2025-09-08 06:38:46,072 [INFO] [val] loss=4.6977 Lcnt=73.9163 Lex=1.0645 Leps=0.1275 predCnt=132.59 gtCnt=63.60
+2025-09-08 06:38:46,072 [INFO] [val-top5]  pred=315.9 gt=581.0 err=265.1 |  pred=283.8 gt=535.0 err=251.2 |  pred=208.9 gt=420.0 err=211.1 |  pred=218.5 gt=428.0 err=209.5 |  pred=278.9 gt=484.0 err=205.1
+2025-09-08 06:38:46,073 [INFO] [Epoch 0297] train=12.5659  val=4.6977
+2025-09-08 06:40:01,898 [INFO] [val] loss=4.7618 Lcnt=80.9467 Lex=1.0481 Leps=0.1347 predCnt=139.21 gtCnt=63.71
+2025-09-08 06:40:01,899 [INFO] [val-top5]  pred=359.6 gt=746.0 err=386.4 |  pred=279.9 gt=503.0 err=223.1 |  pred=359.1 gt=571.0 err=211.9 |  pred=197.3 gt=2.0 err=195.3 |  pred=196.9 gt=3.0 err=193.9
+2025-09-08 06:40:01,899 [INFO] [Epoch 0298] train=12.5098  val=4.7618
+2025-09-08 06:41:18,745 [INFO] [val] loss=4.6533 Lcnt=78.1734 Lex=1.0289 Leps=0.1308 predCnt=137.19 gtCnt=63.66
+2025-09-08 06:41:18,745 [INFO] [val-top5]  pred=396.6 gt=746.0 err=349.4 |  pred=301.5 gt=581.0 err=279.5 |  pred=229.1 gt=486.0 err=256.9 |  pred=291.5 gt=503.0 err=211.5 |  pred=224.0 gt=428.0 err=204.0
+2025-09-08 06:41:18,746 [INFO] [Epoch 0299] train=12.5134  val=4.6533
+2025-09-08 06:42:35,357 [INFO] [val] loss=4.6270 Lcnt=75.4667 Lex=1.0244 Leps=0.1332 predCnt=133.83 gtCnt=63.34
+2025-09-08 06:42:35,357 [INFO] [val-top5]  pred=414.3 gt=746.0 err=331.7 |  pred=249.2 gt=477.0 err=227.8 |  pred=260.2 gt=486.0 err=225.8 |  pred=195.7 gt=0.0 err=195.7 |  pred=198.4 gt=4.0 err=194.4
+2025-09-08 06:42:35,358 [INFO] [Epoch 0300] train=12.4649  val=4.6270
+2025-09-08 06:43:51,532 [INFO] [val] loss=4.7411 Lcnt=74.6785 Lex=1.0630 Leps=0.1342 predCnt=133.81 gtCnt=63.72
+2025-09-08 06:43:51,532 [INFO] [val-top5]  pred=217.9 gt=486.0 err=268.1 |  pred=267.3 gt=535.0 err=267.7 |  pred=212.0 gt=477.0 err=265.0 |  pred=199.6 gt=420.0 err=220.4 |  pred=183.1 gt=0.0 err=183.1
+2025-09-08 06:43:51,533 [INFO] [Epoch 0301] train=12.5105  val=4.7411
+2025-09-08 06:45:07,121 [INFO] [val] loss=4.5654 Lcnt=72.9585 Lex=1.0348 Leps=0.1219 predCnt=130.19 gtCnt=63.60
+2025-09-08 06:45:07,122 [INFO] [val-top5]  pred=323.6 gt=746.0 err=422.4 |  pred=214.0 gt=486.0 err=272.0 |  pred=281.1 gt=535.0 err=253.9 |  pred=203.2 gt=420.0 err=216.8 |  pred=231.1 gt=428.0 err=196.9
+2025-09-08 06:45:07,123 [INFO] [Epoch 0302] train=12.5075  val=4.5654
+2025-09-08 06:46:24,791 [INFO] [val] loss=4.6900 Lcnt=73.4015 Lex=1.0560 Leps=0.1314 predCnt=131.19 gtCnt=63.53
+2025-09-08 06:46:24,791 [INFO] [val-top5]  pred=294.3 gt=581.0 err=286.7 |  pred=212.2 gt=486.0 err=273.8 |  pred=210.4 gt=477.0 err=266.6 |  pred=272.9 gt=535.0 err=262.1 |  pred=353.9 gt=571.0 err=217.1
+2025-09-08 06:46:24,792 [INFO] [Epoch 0303] train=12.5171  val=4.6900
+2025-09-08 06:47:40,814 [INFO] [val] loss=4.5274 Lcnt=70.6280 Lex=1.0297 Leps=0.1220 predCnt=127.73 gtCnt=63.55
+2025-09-08 06:47:40,815 [INFO] [val-top5]  pred=282.6 gt=581.0 err=298.4 |  pred=209.6 gt=486.0 err=276.4 |  pred=260.4 gt=535.0 err=274.6 |  pred=221.2 gt=477.0 err=255.8 |  pred=214.9 gt=420.0 err=205.1
+2025-09-08 06:47:40,815 [INFO] [Epoch 0304] train=12.4579  val=4.5274
+2025-09-08 06:48:56,275 [INFO] [val] loss=4.6435 Lcnt=76.1713 Lex=1.0051 Leps=0.1444 predCnt=135.24 gtCnt=63.42
+2025-09-08 06:48:56,275 [INFO] [val-top5]  pred=310.9 gt=535.0 err=224.1 |  pred=359.0 gt=581.0 err=222.0 |  pred=213.6 gt=420.0 err=206.4 |  pred=195.4 gt=0.0 err=195.4 |  pred=202.0 gt=8.0 err=194.0
+2025-09-08 06:48:56,276 [INFO] [Epoch 0305] train=12.5444  val=4.6435
+2025-09-08 06:50:12,851 [INFO] [val] loss=4.6275 Lcnt=78.2307 Lex=1.0081 Leps=0.1368 predCnt=137.26 gtCnt=63.58
+2025-09-08 06:50:12,851 [INFO] [val-top5]  pred=421.5 gt=746.0 err=324.5 |  pred=312.7 gt=581.0 err=268.3 |  pred=273.1 gt=477.0 err=203.9 |  pred=207.2 gt=13.0 err=194.2 |  pred=195.5 gt=4.0 err=191.5
+2025-09-08 06:50:12,852 [INFO] [Epoch 0306] train=12.5268  val=4.6275
+2025-09-08 06:51:29,017 [INFO] [val] loss=4.6502 Lcnt=74.3256 Lex=1.0367 Leps=0.1328 predCnt=133.30 gtCnt=63.66
+2025-09-08 06:51:29,017 [INFO] [val-top5]  pred=333.9 gt=746.0 err=412.1 |  pred=422.0 gt=649.0 err=227.0 |  pred=183.5 gt=4.0 err=179.5 |  pred=184.3 gt=5.0 err=179.3 |  pred=182.1 gt=4.0 err=178.1
+2025-09-08 06:51:29,018 [INFO] [Epoch 0307] train=12.5410  val=4.6502
+2025-09-08 06:52:44,821 [INFO] [val] loss=4.5874 Lcnt=73.9332 Lex=1.0156 Leps=0.1335 predCnt=131.64 gtCnt=63.46
+2025-09-08 06:52:44,822 [INFO] [val-top5]  pred=227.0 gt=486.0 err=259.0 |  pred=492.6 gt=746.0 err=253.4 |  pred=226.1 gt=477.0 err=250.9 |  pred=399.1 gt=649.0 err=249.9 |  pred=271.5 gt=500.0 err=228.5
+2025-09-08 06:52:44,822 [INFO] [Epoch 0308] train=12.4950  val=4.5874
+2025-09-08 06:54:00,335 [INFO] [val] loss=4.7003 Lcnt=72.1051 Lex=1.0596 Leps=0.1334 predCnt=129.85 gtCnt=63.61
+2025-09-08 06:54:00,336 [INFO] [val-top5]  pred=323.6 gt=581.0 err=257.4 |  pred=243.5 gt=486.0 err=242.5 |  pred=226.6 gt=420.0 err=193.4 |  pred=286.8 gt=477.0 err=190.2 |  pred=192.2 gt=8.0 err=184.2
+2025-09-08 06:54:00,336 [INFO] [Epoch 0309] train=12.4655  val=4.7003
+2025-09-08 06:55:16,520 [INFO] [val] loss=4.5913 Lcnt=75.6556 Lex=1.0170 Leps=0.1306 predCnt=135.20 gtCnt=63.41
+2025-09-08 06:55:16,521 [INFO] [val-top5]  pred=426.4 gt=746.0 err=319.6 |  pred=425.5 gt=649.0 err=223.5 |  pred=201.9 gt=3.0 err=198.9 |  pred=203.5 gt=5.0 err=198.5 |  pred=197.7 gt=1.0 err=196.7
+2025-09-08 06:55:16,521 [INFO] [Epoch 0310] train=12.4794  val=4.5913
+2025-09-08 06:56:32,470 [INFO] [val] loss=4.6463 Lcnt=75.2089 Lex=1.0231 Leps=0.1375 predCnt=133.13 gtCnt=63.51
+2025-09-08 06:56:32,471 [INFO] [val-top5]  pred=289.8 gt=581.0 err=291.2 |  pred=227.4 gt=477.0 err=249.6 |  pred=301.3 gt=503.0 err=201.7 |  pred=193.3 gt=4.0 err=189.3 |  pred=191.6 gt=3.0 err=188.6
+2025-09-08 06:56:32,471 [INFO] [Epoch 0311] train=12.4935  val=4.6463
+2025-09-08 06:57:49,127 [INFO] [val] loss=4.7406 Lcnt=79.2667 Lex=1.0306 Leps=0.1427 predCnt=138.49 gtCnt=63.75
+2025-09-08 06:57:49,127 [INFO] [val-top5]  pred=364.8 gt=746.0 err=381.2 |  pred=247.8 gt=486.0 err=238.2 |  pred=331.8 gt=535.0 err=203.2 |  pred=215.3 gt=16.0 err=199.3 |  pred=196.5 gt=0.0 err=196.5
+2025-09-08 06:57:49,128 [INFO] [Epoch 0312] train=12.5371  val=4.7406
+2025-09-08 06:59:04,699 [INFO] [val] loss=4.6927 Lcnt=80.4828 Lex=1.0133 Leps=0.1413 predCnt=139.36 gtCnt=63.62
+2025-09-08 06:59:04,700 [INFO] [val-top5]  pred=349.2 gt=746.0 err=396.8 |  pred=246.9 gt=486.0 err=239.1 |  pred=211.7 gt=3.0 err=208.7 |  pred=204.1 gt=0.0 err=204.1 |  pred=205.7 gt=2.0 err=203.7
+2025-09-08 06:59:04,700 [INFO] [Epoch 0313] train=12.4711  val=4.6927
+2025-09-08 07:00:20,596 [INFO] [val] loss=4.6108 Lcnt=72.2630 Lex=1.0335 Leps=0.1313 predCnt=129.76 gtCnt=63.65
+2025-09-08 07:00:20,596 [INFO] [val-top5]  pred=208.8 gt=477.0 err=268.2 |  pred=312.4 gt=535.0 err=222.6 |  pred=428.4 gt=649.0 err=220.6 |  pred=542.9 gt=746.0 err=203.1 |  pred=384.7 gt=571.0 err=186.3
+2025-09-08 07:00:20,597 [INFO] [Epoch 0314] train=12.4848  val=4.6108
+2025-09-08 07:01:37,104 [INFO] [val] loss=4.6859 Lcnt=81.7020 Lex=1.0083 Leps=0.1407 predCnt=140.91 gtCnt=63.44
+2025-09-08 07:01:37,104 [INFO] [val-top5]  pred=386.5 gt=746.0 err=359.5 |  pred=259.5 gt=486.0 err=226.5 |  pred=260.6 gt=477.0 err=216.4 |  pred=210.5 gt=0.0 err=210.5 |  pred=207.6 gt=0.0 err=207.6
+2025-09-08 07:01:37,105 [INFO] [Epoch 0315] train=12.5083  val=4.6859
+2025-09-08 07:02:53,765 [INFO] [val] loss=4.6592 Lcnt=72.9574 Lex=1.0387 Leps=0.1356 predCnt=131.71 gtCnt=63.42
+2025-09-08 07:02:53,765 [INFO] [val-top5]  pred=253.1 gt=477.0 err=223.9 |  pred=264.5 gt=484.0 err=219.5 |  pred=533.4 gt=746.0 err=212.6 |  pred=337.1 gt=535.0 err=197.9 |  pred=295.2 gt=486.0 err=190.8
+2025-09-08 07:02:53,766 [INFO] [Epoch 0316] train=12.5467  val=4.6592
+2025-09-08 07:04:09,411 [INFO] [val] loss=4.6150 Lcnt=78.0484 Lex=1.0173 Leps=0.1304 predCnt=137.29 gtCnt=63.70
+2025-09-08 07:04:09,411 [INFO] [val-top5]  pred=307.5 gt=535.0 err=227.5 |  pred=440.4 gt=649.0 err=208.6 |  pred=201.1 gt=3.0 err=198.1 |  pred=202.8 gt=6.0 err=196.8 |  pred=199.7 gt=4.0 err=195.7
+2025-09-08 07:04:09,412 [INFO] [Epoch 0317] train=12.4502  val=4.6150
+2025-09-08 07:05:26,541 [INFO] [val] loss=4.7049 Lcnt=79.8108 Lex=1.0247 Leps=0.1388 predCnt=138.58 gtCnt=63.56
+2025-09-08 07:05:26,542 [INFO] [val-top5]  pred=223.9 gt=477.0 err=253.1 |  pred=290.4 gt=535.0 err=244.6 |  pred=210.8 gt=13.0 err=197.8 |  pred=196.5 gt=3.0 err=193.5 |  pred=193.2 gt=1.0 err=192.2
+2025-09-08 07:05:26,543 [INFO] [Epoch 0318] train=12.5570  val=4.7049
+2025-09-08 07:06:42,784 [INFO] [val] loss=4.7244 Lcnt=71.1999 Lex=1.0576 Leps=0.1399 predCnt=128.27 gtCnt=63.57
+2025-09-08 07:06:42,785 [INFO] [val-top5]  pred=325.4 gt=746.0 err=420.6 |  pred=249.6 gt=535.0 err=285.4 |  pred=262.6 gt=500.0 err=237.4 |  pred=419.6 gt=649.0 err=229.4 |  pred=294.8 gt=503.0 err=208.2
+2025-09-08 07:06:42,785 [INFO] [Epoch 0319] train=12.4477  val=4.7244
+2025-09-08 07:07:58,737 [INFO] [val] loss=4.5917 Lcnt=72.9109 Lex=1.0180 Leps=0.1348 predCnt=131.90 gtCnt=63.65
+2025-09-08 07:07:58,738 [INFO] [val-top5]  pred=241.8 gt=477.0 err=235.2 |  pred=264.2 gt=486.0 err=221.8 |  pred=314.8 gt=535.0 err=220.2 |  pred=292.3 gt=500.0 err=207.7 |  pred=191.1 gt=3.0 err=188.1
+2025-09-08 07:07:58,739 [INFO] [Epoch 0320] train=12.4976  val=4.5917
+2025-09-08 07:09:15,932 [INFO] [val] loss=4.7427 Lcnt=70.6826 Lex=1.0804 Leps=0.1324 predCnt=128.09 gtCnt=63.42
+2025-09-08 07:09:15,933 [INFO] [val-top5]  pred=260.2 gt=486.0 err=225.8 |  pred=363.4 gt=581.0 err=217.6 |  pred=245.1 gt=428.0 err=182.9 |  pred=184.7 gt=6.0 err=178.7 |  pred=184.1 gt=6.0 err=178.1
+2025-09-08 07:09:15,933 [INFO] [Epoch 0321] train=12.5102  val=4.7427
+2025-09-08 07:10:31,979 [INFO] [val] loss=4.4350 Lcnt=68.0784 Lex=0.9987 Leps=0.1264 predCnt=126.69 gtCnt=63.61
+2025-09-08 07:10:31,980 [INFO] [val-top5]  pred=340.7 gt=746.0 err=405.3 |  pred=222.2 gt=477.0 err=254.8 |  pred=236.5 gt=428.0 err=191.5 |  pred=344.0 gt=535.0 err=191.0 |  pred=185.5 gt=3.0 err=182.5
+2025-09-08 07:10:31,980 [INFO] [Epoch 0322] train=12.5051  val=4.4350
+2025-09-08 07:11:47,869 [INFO] [val] loss=4.5924 Lcnt=67.6782 Lex=1.0626 Leps=0.1213 predCnt=124.42 gtCnt=63.62
+2025-09-08 07:11:47,870 [INFO] [val-top5]  pred=227.9 gt=486.0 err=258.1 |  pred=341.5 gt=581.0 err=239.5 |  pred=280.8 gt=503.0 err=222.2 |  pred=525.1 gt=746.0 err=220.9 |  pred=293.3 gt=484.0 err=190.7
+2025-09-08 07:11:47,870 [INFO] [Epoch 0323] train=12.5487  val=4.5924
+2025-09-08 07:13:03,661 [INFO] [val] loss=4.6406 Lcnt=72.2978 Lex=1.0385 Leps=0.1337 predCnt=129.75 gtCnt=63.58
+2025-09-08 07:13:03,662 [INFO] [val-top5]  pred=258.4 gt=486.0 err=227.6 |  pred=252.9 gt=477.0 err=224.1 |  pred=287.7 gt=503.0 err=215.3 |  pred=273.8 gt=484.0 err=210.2 |  pred=365.2 gt=571.0 err=205.8
+2025-09-08 07:13:03,662 [INFO] [Epoch 0324] train=12.5069  val=4.6406
+2025-09-08 07:14:21,250 [INFO] [val] loss=4.6816 Lcnt=71.6712 Lex=1.0598 Leps=0.1309 predCnt=128.05 gtCnt=63.51
+2025-09-08 07:14:21,251 [INFO] [val-top5]  pred=224.4 gt=486.0 err=261.6 |  pred=218.0 gt=477.0 err=259.0 |  pred=282.2 gt=535.0 err=252.8 |  pred=508.2 gt=746.0 err=237.8 |  pred=207.3 gt=420.0 err=212.7
+2025-09-08 07:14:21,251 [INFO] [Epoch 0325] train=12.5038  val=4.6816
+2025-09-08 07:15:37,911 [INFO] [val] loss=4.6612 Lcnt=71.1895 Lex=1.0535 Leps=0.1315 predCnt=128.76 gtCnt=63.69
+2025-09-08 07:15:37,912 [INFO] [val-top5]  pred=246.6 gt=535.0 err=288.4 |  pred=270.6 gt=500.0 err=229.4 |  pred=270.9 gt=477.0 err=206.1 |  pred=217.8 gt=420.0 err=202.2 |  pred=233.7 gt=428.0 err=194.3
+2025-09-08 07:15:37,914 [INFO] [Epoch 0326] train=12.4654  val=4.6612
+2025-09-08 07:16:53,278 [INFO] [val] loss=4.6380 Lcnt=77.7434 Lex=1.0215 Leps=0.1327 predCnt=136.68 gtCnt=63.47
+2025-09-08 07:16:53,279 [INFO] [val-top5]  pred=309.6 gt=581.0 err=271.4 |  pred=247.1 gt=477.0 err=229.9 |  pred=282.1 gt=484.0 err=201.9 |  pred=189.9 gt=3.0 err=186.9 |  pred=198.6 gt=12.0 err=186.6
+2025-09-08 07:16:53,280 [INFO] [Epoch 0327] train=12.4247  val=4.6380
+2025-09-08 07:18:10,303 [INFO] [val] loss=4.6747 Lcnt=75.9424 Lex=1.0194 Leps=0.1429 predCnt=134.35 gtCnt=63.55
+2025-09-08 07:18:10,304 [INFO] [val-top5]  pred=411.0 gt=649.0 err=238.0 |  pred=271.5 gt=486.0 err=214.5 |  pred=329.8 gt=535.0 err=205.2 |  pred=196.6 gt=1.0 err=195.6 |  pred=227.0 gt=420.0 err=193.0
+2025-09-08 07:18:10,304 [INFO] [Epoch 0328] train=12.6125  val=4.6747
+2025-09-08 07:19:27,690 [INFO] [val] loss=4.6655 Lcnt=66.5430 Lex=1.0858 Leps=0.1238 predCnt=122.94 gtCnt=63.75
+2025-09-08 07:19:27,690 [INFO] [val-top5]  pred=418.8 gt=746.0 err=327.2 |  pred=241.6 gt=486.0 err=244.4 |  pred=361.9 gt=581.0 err=219.1 |  pred=281.2 gt=500.0 err=218.8 |  pred=227.5 gt=428.0 err=200.5
+2025-09-08 07:19:27,691 [INFO] [Epoch 0329] train=12.5326  val=4.6655
+2025-09-08 07:20:43,646 [INFO] [val] loss=4.6187 Lcnt=74.3366 Lex=1.0149 Leps=0.1385 predCnt=133.05 gtCnt=63.83
+2025-09-08 07:20:43,646 [INFO] [val-top5]  pred=210.2 gt=486.0 err=275.8 |  pred=230.9 gt=477.0 err=246.1 |  pred=275.6 gt=500.0 err=224.4 |  pred=230.7 gt=420.0 err=189.3 |  pred=347.1 gt=535.0 err=187.9
+2025-09-08 07:20:43,647 [INFO] [Epoch 0330] train=12.5181  val=4.6187
+2025-09-08 07:22:00,871 [INFO] [val] loss=4.6447 Lcnt=75.2306 Lex=1.0364 Leps=0.1305 predCnt=133.56 gtCnt=63.47
+2025-09-08 07:22:00,871 [INFO] [val-top5]  pred=502.3 gt=746.0 err=243.7 |  pred=344.1 gt=581.0 err=236.9 |  pred=261.3 gt=486.0 err=224.7 |  pred=310.5 gt=535.0 err=224.5 |  pred=209.8 gt=420.0 err=210.2
+2025-09-08 07:22:00,872 [INFO] [Epoch 0331] train=12.4724  val=4.6447
+2025-09-08 07:23:16,649 [INFO] [val] loss=4.6893 Lcnt=75.5103 Lex=1.0370 Leps=0.1372 predCnt=134.21 gtCnt=63.56
+2025-09-08 07:23:16,650 [INFO] [val-top5]  pred=372.5 gt=746.0 err=373.5 |  pred=329.7 gt=581.0 err=251.3 |  pred=259.2 gt=486.0 err=226.8 |  pred=273.7 gt=484.0 err=210.3 |  pred=309.9 gt=503.0 err=193.1
+2025-09-08 07:23:16,650 [INFO] [Epoch 0332] train=12.5395  val=4.6893
+2025-09-08 07:24:32,768 [INFO] [val] loss=4.5775 Lcnt=68.1122 Lex=1.0362 Leps=0.1313 predCnt=125.59 gtCnt=63.72
+2025-09-08 07:24:32,769 [INFO] [val-top5]  pred=320.5 gt=746.0 err=425.5 |  pred=240.3 gt=486.0 err=245.7 |  pred=254.0 gt=484.0 err=230.0 |  pred=279.0 gt=500.0 err=221.0 |  pred=219.5 gt=428.0 err=208.5
+2025-09-08 07:24:32,769 [INFO] [Epoch 0333] train=12.5028  val=4.5775
+2025-09-08 07:25:49,125 [INFO] [val] loss=4.5211 Lcnt=76.2040 Lex=1.0053 Leps=0.1239 predCnt=135.32 gtCnt=63.62
+2025-09-08 07:25:49,125 [INFO] [val-top5]  pred=382.7 gt=746.0 err=363.3 |  pred=229.0 gt=477.0 err=248.0 |  pred=309.1 gt=503.0 err=193.9 |  pred=196.2 gt=5.0 err=191.2 |  pred=194.4 gt=4.0 err=190.4
+2025-09-08 07:25:49,126 [INFO] [Epoch 0334] train=12.5068  val=4.5211
+2025-09-08 07:27:05,415 [INFO] [val] loss=4.6412 Lcnt=77.1807 Lex=1.0122 Leps=0.1388 predCnt=135.53 gtCnt=63.49
+2025-09-08 07:27:05,415 [INFO] [val-top5]  pred=443.0 gt=746.0 err=303.0 |  pred=314.3 gt=581.0 err=266.7 |  pred=396.4 gt=649.0 err=252.6 |  pred=274.8 gt=486.0 err=211.2 |  pred=194.6 gt=1.0 err=193.6
+2025-09-08 07:27:05,416 [INFO] [Epoch 0335] train=12.5545  val=4.6412
+2025-09-08 07:28:21,341 [INFO] [val] loss=4.7142 Lcnt=74.7733 Lex=1.0686 Leps=0.1268 predCnt=133.53 gtCnt=63.55
+2025-09-08 07:28:21,341 [INFO] [val-top5]  pred=249.8 gt=477.0 err=227.2 |  pred=258.7 gt=484.0 err=225.3 |  pred=454.5 gt=649.0 err=194.5 |  pred=187.8 gt=4.0 err=183.8 |  pred=184.9 gt=2.0 err=182.9
+2025-09-08 07:28:21,343 [INFO] [Epoch 0336] train=12.4609  val=4.7142
+2025-09-08 07:29:36,763 [INFO] [val] loss=4.6263 Lcnt=74.1545 Lex=1.0267 Leps=0.1341 predCnt=132.09 gtCnt=63.54
+2025-09-08 07:29:36,763 [INFO] [val-top5]  pred=358.8 gt=746.0 err=387.2 |  pred=340.0 gt=581.0 err=241.0 |  pred=273.6 gt=486.0 err=212.4 |  pred=277.1 gt=477.0 err=199.9 |  pred=221.2 gt=420.0 err=198.8
+2025-09-08 07:29:36,764 [INFO] [Epoch 0337] train=12.5425  val=4.6263
+2025-09-08 07:30:52,446 [INFO] [val] loss=4.5846 Lcnt=72.0228 Lex=1.0328 Leps=0.1277 predCnt=130.02 gtCnt=63.56
+2025-09-08 07:30:52,447 [INFO] [val-top5]  pred=214.4 gt=486.0 err=271.6 |  pred=267.1 gt=535.0 err=267.9 |  pred=351.1 gt=571.0 err=219.9 |  pred=204.2 gt=420.0 err=215.8 |  pred=268.7 gt=484.0 err=215.3
+2025-09-08 07:30:52,447 [INFO] [Epoch 0338] train=12.5460  val=4.5846
+2025-09-08 07:32:09,362 [INFO] [val] loss=4.8347 Lcnt=78.6784 Lex=1.0698 Leps=0.1398 predCnt=137.93 gtCnt=63.49
+2025-09-08 07:32:09,363 [INFO] [val-top5]  pred=281.3 gt=484.0 err=202.7 |  pred=231.7 gt=428.0 err=196.3 |  pred=295.4 gt=486.0 err=190.6 |  pred=189.9 gt=6.0 err=183.9 |  pred=186.8 gt=3.0 err=183.8
+2025-09-08 07:32:09,363 [INFO] [Epoch 0339] train=12.4710  val=4.8347
+2025-09-08 07:33:25,139 [INFO] [val] loss=4.6626 Lcnt=74.7209 Lex=1.0262 Leps=0.1395 predCnt=134.13 gtCnt=63.64
+2025-09-08 07:33:25,140 [INFO] [val-top5]  pred=254.6 gt=535.0 err=280.4 |  pred=285.3 gt=500.0 err=214.7 |  pred=371.9 gt=581.0 err=209.1 |  pred=301.3 gt=503.0 err=201.7 |  pred=190.0 gt=3.0 err=187.0
+2025-09-08 07:33:25,140 [INFO] [Epoch 0340] train=12.4949  val=4.6626
+2025-09-08 07:34:42,256 [INFO] [val] loss=4.6630 Lcnt=76.6606 Lex=1.0297 Leps=0.1345 predCnt=135.46 gtCnt=63.57
+2025-09-08 07:34:42,256 [INFO] [val-top5]  pred=453.9 gt=746.0 err=292.1 |  pred=258.6 gt=477.0 err=218.4 |  pred=268.7 gt=486.0 err=217.3 |  pred=323.3 gt=535.0 err=211.7 |  pred=234.1 gt=428.0 err=193.9
+2025-09-08 07:34:42,257 [INFO] [Epoch 0341] train=12.5385  val=4.6630
+2025-09-08 07:35:59,018 [INFO] [val] loss=4.6820 Lcnt=78.8236 Lex=1.0321 Leps=0.1329 predCnt=136.99 gtCnt=63.37
+2025-09-08 07:35:59,018 [INFO] [val-top5]  pred=443.0 gt=746.0 err=303.0 |  pred=312.2 gt=581.0 err=268.8 |  pred=248.8 gt=486.0 err=237.2 |  pred=201.5 gt=3.0 err=198.5 |  pred=204.4 gt=6.0 err=198.4
+2025-09-08 07:35:59,019 [INFO] [Epoch 0342] train=12.4677  val=4.6820
+2025-09-08 07:37:16,276 [INFO] [val] loss=4.5447 Lcnt=71.3688 Lex=1.0251 Leps=0.1260 predCnt=128.77 gtCnt=63.56
+2025-09-08 07:37:16,276 [INFO] [val-top5]  pred=217.1 gt=486.0 err=268.9 |  pred=325.7 gt=535.0 err=209.3 |  pred=306.1 gt=500.0 err=193.9 |  pred=192.9 gt=5.0 err=187.9 |  pred=186.2 gt=1.0 err=185.2
+2025-09-08 07:37:16,277 [INFO] [Epoch 0343] train=12.4255  val=4.5447
+2025-09-08 07:38:33,399 [INFO] [val] loss=4.7345 Lcnt=78.0407 Lex=1.0359 Leps=0.1411 predCnt=136.60 gtCnt=63.69
+2025-09-08 07:38:33,400 [INFO] [val-top5]  pred=327.3 gt=746.0 err=418.7 |  pred=270.8 gt=535.0 err=264.2 |  pred=390.6 gt=581.0 err=190.4 |  pred=201.8 gt=13.0 err=188.8 |  pred=194.6 gt=6.0 err=188.6
+2025-09-08 07:38:33,400 [INFO] [Epoch 0344] train=12.4960  val=4.7345
+2025-09-08 07:39:48,756 [INFO] [val] loss=4.6090 Lcnt=73.8541 Lex=1.0149 Leps=0.1376 predCnt=133.09 gtCnt=63.48
+2025-09-08 07:39:48,757 [INFO] [val-top5]  pred=244.2 gt=486.0 err=241.8 |  pred=227.0 gt=420.0 err=193.0 |  pred=192.4 gt=2.0 err=190.4 |  pred=190.0 gt=3.0 err=187.0 |  pred=189.9 gt=3.0 err=186.9
+2025-09-08 07:39:48,758 [INFO] [Epoch 0345] train=12.5613  val=4.6090
+2025-09-08 07:41:04,205 [INFO] [val] loss=4.5527 Lcnt=73.4520 Lex=1.0053 Leps=0.1337 predCnt=131.87 gtCnt=63.64
+2025-09-08 07:41:04,205 [INFO] [val-top5]  pred=259.9 gt=535.0 err=275.1 |  pred=241.8 gt=486.0 err=244.2 |  pred=259.8 gt=477.0 err=217.2 |  pred=374.4 gt=571.0 err=196.6 |  pred=193.1 gt=4.0 err=189.1
+2025-09-08 07:41:04,206 [INFO] [Epoch 0346] train=12.5545  val=4.5527
+2025-09-08 07:42:21,250 [INFO] [val] loss=4.5705 Lcnt=75.6639 Lex=1.0165 Leps=0.1274 predCnt=133.45 gtCnt=63.63
+2025-09-08 07:42:21,250 [INFO] [val-top5]  pred=409.6 gt=746.0 err=336.4 |  pred=231.3 gt=486.0 err=254.7 |  pred=281.3 gt=535.0 err=253.7 |  pred=262.4 gt=484.0 err=221.6 |  pred=193.4 gt=1.0 err=192.4
+2025-09-08 07:42:21,251 [INFO] [Epoch 0347] train=12.4381  val=4.5705
+2025-09-08 07:43:37,002 [INFO] [val] loss=4.6296 Lcnt=76.2970 Lex=1.0103 Leps=0.1393 predCnt=134.17 gtCnt=63.67
+2025-09-08 07:43:37,003 [INFO] [val-top5]  pred=343.9 gt=581.0 err=237.1 |  pred=254.2 gt=477.0 err=222.8 |  pred=322.3 gt=535.0 err=212.7 |  pred=295.6 gt=503.0 err=207.4 |  pred=286.1 gt=484.0 err=197.9
+2025-09-08 07:43:37,003 [INFO] [Epoch 0348] train=12.5728  val=4.6296
+2025-09-08 07:44:52,890 [INFO] [val] loss=4.5948 Lcnt=74.5126 Lex=1.0234 Leps=0.1299 predCnt=132.44 gtCnt=63.51
+2025-09-08 07:44:52,890 [INFO] [val-top5]  pred=415.6 gt=649.0 err=233.4 |  pred=306.2 gt=535.0 err=228.8 |  pred=271.7 gt=500.0 err=228.3 |  pred=355.9 gt=581.0 err=225.1 |  pred=264.2 gt=486.0 err=221.8
+2025-09-08 07:44:52,891 [INFO] [Epoch 0349] train=12.4650  val=4.5948
+2025-09-08 07:46:09,587 [INFO] [val] loss=4.6423 Lcnt=71.2069 Lex=1.0363 Leps=0.1369 predCnt=129.82 gtCnt=63.54
+2025-09-08 07:46:09,588 [INFO] [val-top5]  pred=430.3 gt=746.0 err=315.7 |  pred=242.5 gt=486.0 err=243.5 |  pred=312.8 gt=535.0 err=222.2 |  pred=257.0 gt=477.0 err=220.0 |  pred=222.8 gt=420.0 err=197.2
+2025-09-08 07:46:09,588 [INFO] [Epoch 0350] train=12.5438  val=4.6423

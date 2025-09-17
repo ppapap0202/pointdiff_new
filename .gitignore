@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+
+# 模型與大檔案
+*.pt
+*.pth
+*.h5
+*.mat
+*.zip
+
+# 資料集
+data/
+dataset/
