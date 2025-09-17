@@ -329,3 +329,13 @@
 2025-09-17 12:03:59,389 [INFO] [val] loss=0.1203 Lcnt=0.0000 Lex=0.1047 Leps=0.0780 predCnt=357.94 gtCnt=63.56
 2025-09-17 12:03:59,390 [INFO] [val-top5]  pred=391.3 gt=1.0 err=390.3 |  pred=395.9 gt=7.0 err=388.9 |  pred=389.4 gt=3.0 err=386.4 |  pred=390.0 gt=4.0 err=386.0 |  pred=391.8 gt=7.0 err=384.8
 2025-09-17 12:03:59,391 [INFO] [Epoch 0040] train=0.3372  val=0.1203
+2025-09-17 12:04:17,411 [INFO] [train] step=00010 data=0.013s gpu=1.186s loss=0.3365
+2025-09-17 12:04:29,147 [INFO] [train] step=00020 data=0.012s gpu=1.174s loss=0.3375
+2025-09-17 12:04:40,343 [INFO] [train] step=00030 data=0.011s gpu=1.153s loss=0.3382
+2025-09-17 12:04:51,328 [INFO] [train] step=00040 data=0.009s gpu=1.138s loss=0.3381
+2025-09-17 12:05:01,946 [INFO] [train] step=00050 data=0.008s gpu=1.122s loss=0.3380
+2025-09-17 12:05:26,490 [INFO] [val] loss=0.1179 Lcnt=0.0000 Lex=0.1028 Leps=0.0753 predCnt=346.24 gtCnt=63.85
+2025-09-17 12:05:26,491 [INFO] [val-top5]  pred=393.1 gt=4.0 err=389.1 |  pred=388.2 gt=7.0 err=381.2 |  pred=383.9 gt=6.0 err=377.9 |  pred=378.6 gt=1.0 err=377.6 |  pred=380.4 gt=3.0 err=377.4
+2025-09-17 12:05:26,491 [INFO] [Epoch 0041] train=0.3380  val=0.1179
+2025-09-17 12:05:44,404 [INFO] [train] step=00010 data=0.012s gpu=1.184s loss=0.3374
+2025-09-17 12:05:56,062 [INFO] [train] step=00020 data=0.011s gpu=1.169s loss=0.3379
