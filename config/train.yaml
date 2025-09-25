@@ -1,16 +1,16 @@
 seed: 7113064149
-batch_size: 128
+batch_size: 32
 epochs: 1500
 dataset_file: SHHA
-data_root: 'C:\Users\qwert\PycharmProjects\pythonProject\dataset\ShanghaiTech\part_A\train_data'
-val_root: 'C:\Users\qwert\PycharmProjects\pythonProject\dataset\ShanghaiTech\part_A\train_data\images'
-test_root: 'C:\Users\qwert\PycharmProjects\pythonProject\dataset\ShanghaiTech\part_A\test_data\'
+data_root: 'D:\PyCharmMiscProject\ShanghaiTech_Crowd_Counting_Dataset\part_A\train'
+val_root: 'D:\PyCharmMiscProject\ShanghaiTech_Crowd_Counting_Dataset\part_A\train\images'
+test_root: 'D:\PyCharmMiscProject\ShanghaiTech_Crowd_Counting_Dataset\part_A\test'
 mode: 'points'                 # 'density' | 'points' | 'class'
 crop_size:  [256, 256]
 crop_type: 'center'
 gray: False
 device: cuda
-out_dir: 'C:\Users\qwert\PycharmProjects\pythonProject\pointdiff_with_logging\output'
+out_dir: 'D:\PyCharmMiscProject\pointdiff_new\output'
 #---------------------------MODEL-----------------------------------------------------
 in_ch: 3  # 1=灰階, 3=RGB
 fpn_c: 128
@@ -20,4 +20,4 @@ with_score: True
 lr: 1e-4
 lr_backbone: 1e-5
 diffusion_T: 1000
-signal_scale: 1.0
+signal_scale: 2.0

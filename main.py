@@ -3,12 +3,12 @@ from datetime import datetime
 import os
 import argparse
 import yaml
-from visualize import visualization
-from dataset import build_dataset,dataset_pos_neg_stats
+from dataset import build_dataset, dataset_pos_neg_stats
 from torch.utils.data import DataLoader
 from models import build_model, build_optimizers, Diffusion_schedule
 from models.train_loop import train_one_epoch,validate_one_epoch
 import torch
+from visualize import visualization
 
 # --- Logging 初始化 ---
 def setup_logging():
@@ -86,12 +86,12 @@ def main():
                               collate_fn=collate_points_padded)
     # for a,b,c in train_data:
     #     visualization(a,b,c)
-    _ = dataset_pos_neg_stats(train_loader)
-    _ = dataset_pos_neg_stats(val_loader)
+    # _ = dataset_pos_neg_stats(train_loader)
+    # _ = dataset_pos_neg_stats(val_loader)
     for imgs, pts, mask, metas in train_loader:
         logging.info(f'images.shape: {imgs.shape}')  # (B, C, H, W)
         logging.info(f'points.shape: {pts.shape}')  # (B, max_len, 2)
-        logging.info(f'mask.shape: {mask}')  # (B, max_len)
+        logging.info(f'mask.shape: {mask.shape}')  # (B, max_len)
         logging.info(metas)
         break
     model = build_model(args, training=True).to(device)
@@ -105,21 +105,21 @@ def main():
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"C:\Users\qwert\PycharmProjects\pythonProject\pointdiff_with_logging\output\last_epoch0350.pth", map_location="cuda:0")
+    # checkpoint = torch.load(r"C:\Users\qwert\PycharmProjects\pythonProject\pointdiff_with_logging\output\last_epoch0350.pth", map_location="cuda:0")
+    #
+    # # 載入模型與優化器參數
+    # model.load_state_dict(checkpoint['model_state'])
+    # optim.load_state_dict(checkpoint['optim_state'])
+    # scaler.load_state_dict(checkpoint['scaler_state'])
 
-    # 載入模型與優化器參數
-    model.load_state_dict(checkpoint['model_state'])
-    optim.load_state_dict(checkpoint['optim_state'])
-    scaler.load_state_dict(checkpoint['scaler_state'])
-
-
+    print('start training')
 
     for epoch in range(1, args.epochs+1):
-        print('start training')
-        tr_loss = train_one_epoch(model, train_loader, device, optim, scaler, sched, signal_scale, T)
-        va_loss = validate_one_epoch(model, val_loader, device, sched, signal_scale, T)
 
-        logging.info(f"[Epoch {epoch:04d}] train={tr_loss:.4f}  val={va_loss:.4f}")
+        tr_loss = train_one_epoch(model, train_loader, device, optim, scaler, sched, T)
+        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, signal_scale, T)
+
+        logging.info(f"[Epoch {epoch:04d}] train={tr_loss:.4f}  val={val_loss:.4f} val_MAE={val_MAE:.4f}")
         last_path = os.path.join(args.out_dir, f"last_epoch{epoch:04d}.pth")
         torch.save({
             "epoch": epoch,
@@ -128,9 +128,9 @@ def main():
             "scaler_state": scaler.state_dict(),
             "best_val": best_val,
         }, last_path)
-        if va_loss < best_val:
-            best_val = va_loss
-            best_path = os.path.join(args.out_dir, f"best_epoch{epoch:04d}_val{va_loss:.2f}.pth")
+        if val_loss < best_val:
+            best_val = val_loss
+            best_path = os.path.join(args.out_dir, f"best_epoch{epoch:04d}_val{val_loss:.2f}.pth")
             print('save model',best_path)
             torch.save(model.state_dict(), best_path)
 

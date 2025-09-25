@@ -281,3 +281,36 @@ def loss_exist_eps_balanced(
         "gt_count_mean": gt_count_mean.detach(),
     }
     return loss, stats
+
+# --- 原本的 loss_exist_eps_balanced 保留 ---
+
+def loss_exist_x0_count(
+    p_t, p0, mask, abar_t, eps_pred, exist_logit,
+    lambda_exist=1.0, lambda_x0=1.0, lambda_cnt=0.1
+):
+    """
+    改良版 Loss:
+      - L_exist: BCE 在存在 mask 上
+      - L_x0   : x0_hat vs GT points
+      - L_cnt  : soft count vs GT count
+    """
+    sqrt_ab = (abar_t + 1e-6).sqrt()
+    sqrt_om = (1.0 - abar_t).clamp_min(0).sqrt()
+
+    # 反推出 x0_hat
+    x0_hat = (p_t - sqrt_om * eps_pred) / sqrt_ab
+    x0_hat = x0_hat.clamp(-1+1e-3, 1-1e-3)
+
+    # 1) 座標 L1 (只在有效點上算)
+    L_x0 = F.smooth_l1_loss(x0_hat[mask], p0[mask])
+
+    # 2) 存在度
+    L_exist = F.binary_cross_entropy_with_logits(exist_logit, mask.float())
+
+    # 3) 數量 loss
+    pred_cnt = torch.sigmoid(exist_logit).sum(dim=1)
+    gt_cnt   = mask.sum(dim=1).float()
+    L_cnt    = F.l1_loss(pred_cnt, gt_cnt)
+
+    loss = lambda_exist*L_exist + lambda_x0*L_x0 + lambda_cnt*L_cnt
+    return loss, L_exist, L_x0, L_cnt, pred_cnt.mean().item(), gt_cnt.mean().item()

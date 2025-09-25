@@ -68,6 +68,7 @@ class ImageDataset(Dataset):
             return None
         elif self.mode == 'points':
             # 先找 .txt，再找 .csv
+            #print(base)
             p_txt = os.path.join(self.label_dir, base + '.txt')
             if os.path.exists(p_txt):
                 return p_txt
