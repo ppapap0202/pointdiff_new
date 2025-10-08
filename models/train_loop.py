@@ -5,7 +5,56 @@ from torch.cuda.amp import autocast, GradScaler
 from models.diffusion_utils import pixels_to_m11, forward_noisy, count_primary_loss, loss_exist_eps_balanced,loss_exist_x0_count
 import time
 
+def unroll_once_with_feats(feats, images, points_pad, mask, t_seq, abar, clamp_eps, W, H):
+    B, _, _, _ = images.shape
+    N = points_pad.shape[1]
 
+    # init p_t（用同一個隨機種子保證兩次一致）
+    g = torch.Generator(device=images.device)
+    g.manual_seed(12345)  # 保證重現
+    p_t = torch.empty((B, N, 2), device=images.device, generator=g).uniform_(-1.0 + clamp_eps, 1.0 - clamp_eps)
+
+    last_exist_logit = None
+    for i, t_int in enumerate(t_seq.tolist()):
+        t_tensor = torch.full((B, 1), t_int, device=images.device, dtype=torch.long)
+        eps_pred, exist_logit = model.denoise(feats, p_t, t_tensor)
+        last_exist_logit = exist_logit
+
+        abar_t   = abar[t_int]
+        abar_prev = abar[t_seq[i + 1]] if i + 1 < len(t_seq) else torch.tensor(1.0, device=images.device)
+        p_t = ddim_reverse_step(p_t, eps_pred, abar_t, abar_prev)
+        p_t = p_t.clamp(min=-1.0 + clamp_eps, max=1.0 - clamp_eps)
+
+    # 座標 loss（歸一化空間）
+    mask_bool = mask.bool()
+    # 先把 GT 轉成 [-1,1]
+    p0 = points_pad.to(dtype=p_t.dtype).clone()
+    p0[...,0] = p0[...,0] / (W-1) * 2 - 1
+    p0[...,1] = p0[...,1] / (H-1) * 2 - 1
+    Lx0 = F.smooth_l1_loss(p_t[mask_bool], p0[mask_bool]) if mask_bool.any() else p_t.new_tensor(0.0)
+
+    # 轉像素誤差（直覺用）
+    scale = torch.tensor([(W-1)/2.0, (H-1)/2.0], device=p_t.device, dtype=p_t.dtype)
+    diff_px = (p_t - p0).abs() * scale
+    l2_px = torch.sqrt(diff_px[...,0]**2 + diff_px[...,1]**2 + 1e-12)
+    mae_l2_px = l2_px[mask_bool].mean().item() if mask_bool.any() else float('nan')
+
+    # 計數
+    exist_prob = torch.sigmoid(last_exist_logit)
+    pred_cnt = exist_prob.sum(dim=1)               # [B]
+    gt_cnt   = mask.sum(dim=1).float()             # [B]
+    mae_cnt  = (pred_cnt - gt_cnt).abs().mean().item()
+
+    return {
+        "p0": p0.detach(),
+        "p_end": p_t.detach(),
+        "Lx0": float(Lx0.item()),
+        "mae_l2_px": float(mae_l2_px),
+        "pred_cnt": pred_cnt.detach().cpu().numpy(),
+        "gt_cnt": gt_cnt.detach().cpu().numpy(),
+        "mae_cnt": float(mae_cnt),
+        "exist_prob": exist_prob.detach()
+    }
 @torch.no_grad()
 @torch.no_grad()
 def validate_one_epoch(model, data_loader, device, sched, signal_scale=1.0, T: int = 1000):
@@ -15,7 +64,7 @@ def validate_one_epoch(model, data_loader, device, sched, signal_scale=1.0, T: i
     # ---- 累積器（supervised loss 統計）----
     total_loss = 0.0
     n_steps = 0
-    run_Lexist = run_Laux = 0.0   # Laux: 這裡代表 Lx0
+    run_Lcnt = run_Lexist = run_Laux = 0.0   # Laux: 這裡代表 Lx0
     run_predC = run_gtC = 0.0
 
     # ---- 短步 DDIM 統計 ----
@@ -49,12 +98,13 @@ def validate_one_epoch(model, data_loader, device, sched, signal_scale=1.0, T: i
         loss, L_exist, L_x0, L_cnt, predC_mean, gtC_mean = loss_exist_x0_count(
             p_t=p_t, p0=p0, mask=mask, abar_t=abar_t,
             eps_pred=eps_pred, exist_logit=exist_logit,
-            lambda_exist=1.0, lambda_x0=1.0, lambda_cnt=0.1
+            lambda_exist=1.0, lambda_x0=1.0, lambda_cnt=1.0
         )
 
         # ---- 累計 supervised loss 統計 ----
         total_loss += float(loss)
         n_steps    += 1
+        run_Lcnt   += float(L_cnt)
         run_Lexist += float(L_exist)
         run_Laux   += float(L_x0)
         run_predC  += float(predC_mean)
@@ -108,11 +158,12 @@ def validate_one_epoch(model, data_loader, device, sched, signal_scale=1.0, T: i
     if n_steps > 0:
         avg_loss  = total_loss / n_steps
         avg_Lexist= run_Lexist / n_steps
+        avg_Lcnt  = run_Lcnt   / n_steps
         avg_Lx0   = run_Laux   / n_steps
         avg_predC = run_predC  / n_steps
         avg_gtC   = run_gtC    / n_steps
     else:
-        avg_loss = avg_Lexist = avg_Lx0 = avg_predC = avg_gtC = 0.0
+        avg_loss = avg_Lexist = avg_Lx0 = avg_predC = avg_gtC = avg_Lcnt = 0.0
 
     if total_imgs > 0:
         avg_mae  = total_mae / total_imgs
@@ -121,7 +172,7 @@ def validate_one_epoch(model, data_loader, device, sched, signal_scale=1.0, T: i
         avg_mae = avg_rmse = 0.0
 
     logging.info(
-        f"[val] loss={avg_loss:.4f} Lex={avg_Lexist:.4f} Lx0={avg_Lx0:.4f} "
+        f"[val] loss={avg_loss:.4f} Lex={avg_Lexist:.4f} Lx0={avg_Lx0:.4f} Lcnt={avg_Lcnt:.4f} "
         f"predCnt={avg_predC:.2f} gtCnt={avg_gtC:.2f} | MAE={avg_mae:.2f} RMSE={avg_rmse:.2f}"
     )
 
@@ -150,7 +201,7 @@ def train_one_epoch(
         lambda_exist: float = 1.0,
         lambda_eps: float = 1.0,  # 只在 eps 模式用
         lambda_x0: float = 1.0,  # 只在 x0_count 模式用
-        lambda_cnt: float = 0.1,  # 只在 x0_count 模式用
+        lambda_cnt: float = 1.0,  # 只在 x0_count 模式用
         log_every: int = 50,
         max_norm: float = 1.0
 ):
@@ -211,7 +262,7 @@ def train_one_epoch(
                 t_cur = (t_start - k).clamp(min=0)  # [B,1]
                 idx = t_cur.squeeze(-1)  # [B]
                 abar_cur = sched.abar.index_select(0, idx).unsqueeze(-1).unsqueeze(-1)  # [B,1,1]
-
+                feats_zero = [f * 0 for f in feats] if isinstance(feats, (list, tuple)) else feats * 0
                 # 預測
                 eps_pred, exist_logit = model.denoise(feats, p_t, t_cur, abar_t=abar_cur, clamp_eps=1e-6)
 
@@ -282,4 +333,4 @@ def train_one_epoch(
             loss_acc = Le_b = Laux_b = Lcnt_b = predC_b = gtC_b = 0.0
             k_bucket = 0
 
-    return loss_acc
+    return loss_acc/ k_bucket

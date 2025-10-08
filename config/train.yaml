@@ -2,15 +2,15 @@ seed: 7113064149
 batch_size: 32
 epochs: 1500
 dataset_file: SHHA
-data_root: 'D:\PyCharmMiscProject\ShanghaiTech_Crowd_Counting_Dataset\part_A\train'
-val_root: 'D:\PyCharmMiscProject\ShanghaiTech_Crowd_Counting_Dataset\part_A\train\images'
-test_root: 'D:\PyCharmMiscProject\ShanghaiTech_Crowd_Counting_Dataset\part_A\test'
+data_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data'
+val_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data\images'
+test_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\test_data'
 mode: 'points'                 # 'density' | 'points' | 'class'
 crop_size:  [256, 256]
 crop_type: 'center'
 gray: False
 device: cuda
-out_dir: 'D:\PyCharmMiscProject\pointdiff_new\output'
+out_dir: 'C:\pycharm\pointdiff_new\output_add_align_corners=True'
 #---------------------------MODEL-----------------------------------------------------
 in_ch: 3  # 1=灰階, 3=RGB
 fpn_c: 128

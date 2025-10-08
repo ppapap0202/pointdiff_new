@@ -12,3 +12,4 @@ def visualization(image, label, base):
     cv2.imshow("Tile", img_np)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+

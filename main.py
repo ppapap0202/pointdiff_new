@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from models import build_model, build_optimizers, Diffusion_schedule
 from models.train_loop import train_one_epoch,validate_one_epoch
 import torch
+import time
 from visualize import visualization
 
 # --- Logging 初始化 ---
@@ -105,17 +106,17 @@ def main():
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    # checkpoint = torch.load(r"C:\Users\qwert\PycharmProjects\pythonProject\pointdiff_with_logging\output\last_epoch0350.pth", map_location="cuda:0")
+    checkpoint = torch.load(r"C:\pycharm\pointdiff_new\output3\last_epoch0111.pth", map_location="cuda:0")
     #
     # # 載入模型與優化器參數
-    # model.load_state_dict(checkpoint['model_state'])
-    # optim.load_state_dict(checkpoint['optim_state'])
-    # scaler.load_state_dict(checkpoint['scaler_state'])
+    model.load_state_dict(checkpoint['model_state'])
+    optim.load_state_dict(checkpoint['optim_state'])
+    scaler.load_state_dict(checkpoint['scaler_state'])
 
     print('start training')
 
     for epoch in range(1, args.epochs+1):
-
+        time_start = time.time()
         tr_loss = train_one_epoch(model, train_loader, device, optim, scaler, sched, T)
         val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, signal_scale, T)
 
@@ -133,7 +134,8 @@ def main():
             best_path = os.path.join(args.out_dir, f"best_epoch{epoch:04d}_val{val_loss:.2f}.pth")
             print('save model',best_path)
             torch.save(model.state_dict(), best_path)
-
+        time_end = time.time()
+        print('time cost', time_end - time_start)
 
 
 

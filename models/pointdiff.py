@@ -2,25 +2,76 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet18, ResNet18_Weights
+from torchvision.models.convnext import convnext_small, ConvNeXt_Small_Weights
 import math
+from torchvision.ops import misc as misc_ops  # LayerNorm2d 在這裡
 # ---------- Encoder + FPN ----------
 class EncoderFPN(nn.Module):
     """
     輸入:  [B, in_ch, H, W]
-    輸出:  P4, P8, P16  分別是 [B, C, H/4, W/4], [B, C, H/8, W/8], [B, C, H/16, W/16]
+    輸出:  P4, P8, P16  分別是 [B, out_c, H/4, W/4], [B, out_c, H/8, W/8], [B, out_c, H/16, W/16]
+
+    backbone 選項:
+      - 'resnet18'         (預設)
+      - 'convnext_small'   (新增)
     """
-    def __init__(self, in_ch=1, out_c=128):
+    def __init__(self, in_ch=1, out_c=128, backbone: str = "convnext_small", pretrained: bool = True):
         super().__init__()
-        m = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
-        if in_ch != 3:
-            m.conv1 = nn.Conv2d(in_ch, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.backbone_name = backbone.lower()
 
-        self.stem   = nn.Sequential(m.conv1, m.bn1, m.relu, m.maxpool)  # /4
-        self.layer1 = m.layer1   # /4,  C=64
-        self.layer2 = m.layer2   # /8,  C=128
-        self.layer3 = m.layer3   # /16, C=256
+        if self.backbone_name == "resnet18":
+            weights = ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
+            m = resnet18(weights=weights)
+            # 改第一層以支援非 RGB 輸入
+            if in_ch != 3:
+                m.conv1 = nn.Conv2d(in_ch, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
-        C4, C8, C16 = 64, 128, 256
+            # stages (stride): stem(/4), layer1(/4), layer2(/8), layer3(/16)
+            self.stem   = nn.Sequential(m.conv1, m.bn1, m.relu, m.maxpool)  # /4
+            self.layer1 = m.layer1   # /4,  C=64
+            self.layer2 = m.layer2   # /8,  C=128
+            self.layer3 = m.layer3   # /16, C=256
+
+            C4, C8, C16 = 64, 128, 256
+
+        elif self.backbone_name == "convnext_small":
+            weights = ConvNeXt_Small_Weights.IMAGENET1K_V1 if pretrained else None
+            m = convnext_small(weights=weights)
+
+            # torchvision ConvNeXt 結構：m.features = [stem, stage1, stage2, stage3, stage4]
+            # strides: stem(/4) -> s1(/4) -> s2(/8) -> s3(/16) -> s4(/32)
+            # channels (small): stem out=96, s1=96, s2=192, s3=384, s4=768
+            # 若 in_ch != 3，需要同時替換 stem 的 LayerNorm2d(3) 與 Conv2d(3,96,4,4)
+            if in_ch != 3:
+                # conv
+                old_conv = m.features[0][0]
+                m.features[0][0] = nn.Conv2d(
+                    in_ch, old_conv.out_channels,
+                    kernel_size=old_conv.kernel_size,
+                    stride=old_conv.stride,
+                    padding=old_conv.padding,
+                    bias=old_conv.bias is not None
+                )
+                # norm（Conv2dNormActivation 預設用 LayerNorm2d）
+                from torchvision.ops import misc as misc_ops
+                m.features[0][1] = misc_ops.LayerNorm2d(in_ch, eps=1e-6)
+
+                # （可選）把 RGB 預訓練權重平均到單通道
+                with torch.no_grad():
+                    if hasattr(old_conv, "weight") and old_conv.weight.shape[1] == 3:
+                        new_w = old_conv.weight.data.mean(dim=1, keepdim=True)  # [96,1,4,4]
+                        m.features[0][0].weight.copy_(new_w)
+
+            # 取到 /4, /8, /16 的特徵
+            self.convnext = m
+            # /4 輸出位置：經 stem 與 stage1
+            # /8：stage2；/16：stage3
+            C4, C8, C16 = 96, 192, 384
+
+        else:
+            raise ValueError(f"Unsupported backbone: {backbone}")
+
+        # FPN lateral + smooth（統一輸出通道 out_c）
         self.lat4   = nn.Conv2d(C4,  out_c, 1)
         self.lat8   = nn.Conv2d(C8,  out_c, 1)
         self.lat16  = nn.Conv2d(C16, out_c, 1)
@@ -30,11 +81,30 @@ class EncoderFPN(nn.Module):
         self.smooth16 = nn.Conv2d(out_c, out_c, 3, padding=1)
 
     def forward(self, x):
-        x  = self.stem(x)      # /4
-        c4 = self.layer1(x)    # /4
-        c8 = self.layer2(c4)   # /8
-        c16= self.layer3(c8)   # /16
+        if self.backbone_name == "resnet18":
+            x  = self.stem(x)      # /4
+            c4 = self.layer1(x)    # /4,  C=64
+            c8 = self.layer2(c4)   # /8,  C=128
+            c16= self.layer3(c8)   # /16, C=256
 
+        elif self.backbone_name == "convnext_small":
+            # ConvNeXt features flow:
+            # stem -> stage1 -> stage2 -> stage3 -> stage4
+            f = self.convnext.features
+            x = f[0](x)        # stem, /4
+            c4 = f[1](x)       # stage1, /4, C=96
+            s2 = f[2](c4)
+            c8 = f[3](s2)      # stage2, /8, C=192
+            s3 = f[4](c8)
+            c16= f[5](s3)      # stage3, /16, C=384
+            # （stage4 是 /32，本模組不需要）
+            assert c4.shape[1] == 96 and c8.shape[1] == 192 and c16.shape[1] == 384, \
+                f"unexpected channels: c4={c4.shape}, c8={c8.shape}, c16={c16.shape}"
+        # 形狀護欄
+        assert c4.shape[1] in (64, 96), f"c4 channels={c4.shape[1]} unexpected"
+        assert c8.shape[1] in (128, 192), f"c8 channels={c8.shape[1]} unexpected"
+        assert c16.shape[1] in (256, 384), f"c16 channels={c16.shape[1]} unexpected"
+        # top-down FPN
         l16 = self.lat16(c16)
         l8  = self.lat8(c8)  + F.interpolate(l16, size=c8.shape[-2:], mode='nearest')
         l4  = self.lat4(c4)  + F.interpolate(l8,  size=c4.shape[-2:], mode='nearest')
@@ -47,12 +117,16 @@ class EncoderFPN(nn.Module):
 # ---------- ROI-free 點特徵取樣 ----------
 def sample_point_feats(P, p_norm):
     """
-    P: [B,C,h,w],  p_norm: [B,N,2] in [-1,1], align_corners=False
-    return: [B,N,C]
+    P: [B,C,h,w],  p_norm: [B,N,2] in [-1,1]
+    這裡使用 align_corners=True，需與你用 (W-1)/2, (H-1)/2 的正規化完全對齊
     """
     B, N, _ = p_norm.shape
     grid = p_norm.view(B, N, 1, 2)
-    feat = F.grid_sample(P, grid, mode='bilinear', align_corners=False)  # [B,C,N,1]
+    feat = F.grid_sample(
+        P, grid, mode='bilinear',
+        align_corners=True,          # ← 關鍵
+        padding_mode='border'        # ← 邊界更穩定
+    )  # [B,C,N,1]
     return feat.squeeze(-1).transpose(1, 2)  # [B,N,C]
 
 class PointConditioner(nn.Module):
@@ -162,7 +236,6 @@ class ModelBuilder(nn.Module):
         self.head_eps = DenoiserHeadRes(in_dim=cond_c*3 + t_dim + 2, hidden=384, depth=3, dropout=0.2)
         self.conf_head = ConfidenceHead(in_dim=cond_c*3, hidden=256)
 
-    @torch.no_grad()
     def encode(self, images):
         # images: [B,in_ch,H,W]
         return self.backbone(images)
