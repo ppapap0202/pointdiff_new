@@ -129,19 +129,50 @@ def sample_point_feats(P, p_norm):
     )  # [B,C,N,1]
     return feat.squeeze(-1).transpose(1, 2)  # [B,N,C]
 
+class MSFusionGate(nn.Module):
+    def __init__(self, cond_c=64, hidden=128):
+        super().__init__()
+        self.gate = nn.Sequential(
+            nn.Linear(cond_c * 3, hidden), nn.ReLU(True),
+            nn.Linear(hidden, 3)
+        )
+        # 最後輸出仍維持 cond_c*3，讓你現有 head 不用改
+        self.out  = nn.Sequential(
+            nn.Linear(cond_c * 4, cond_c * 3), nn.ReLU(True)
+        )
+
+    def forward(self, f4, f8, f16):
+        cat = torch.cat([f4, f8, f16], dim=-1)   # [B,N,3C]
+        w = self.gate(cat).softmax(dim=-1)       # [B,N,3]
+        fused = w[..., 0:1]*f4 + w[..., 1:2]*f8 + w[..., 2:3]*f16  # [B,N,C]
+        out = self.out(torch.cat([cat, fused], dim=-1))            # [B,N,3C]
+        return out
+
 class PointConditioner(nn.Module):
-    def __init__(self, c_fpn=128, cond_c=64):
+    def __init__(self, c_fpn=128, cond_c=64, patch=1, with_gate=False):
         super().__init__()
         self.c4  = nn.Conv2d(c_fpn, cond_c, 1)
         self.c8  = nn.Conv2d(c_fpn, cond_c, 1)
         self.c16 = nn.Conv2d(c_fpn, cond_c, 1)
+        self.patch = patch
+        if patch > 1:
+            self.flat4  = nn.Linear(cond_c * patch * patch, cond_c)
+            self.flat8  = nn.Linear(cond_c * patch * patch, cond_c)
+            self.flat16 = nn.Linear(cond_c * patch * patch, cond_c)
+        self.with_gate = with_gate
+        if with_gate:
+            self.gate = MSFusionGate(cond_c=cond_c)
         self.out_dim = cond_c * 3
 
     def forward(self, P4, P8, P16, p_norm):
-        f4  = sample_point_feats(self.c4(P4),  p_norm)  # [B,N,cond_c]
-        f8  = sample_point_feats(self.c8(P8),  p_norm)
-        f16 = sample_point_feats(self.c16(P16), p_norm)
-        return torch.cat([f4, f8, f16], dim=-1)         # [B,N,cond_c*3]
+        f4  = sample_point_feats(self.c4(P4),  p_norm, patch=self.patch)
+        f8  = sample_point_feats(self.c8(P8),  p_norm, patch=self.patch)
+        f16 = sample_point_feats(self.c16(P16), p_norm, patch=self.patch)
+        if self.patch > 1:
+            f4  = self.flat4(f4);  f8  = self.flat8(f8);  f16 = self.flat16(f16)
+        if self.with_gate:
+            return self.gate(f4, f8, f16)  # [B,N,3C]（結構更穩、泛化更好）
+        return torch.cat([f4, f8, f16], dim=-1)
 
 # ---------- timestep embedding ----------
 class TimestepEmbed(nn.Module):
