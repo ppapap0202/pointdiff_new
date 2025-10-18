@@ -1,6 +1,6 @@
 from .pointdiff import ModelBuilder
 import torch
-from .diffusion_utils import CosineAbarSchedule
+from .diffusion_utils import CosineAbarSchedule,setCriterion,hungarianMatcher
 
 # create the main model
 def build_model(cfg, training: bool):
@@ -34,3 +34,10 @@ def Diffusion_schedule(T,device,signal_scale):
    sched = CosineAbarSchedule(T=T, device=device)
    signal_scale = float(signal_scale)
    return sched,signal_scale
+
+def HungarianMatcher(cost_class=2.0, cost_coord=5.0):
+    return hungarianMatcher(cost_class=cost_class, cost_coord=cost_coord)
+
+def SetCriterion(matcher, lambda_exist=2.0,  lambda_x0=5.0, lambda_cnt=1.0):
+    return setCriterion(matcher, lambda_exist, lambda_x0, lambda_cnt)
+

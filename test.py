@@ -95,7 +95,7 @@ if __name__ == "__main__":
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ckpt_path = r"C:\pycharm\pointdiff_new\output3\last_epoch0069.pth"
+    ckpt_path = r"D:\output\FOCAL_AND_PATCH\best_epoch0114_val14.49.pth"
     model = build_model(args, training=False)
     model = load_checkpoint_into_model(model, ckpt_path, device)
     model.to(device).eval()
@@ -113,9 +113,9 @@ if __name__ == "__main__":
     print(f"[INFO] Dataset tiles: {len(dataset)}", flush=True)
     loader = DataLoader(
         dataset,
-        batch_size=64,
+        batch_size=args.batch_size,
         shuffle=False,
-        num_workers=0,
+        num_workers=4,
         pin_memory=True,
         collate_fn=collate_points_padded,
     )

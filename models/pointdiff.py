@@ -115,19 +115,43 @@ class EncoderFPN(nn.Module):
         return P4, P8, P16
 
 # ---------- ROI-free 點特徵取樣 ----------
-def sample_point_feats(P, p_norm):
+import torch
+import torch.nn.functional as F
+
+def sample_point_feats(P, p_norm, patch=1):
     """
-    P: [B,C,h,w],  p_norm: [B,N,2] in [-1,1]
-    這裡使用 align_corners=True，需與你用 (W-1)/2, (H-1)/2 的正規化完全對齊
+    P: [B,C,H,W], p_norm: [B,N,2] in [-1,1]
+    patch: 取樣鄰域大小，1 表示只取中心點；>1 會展開 k×k 鄰域並拼接
     """
-    B, N, _ = p_norm.shape
+    B, C, H, W = P.shape
+    B2, N, _ = p_norm.shape
+    assert B == B2, "Batch size mismatch"
+
+    # 取樣中心點
     grid = p_norm.view(B, N, 1, 2)
     feat = F.grid_sample(
         P, grid, mode='bilinear',
-        align_corners=True,          # ← 關鍵
-        padding_mode='border'        # ← 邊界更穩定
+        align_corners=True, padding_mode='border'
     )  # [B,C,N,1]
-    return feat.squeeze(-1).transpose(1, 2)  # [B,N,C]
+    feat = feat.squeeze(-1).transpose(1, 2)  # [B,N,C]
+
+    # 若 patch>1，取周圍 k×k 鄰域
+    if patch > 1:
+        r = patch // 2
+        dx = 2.0 / max(W - 1, 1)
+        dy = 2.0 / max(H - 1, 1)
+        feats = [feat]
+        for j in range(-r, r + 1):
+            for i in range(-r, r + 1):
+                if i == 0 and j == 0:
+                    continue
+                grid_off = (p_norm + torch.tensor([i*dx, j*dy], device=p_norm.device)).view(B, N, 1, 2).clamp(-1, 1)
+                f = F.grid_sample(P, grid_off, mode='bilinear', align_corners=True, padding_mode='border')
+                feats.append(f.squeeze(-1).transpose(1, 2))
+        feat = torch.cat(feats, dim=-1)  # [B,N,C*patch*patch]
+
+    return feat
+
 
 class MSFusionGate(nn.Module):
     def __init__(self, cond_c=64, hidden=128):
@@ -263,7 +287,7 @@ class ModelBuilder(nn.Module):
         super().__init__()
         self.backbone = EncoderFPN(in_ch=in_ch, out_c=fpn_c)
         self.temb = TimestepEmbed(dim=t_dim)
-        self.cond = PointConditioner(c_fpn=fpn_c, cond_c=cond_c)
+        self.cond = PointConditioner(c_fpn=fpn_c, cond_c=cond_c, patch=1, with_gate=True)
         self.head_eps = DenoiserHeadRes(in_dim=cond_c*3 + t_dim + 2, hidden=384, depth=3, dropout=0.2)
         self.conf_head = ConfidenceHead(in_dim=cond_c*3, hidden=256)
 

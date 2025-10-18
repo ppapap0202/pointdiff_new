@@ -5,7 +5,7 @@ import argparse
 import yaml
 from dataset import build_dataset, dataset_pos_neg_stats
 from torch.utils.data import DataLoader
-from models import build_model, build_optimizers, Diffusion_schedule
+from models import build_model, build_optimizers, Diffusion_schedule,HungarianMatcher,SetCriterion
 from models.train_loop import train_one_epoch,validate_one_epoch
 import torch
 import time
@@ -76,7 +76,7 @@ def main():
         train_data,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=8,  # 先試 CPU 核心數的一半
+        num_workers=args.num_workers,  # 先試 CPU 核心數的一半
         pin_memory=True,  # 加速 CPU→GPU 拷貝
         persistent_workers=True,  # 避免每個 epoch 重啟 worker
         prefetch_factor=4,  # 每個 worker 預取 4 個 batch
@@ -99,26 +99,30 @@ def main():
     #print(model)
     optim = build_optimizers(model, lr=args.lr, lr_backbone=args.lr_backbone, weight_decay=1e-4)
     scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
-
-    T = args.diffusion_T
+    matcher = HungarianMatcher(cost_class=2.0, cost_coord=5.0)  # 權重需要調參
+    criterion = SetCriterion(matcher=matcher,
+                             lambda_exist=2.0,
+                             lambda_x0=5.0,
+                             lambda_cnt=1.0)
+    T=args.diffusion_T
     sched, signal_scale = Diffusion_schedule(T, device=device, signal_scale=args.signal_scale)
 
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"C:\pycharm\pointdiff_new\output3\last_epoch0111.pth", map_location="cuda:0")
+    # checkpoint = torch.load(r"C:\pycharm\pointdiff_new\output3\last_epoch0111.pth", map_location="cuda:0")
+    # #
+    # # # 載入模型與優化器參數
+    # model.load_state_dict(checkpoint['model_state'])
+    # optim.load_state_dict(checkpoint['optim_state'])
+    # scaler.load_state_dict(checkpoint['scaler_state'])
     #
-    # # 載入模型與優化器參數
-    model.load_state_dict(checkpoint['model_state'])
-    optim.load_state_dict(checkpoint['optim_state'])
-    scaler.load_state_dict(checkpoint['scaler_state'])
-
     print('start training')
 
     for epoch in range(1, args.epochs+1):
         time_start = time.time()
-        tr_loss = train_one_epoch(model, train_loader, device, optim, scaler, sched, T)
-        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, signal_scale, T)
+        tr_loss = train_one_epoch(model, train_loader, device, optim, criterion, scaler, sched, args.diffusion_T, args.K,args.loss_mode,args.lambda_exist,args.lambda_eps,args.lambda_x0,args.lambda_cnt,args.log_every,args.max_norm,)
+        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched,  args.diffusion_T)
 
         logging.info(f"[Epoch {epoch:04d}] train={tr_loss:.4f}  val={val_loss:.4f} val_MAE={val_MAE:.4f}")
         last_path = os.path.join(args.out_dir, f"last_epoch{epoch:04d}.pth")

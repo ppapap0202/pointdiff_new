@@ -1,5 +1,6 @@
 seed: 7113064149
 batch_size: 32
+num_workers: 4
 epochs: 1500
 dataset_file: SHHA
 data_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data'
@@ -10,7 +11,7 @@ crop_size:  [256, 256]
 crop_type: 'center'
 gray: False
 device: cuda
-out_dir: 'C:\pycharm\pointdiff_new\output_add_align_corners=True'
+out_dir: 'D:\output\FOCAL_AND_PATCH'
 #---------------------------MODEL-----------------------------------------------------
 in_ch: 3  # 1=灰階, 3=RGB
 fpn_c: 128
@@ -20,4 +21,12 @@ with_score: True
 lr: 1e-4
 lr_backbone: 1e-5
 diffusion_T: 1000
+K: 10
 signal_scale: 2.0
+loss_mode: str = "x0_count",  # "eps" 或 "x0_count"
+lambda_exist: 50.0
+lambda_eps: 1.0  # 只在 eps 模式用
+lambda_x0: 50.0  # 只在 x0_count 模式用
+lambda_cnt:  1.0  # 只在 x0_count 模式用
+log_every:  1
+max_norm:  1.0
