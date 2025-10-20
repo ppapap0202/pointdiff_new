@@ -140,7 +140,7 @@ class setCriterion(nn.Module):
         self.lambda_cnt = lambda_cnt
         self.gamma = gamma
         self.alpha = alpha
-    def focal_loss_with_logits(self,logits, targets, gamma=2.0, alpha=0.75, reduction="mean"):
+    def focal_loss_with_logits(self, logits, targets, reduction="mean"):
         """
         logits:  [B, N]  未經 Sigmoid
         targets: [B, N]  {0,1}
@@ -149,6 +149,7 @@ class setCriterion(nn.Module):
         """
         # 交叉熵 (logits 版，數值穩定)
         # CE = max(x,0) - x*y + log(1 + exp(-|x|))
+
         x = logits
         y = targets
         ce = torch.clamp(x, min=0) - x * y + torch.log1p(torch.exp(-x.abs()))
@@ -158,10 +159,10 @@ class setCriterion(nn.Module):
         pt = torch.where(y == 1, p, 1 - p).clamp_(1e-6, 1 - 1e-6)
 
         # alpha_t
-        alpha_t = torch.where(y == 1, x.new_tensor(alpha), x.new_tensor(1 - alpha))
+        alpha_t = torch.where(y == 1, x.new_tensor(self.alpha), x.new_tensor(1 - self.alpha))
 
         # Focal
-        loss = alpha_t * (1 - pt).pow(gamma) * ce
+        loss = alpha_t * (1 - pt).pow(self.gamma) * ce
 
         if reduction == "mean":
             return loss.mean()
@@ -235,9 +236,14 @@ class setCriterion(nn.Module):
         # 假設 gt_mask 和 p0 的順序是一致的，我們可以這樣還原
         original_tgt_idx = []
         for i, (_, tgt) in enumerate(indices):
+            if len(tgt) > 0:
+                true_indices = mask[i].nonzero().squeeze(1)
+                # ✅ 增加保護，防止 true_indices 為空但 tgt 不為空
+                if len(true_indices) > 0:
+                    original_tgt_idx.append(true_indices[tgt])
             # 找到第 i 個 batch 的有效 gt 點的原始索引
-            true_indices = mask[i].nonzero().squeeze(1)
-            original_tgt_idx.append(true_indices[tgt])
+        if not original_tgt_idx:
+            return batch_idx, torch.tensor([], dtype=torch.long, device=batch_idx.device)
 
         final_tgt_idx = torch.cat(original_tgt_idx)
         return batch_idx, final_tgt_idx

@@ -57,7 +57,7 @@ def unroll_once_with_feats(feats, images, points_pad, mask, t_seq, abar, clamp_e
         "exist_prob": exist_prob.detach()
     }
 @torch.no_grad()
-def validate_one_epoch(model, data_loader, device, sched, T: int = 1000):
+def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 1000):
     import logging
     model.eval()
 
@@ -108,10 +108,9 @@ def validate_one_epoch(model, data_loader, device, sched, T: int = 1000):
         if exist_logit is not None and exist_logit.dim() == 3 and exist_logit.size(-1) == 1:
             exist_logit = exist_logit.squeeze(-1)
 
-        loss, L_exist, L_x0, L_cnt, predC_mean, gtC_mean = loss_exist_x0_count(
+        loss, L_exist, L_x0, L_cnt = criterion(
             p_t=p_t, p0=p0, mask=mask, abar_t=abar_t,
             eps_pred=eps_pred, exist_logit=exist_logit,
-            lambda_exist=50.0, lambda_x0=50.0, lambda_cnt=1.0
         )
 
         # ---- 累計 supervised 統計 ----
@@ -120,8 +119,8 @@ def validate_one_epoch(model, data_loader, device, sched, T: int = 1000):
         run_Lcnt   += float(L_cnt)
         run_Lexist += float(L_exist)
         run_Laux   += float(L_x0)
-        run_predC  += float(predC_mean)
-        run_gtC    += float(gtC_mean)
+        # run_predC  += float(predC_mean)
+        # run_gtC    += float(gtC_mean)
 
         # ---- 短步 DDIM 模擬（10步）----
         steps = 10
@@ -197,10 +196,10 @@ def validate_one_epoch(model, data_loader, device, sched, T: int = 1000):
         avg_Lexist = run_Lexist / n_steps
         avg_Lcnt   = run_Lcnt   / n_steps
         avg_Lx0    = run_Laux   / n_steps
-        avg_predC  = run_predC  / n_steps
-        avg_gtC    = run_gtC    / n_steps
+        # avg_predC  = run_predC  / n_steps
+        # avg_gtC    = run_gtC    / n_steps
     else:
-        avg_loss = avg_Lexist = avg_Lx0 = avg_predC = avg_gtC = avg_Lcnt = 0.0
+        avg_loss = avg_Lexist = avg_Lx0 = avg_Lcnt = 0.0
 
     if total_imgs > 0:
         avg_mae  = total_mae / total_imgs
@@ -210,7 +209,7 @@ def validate_one_epoch(model, data_loader, device, sched, T: int = 1000):
 
     logging.info(
         f"[val] loss={avg_loss:.4f} Lex={avg_Lexist:.4f} Lx0={avg_Lx0:.4f} Lcnt={avg_Lcnt:.4f} "
-        f"predCnt={avg_predC:.2f} gtCnt={avg_gtC:.2f} | MAE={avg_mae:.2f} RMSE={avg_rmse:.2f}"
+        f" | MAE={avg_mae:.2f} RMSE={avg_rmse:.2f}"
     )
 
     if per_image_records:
@@ -241,7 +240,7 @@ def train_one_epoch(
         lambda_eps: float = 1.0,  # 只在 eps 模式用（若你的 loss 會用到）
         lambda_x0: float = 1.0,  # 只在 x0_count 模式用
         lambda_cnt: float = 1.0,  # 只在 x0_count 模式用
-        log_every: int = 50,
+        log_every: int = 10,
         max_norm: float = 1.0,):
     """
     多步（短鏈）訓練：隨機取 t_start，從 p_{t_start} 開始 unroll K 步，每步都計 loss，最後平均。
@@ -295,6 +294,7 @@ def train_one_epoch(
     K_eff_global = max(1, min(K_int, T_int - 1))
 
     for step, (images, points_pad, mask, metas) in enumerate(data_loader, start=1):
+        #print(f"--- Batch {step} loaded. Starting computation. ---")  # ✅ 2. 檢查點2
         images     = images.to(device, non_blocking=True)   # [B,C,H,W]
         points_pad = points_pad.to(device, non_blocking=True)  # [B,N,2] (像素座標)
         mask       = mask.to(device, non_blocking=True)        # [B,N]   True=前景
@@ -341,7 +341,6 @@ def train_one_epoch(
                 )
                 # N 對齊（保險）
                 eps_pred, exist_logit = align_pred_N(eps_pred, exist_logit, N_gt)
-
                 # 損失（請確保 loss_exist_x0_count 內部對空 mask 做了防呆）
                 loss_k, L_exist, L_x0, L_cnt = criterion(
                     p_t=p_t, p0=p0, mask=mask, abar_t=abar_cur,
@@ -371,7 +370,7 @@ def train_one_epoch(
                 p_t_next = sqrt_ab_p * x0_hat + sqrt_om_p * eps_pred
                 # 穩定性：限制在合法範圍
                 p_t = p_t_next.clamp(min=-1.0 + 1e-3, max=1.0 - 1e-3).detach()  # 只讓梯度回到本步 eps_pred
-
+            #print(f"--- Batch {step} computation finished. ---")
             # 聚合 K 步（平均較穩）
             loss = torch.stack(loss_steps).mean()
             Lex  = torch.stack(Lex_steps).mean()
@@ -404,10 +403,9 @@ def train_one_epoch(
             msg = (f"[train-unroll] it={step:05d} loss={bucket_loss / bucket_k:.4f} "
                    f"Lex={bucket_Lex / bucket_k:.4f} "
                    f"{'Leps' if loss_mode == 'eps' else 'Lx0'}={bucket_Laux / bucket_k:.4f} ")
-            # if loss_mode != "eps":
-            #     msg += f"Lcnt={bucket_Lcnt / bucket_k:.4f} "
-            # msg += f"predCnt={bucket_predC / bucket_k:.2f} gtCnt={bucket_gtC / bucket_k:.2f}"
-            # print(msg)
+            if loss_mode != "eps":
+                msg += f"Lcnt={bucket_Lcnt / bucket_k:.4f} "
+            print(msg)
 
             # reset bucket
             bucket_loss = bucket_Lex = bucket_Laux = bucket_Lcnt  = 0.0

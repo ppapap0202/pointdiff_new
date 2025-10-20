@@ -121,8 +121,8 @@ def main():
 
     for epoch in range(1, args.epochs+1):
         time_start = time.time()
-        tr_loss = train_one_epoch(model, train_loader, device, optim, criterion, scaler, sched, args.diffusion_T, args.K,args.loss_mode,args.lambda_exist,args.lambda_eps,args.lambda_x0,args.lambda_cnt,args.log_every,args.max_norm,)
-        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched,  args.diffusion_T)
+        tr_loss = train_one_epoch(model, train_loader, device, optim, criterion, scaler, sched, args.diffusion_T, args.K,args.loss_mode,args.log_every,args.max_norm,)
+        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, criterion, args.diffusion_T)
 
         logging.info(f"[Epoch {epoch:04d}] train={tr_loss:.4f}  val={val_loss:.4f} val_MAE={val_MAE:.4f}")
         last_path = os.path.join(args.out_dir, f"last_epoch{epoch:04d}.pth")

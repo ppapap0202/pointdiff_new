@@ -21,12 +21,12 @@ with_score: True
 lr: 1e-4
 lr_backbone: 1e-5
 diffusion_T: 1000
-K: 10
+K: 5
 signal_scale: 2.0
 loss_mode: str = "x0_count",  # "eps" 或 "x0_count"
 lambda_exist: 50.0
 lambda_eps: 1.0  # 只在 eps 模式用
 lambda_x0: 50.0  # 只在 x0_count 模式用
 lambda_cnt:  1.0  # 只在 x0_count 模式用
-log_every:  1
+log_every:  50
 max_norm:  1.0
