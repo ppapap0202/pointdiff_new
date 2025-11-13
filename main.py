@@ -76,7 +76,7 @@ def main():
         train_data,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=args.num_workers,  # 先試 CPU 核心數的一半
+        num_workers=args.num_workers,
         pin_memory=True,  # 加速 CPU→GPU 拷貝
         persistent_workers=True,  # 避免每個 epoch 重啟 worker
         prefetch_factor=4,  # 每個 worker 預取 4 個 batch
@@ -99,10 +99,10 @@ def main():
     #print(model)
     optim = build_optimizers(model, lr=args.lr, lr_backbone=args.lr_backbone, weight_decay=1e-4)
     scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
-    matcher = HungarianMatcher(cost_class=2.0, cost_coord=5.0)  # 權重需要調參
+    matcher = HungarianMatcher(cost_class=2.0, cost_coord=5)  # 權重需要調參
     criterion = SetCriterion(matcher=matcher,
-                             lambda_exist=2.0,
-                             lambda_x0=5.0,
+                             lambda_exist=800.0,
+                             lambda_x0=1.0,
                              lambda_cnt=1.0)
     T=args.diffusion_T
     sched, signal_scale = Diffusion_schedule(T, device=device, signal_scale=args.signal_scale)
@@ -110,13 +110,13 @@ def main():
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    # checkpoint = torch.load(r"C:\pycharm\pointdiff_new\output3\last_epoch0111.pth", map_location="cuda:0")
-    # #
-    # # # 載入模型與優化器參數
-    # model.load_state_dict(checkpoint['model_state'])
-    # optim.load_state_dict(checkpoint['optim_state'])
-    # scaler.load_state_dict(checkpoint['scaler_state'])
+    checkpoint = torch.load(r"D:\output\FOCAL_AND_PATCH\last_epoch0717.pth", map_location="cuda:0")
     #
+    # # 載入模型與優化器參數
+    model.load_state_dict(checkpoint['model_state'])
+    optim.load_state_dict(checkpoint['optim_state'])
+    scaler.load_state_dict(checkpoint['scaler_state'])
+
     print('start training')
 
     for epoch in range(1, args.epochs+1):

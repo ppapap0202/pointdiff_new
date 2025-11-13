@@ -263,8 +263,8 @@ class DenoiserHeadRes(nn.Module):
         for blk in self.blocks: h = blk(h)
         h = self.norm(h)
         eps = self.eps_head(h)
-        exist_logit = self.exist_head(h).squeeze(-1)
-        return eps,exist_logit
+        #exist_logit = self.exist_head(h).squeeze(-1)
+        return eps
 
 class ConfidenceHead(nn.Module):
     def __init__(self, in_dim, hidden=256):
@@ -287,7 +287,7 @@ class ModelBuilder(nn.Module):
         super().__init__()
         self.backbone = EncoderFPN(in_ch=in_ch, out_c=fpn_c)
         self.temb = TimestepEmbed(dim=t_dim)
-        self.cond = PointConditioner(c_fpn=fpn_c, cond_c=cond_c, patch=1, with_gate=True)
+        self.cond = PointConditioner(c_fpn=fpn_c, cond_c=cond_c, patch=3, with_gate=True)
         self.head_eps = DenoiserHeadRes(in_dim=cond_c*3 + t_dim + 2, hidden=384, depth=3, dropout=0.2)
         self.conf_head = ConfidenceHead(in_dim=cond_c*3, hidden=256)
 
@@ -304,7 +304,7 @@ class ModelBuilder(nn.Module):
             te = te.expand(pf.size(0), pf.size(1), te.size(-1))
         x = torch.cat([pf, te, p_t], dim=-1)        # [B,N,cond_c*3 + t_dim + 2]
         #print(x.shape)
-        eps_pred, exist_logit = self.head_eps(x)  # [B,N,2]
+        eps_pred = self.head_eps(x)  # [B,N,2]
         # 若傳入 abar_t，還原 x0_hat；否則預設 t=0 的簡化（不傳也行）
         if abar_t is None:
             # 只有當 t=0 才合理；一般訓練會給 abar_t
@@ -323,8 +323,8 @@ class ModelBuilder(nn.Module):
             x0_hat = x0_hat.clamp(-1.0+1e-3, 1.0-1e-3)
 
         # 在 x0_hat 位置再次取樣特徵，回歸存在分數
-        # pf_hat = self.cond(P4, P8, P16, x0_hat.detach())  # detach 可選：讓 conf 先穩
-        # exist_logit = self.conf_head(pf_hat)              # [B,N]
+        pf_hat = self.cond(P4, P8, P16, x0_hat.detach())  # detach 可選：讓 conf 先穩
+        exist_logit = self.conf_head(pf_hat)              # [B,N]
         return eps_pred, exist_logit
 
 

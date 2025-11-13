@@ -4,11 +4,6 @@ from .diffusion_utils import CosineAbarSchedule,setCriterion,hungarianMatcher
 
 # create the main model
 def build_model(cfg, training: bool):
-   """
-   會從 cfg 讀取必要的設定，建立 ModelBuilder 實例。
-   你可以依專案風格擴充。
-   """
-   # 讀設定（給預設，避免缺欄位）
    model = ModelBuilder(in_ch=cfg.in_ch, fpn_c=cfg.fpn_c, cond_c=cfg.cond_c, t_dim=cfg.t_dim, with_score=cfg.with_score)
    model.train(training)
    return model

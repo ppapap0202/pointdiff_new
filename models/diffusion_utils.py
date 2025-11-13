@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from math import pi
 from scipy.optimize import linear_sum_assignment
+import numpy as np
 # --- Cosine schedule (Nichol & Dhariwal), 生成 ᾱ[t] 由 1 -> 近 0，t 越大越「更嘈雜」 ---
 class CosineAbarSchedule:
     def __init__(self, T:int, s:float=0.008, device="cuda"):
@@ -17,71 +18,92 @@ class CosineAbarSchedule:
         return self.abar[t_idx]
 
 
-class hungarianMatcher(nn.Module):
-    """
-    在預測點和真值點之間執行匈牙利匹配。
-    """
 
-    def __init__(self, cost_class: float = 1.0, cost_coord: float = 1.0):
+
+def m11_to_pixels(p, H, W):
+    x = (p[...,0] + 1) * 0.5 * (W - 1)
+    y = (p[...,1] + 1) * 0.5 * (H - 1)
+    return torch.stack([x, y], dim=-1)
+
+class hungarianMatcher(nn.Module):
+    def __init__(self, cost_class: float = 1.0, cost_coord: float = 1.0,
+                 alpha: float = 0.25, gamma: float = 2.0, large_cost: float = 1e6):
         super().__init__()
-        self.cost_class = cost_class
-        self.cost_coord = cost_coord
+        self.cost_class = float(cost_class)
+        self.cost_coord = float(cost_coord)
+        self.alpha = float(alpha)
+        self.gamma = float(gamma)
+        self.large = float(large_cost)
 
     @torch.no_grad()
     def forward(self, pred_logits, pred_points, gt_points, gt_mask):
         """
-        pred_logits: [B, N] - 模型的存在度預測 (未經 sigmoid)
-        pred_points: [B, N, 2] - 模型的 x0_hat 預測
-        gt_points:   [B, N, 2] - 真值點
-        gt_mask:     [B, N] - 指示哪些是真值點
+        pred_logits: [B, N]   (未經 sigmoid)
+        pred_points: [B, N, 2]
+        gt_points:   [B, N, 2]  # 與 mask 對齊，僅 mask=True 的位置有效
+        gt_mask:     [B, N]     # True 表示該槽位有 GT
+        return: list[ (pred_idx, gt_idx) ]，每張圖一個 tuple；索引皆相對於 N（全域槽位）
         """
         B, N, _ = pred_points.shape
-
+        device = pred_logits.device
         indices = []
+
         for b in range(B):
-            # 取出單張圖片的有效預測和真值
-            # 預測的 logits 和 points 都是 N 個
-            out_prob = pred_logits[b].sigmoid()  # [N]
-            out_pts = pred_points[b]  # [N, 2]
+            # 取第 b 張圖的資料
+            x = pred_logits[b]            # [N]
+            out_pts = pred_points[b]      # [N,2]
+            mask_b = gt_mask[b]           # [N]
+            tgt_idx_full = mask_b.nonzero(as_tuple=False).squeeze(1)  # [Mb]
+            Mb = tgt_idx_full.numel()
 
-            # 真值點只取有效的
-            tgt_mask_b = gt_mask[b]
-            tgt_pts = gt_points[b][tgt_mask_b]  # [num_gt, 2]
-            num_gt = tgt_pts.shape[0]
-
-            if num_gt == 0:
-                # 如果這張圖沒有 GT 點，返回空的匹配結果
-                indices.append((torch.tensor([], dtype=torch.long), torch.tensor([], dtype=torch.long)))
+            if Mb == 0 or N == 0:
+                indices.append((
+                    torch.empty(0, dtype=torch.long, device=device),
+                    torch.empty(0, dtype=torch.long, device=device)
+                ))
                 continue
 
-            # --- 計算成本矩陣 ---
-            # 成本矩陣 C 的形狀為 [N, num_gt]
+            tgt_pts = gt_points[b, tgt_idx_full]  # [Mb,2]
 
-            # 1. 分類成本 (Class Cost): 讓模型傾向於匹配高置信度的預測
-            # 使用 focal loss 的形式計算，讓 hard examples 權重更高
-            alpha = 0.25
-            gamma = 2.0
-            neg_cost_class = (1 - alpha) * (out_prob ** gamma) * (-(1 - out_prob + 1e-8).log())
-            pos_cost_class = alpha * ((1 - out_prob) ** gamma) * (-(out_prob + 1e-8).log())
-            cost_class = pos_cost_class[:, None] - neg_cost_class[:, None]  # [N, 1] -> [N, num_gt]
+            # ---------- 分類成本（只用正類 focal，logits 版，數值穩定） ----------
+            # BCE_pos(x) = softplus(-x),  p = sigmoid(x)
+            p = x.sigmoid()  # [N]
+            pos_cost = self.alpha * ((1.0 - p).pow(self.gamma)) * F.softplus(-x)  # [N]
+            cost_class = pos_cost[:, None]  # [N,1]，對每個 GT 一樣 -> broadcast 成 [N,Mb]
 
-            # 2. 座標成本 (Coordinate Cost): L1 距離
-            cost_coord = torch.cdist(out_pts, tgt_pts, p=1)  # [N, num_gt]
+            # ---------- 幾何成本（L1 距離；可改成 L2 或 Huber） ----------
+            # L1
+            cost_coord = torch.cdist(out_pts, tgt_pts, p=1)  # [N,Mb]
+            # 若想用 L2：torch.cdist(..., p=2)
+            # 或 Huber：
+            # beta = 0.2
+            # dist = torch.cdist(out_pts, tgt_pts, p=2)
+            # cost_coord = torch.where(dist < beta, 0.5*(dist**2)/beta, dist - 0.5*beta)
 
-            # 3. 總成本
-            C = self.cost_class * cost_class + self.cost_coord * cost_coord
+            # ---------- 總成本 ----------
+            C = self.cost_class * cost_class + self.cost_coord * cost_coord  # [N,Mb]
 
-            # --- 執行匈牙利算法 ---
-            C = C.cpu()
-            pred_idx, gt_idx = linear_sum_assignment(C)
+            # ---------- 匹配（兜底處理，避免 NaN/Inf） ----------
+            C_np = C.detach().float().cpu().numpy()
+            C_np = np.nan_to_num(C_np, nan=self.large, posinf=self.large, neginf=self.large)
 
-            # 轉換為 tensor
-            indices.append((
-                torch.as_tensor(pred_idx, dtype=torch.long),
-                torch.as_tensor(gt_idx, dtype=torch.long)
-            ))
+            if C_np.size == 0:
+                indices.append((
+                    torch.empty(0, dtype=torch.long, device=device),
+                    torch.empty(0, dtype=torch.long, device=device)
+                ))
+                continue
+
+            row, col = linear_sum_assignment(C_np)  # row: N side index, col: Mb side index
+
+            # 轉回全域 N 級索引（pred 直接用 row，gt 需要映射回原始槽位索引）
+            pred_idx = torch.as_tensor(row, dtype=torch.long, device=device)
+            gt_idx   = tgt_idx_full[torch.as_tensor(col, dtype=torch.long, device=device)]
+
+            indices.append((pred_idx, gt_idx))
 
         return indices
+
 # --- 像素座標 -> [-1,1] 正規化（align_corners=False 對應公式: x~ = 2x/W - 1） ---
 def pixels_to_m11(points_xy: torch.Tensor, H: int, W: int, scale: float=1.0):
     # points_xy: [B,N,2], 回傳 [B,N,2] in [-1,1]*scale
@@ -132,7 +154,7 @@ def eps_loss(eps_pred: torch.Tensor, eps_true: torch.Tensor, mask: torch.Tensor,
 
 
 class setCriterion(nn.Module):
-    def __init__(self, matcher, lambda_exist=1.0, lambda_x0=1.0, lambda_cnt=0.1, gamma=2.0, alpha=0.75):
+    def __init__(self, matcher, lambda_exist=1.0, lambda_x0=1.0, lambda_cnt=0.1, gamma=2.0, alpha=0.9):
         super().__init__()
         self.matcher = matcher
         self.lambda_exist = lambda_exist
@@ -141,15 +163,6 @@ class setCriterion(nn.Module):
         self.gamma = gamma
         self.alpha = alpha
     def focal_loss_with_logits(self, logits, targets, reduction="mean"):
-        """
-        logits:  [B, N]  未經 Sigmoid
-        targets: [B, N]  {0,1}
-        gamma:   典型 2.0
-        alpha:   正類權重，0.5~0.9 視不平衡程度；你可以先用 0.75
-        """
-        # 交叉熵 (logits 版，數值穩定)
-        # CE = max(x,0) - x*y + log(1 + exp(-|x|))
-
         x = logits
         y = targets
         ce = torch.clamp(x, min=0) - x * y + torch.log1p(torch.exp(-x.abs()))
@@ -198,8 +211,10 @@ class setCriterion(nn.Module):
         matched_pred_pts = x0_hat[idx]
         matched_gt_pts = p0[tgt_idx]
 
+        matched_pred_pts_pix = m11_to_pixels(matched_pred_pts, 256, 256)
+        matched_gt_pts_pix = m11_to_pixels(matched_gt_pts, 256, 256)
         if matched_pred_pts.shape[0] > 0:
-            L_x0 = F.smooth_l1_loss(matched_pred_pts, matched_gt_pts)
+            L_x0 = F.smooth_l1_loss(matched_pred_pts_pix, matched_gt_pts_pix)
         else:
             L_x0 = torch.tensor(0.0, device=x0_hat.device)
 

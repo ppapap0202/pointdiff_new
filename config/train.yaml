@@ -11,7 +11,7 @@ crop_size:  [256, 256]
 crop_type: 'center'
 gray: False
 device: cuda
-out_dir: 'D:\output\FOCAL_AND_PATCH'
+out_dir: 'D:\output\FOCAL_AND_PATCH_alpha_0.25'
 #---------------------------MODEL-----------------------------------------------------
 in_ch: 3  # 1=灰階, 3=RGB
 fpn_c: 128

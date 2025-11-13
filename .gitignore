@@ -11,8 +11,10 @@ __pycache__/
 *.h5
 *.mat
 *.zip
+*.log
 
 # 資料集
 data/
 .log
+vis_results/
 

@@ -19,15 +19,28 @@ def make_ddim_steps(T=1000, steps=20, device='cpu'):
 
 @torch.no_grad()
 def ddim_reverse_step(p_t, eps_pred, abar_t, abar_prev):
-    eps = 1e-8
-    sqrt_abar_t    = (abar_t + eps).sqrt()
-    sqrt_one_mt    = (1.0 - abar_t).clamp_min(0).sqrt()
-    x0_pred        = (p_t - sqrt_one_mt * eps_pred) / sqrt_abar_t
+    # 期待形狀：
+    # p_t, eps_pred: [B, N, 2]
+    # abar_t, abar_prev: [B, 1, 1] 或 [1, 1, 1]
+    # 值域：0 <= abar_* <= 1，且 abar_prev >= abar_t（越靠近資料端）
+    tiny = torch.finfo(p_t.dtype).eps  # 比 1e-8 更隨 dtype
 
-    sqrt_abar_prev = abar_prev.clamp(0, 1).sqrt()
+    abar_t      = abar_t.clamp(0, 1)
+    abar_prev   = abar_prev.clamp(0, 1)
+
+    sqrt_abar_t = (abar_t + tiny).sqrt()
+    sqrt_one_mt = (1.0 - abar_t).clamp_min(0).sqrt()
+
+    # \hat{x}_0
+    x0_pred = (p_t - sqrt_one_mt * eps_pred) / sqrt_abar_t
+
+    sqrt_abar_prev = abar_prev.sqrt()
     sqrt_one_mp    = (1.0 - abar_prev).clamp_min(0).sqrt()
-    p_prev         = sqrt_abar_prev * x0_pred + sqrt_one_mp * eps_pred
+
+    # η=0
+    p_prev = sqrt_abar_prev * x0_pred + sqrt_one_mp * eps_pred
     return p_prev
+
 
 # ---------- collate ----------
 def collate_points_padded(batch, max_n=900):
@@ -90,12 +103,25 @@ def get_image_key_from_meta(meta: dict):
             return meta[k]
     # 最保險：整個 meta 序列化（不建議，除非真的沒有合適欄位）
     return str(meta)
+
+def radius_nms_xyxy(pts_xy, scores, r):
+    # pts_xy: [N,2] 像素座標；scores: [N]
+    keep = []
+    order = scores.argsort(descending=True)
+    taken = torch.zeros(len(pts_xy), dtype=torch.bool, device=pts_xy.device)
+    for i in order:
+        if taken[i]:
+            continue
+        keep.append(i.item())
+        d2 = ((pts_xy - pts_xy[i])**2).sum(-1)
+        taken |= (d2 <= r*r)
+    return torch.tensor(keep, device=pts_xy.device)
 # ---------- main ----------
 if __name__ == "__main__":
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ckpt_path = r"D:\output\FOCAL_AND_PATCH\best_epoch0102_val4.19.pth"
+    ckpt_path = r"D:\output\FOCAL_AND_PATCH\last_epoch0824.pth"
     model = build_model(args, training=False)
     model = load_checkpoint_into_model(model, ckpt_path, device)
     model.to(device).eval()
@@ -125,15 +151,14 @@ if __name__ == "__main__":
     sched = CosineAbarSchedule(T=T)
     abar = sched.abar.to(device=device)
     t_seq = make_ddim_steps(T=T, steps=steps, device=device)
-    clamp_eps = 1e-3
+    eps = 1e-3
 
     # 用來「以原圖為單位」聚合預測與 GT
     per_image_pred_sum = defaultdict(float)
     per_image_gt_sum   = defaultdict(float)
     per_image_vis_sample = {}
-    save_dir = "vis_results"
+    save_dir = "vis_results/vis_results_NMS_0824_new"
     os.makedirs(save_dir, exist_ok=True)
-
     for images, points_pad, mask, metas in loader:
         images = images.to(device)
         mask = mask.to(device)
@@ -148,17 +173,23 @@ if __name__ == "__main__":
         feats_zero = [f * 0 for f in feats] if isinstance(feats, (list, tuple)) else feats * 0
         # 初始 p_t
         N = points_pad.shape[1]
-        p_t = torch.empty((B, N, 2), device=device).uniform_(-1.0 + clamp_eps, 1.0 - clamp_eps)
-
+        t0 = t_seq[0].item()  # 最髒的時間步（序列第一個）
+        abar_t0 = abar[t0].view(1, 1, 1)  # [1,1,1] 便於 broadcast
+        p_t = torch.randn(B, N, 2, device=device)  # ~ N(0, I)
+        p_t = p_t * torch.sqrt(1.0 - abar_t0)  # ~ N(0, 1 - abar_t0)
+        p_t = p_t.clamp(-1.0 + eps, 1.0 - eps)  # 建議仍做邊界保護
         # DDIM 多步反推
         for i, t_int in enumerate(t_seq.tolist()):
             t_tensor = torch.full((B, 1), t_int, device=device, dtype=torch.long)
-            eps_pred, exist_logit = model.denoise(feats, p_t, t_tensor)
+            abar_t = abar[t_int].view(1, 1, 1)  # 讓之後可 broadcast 到 [B,N,1]
 
-            abar_t = abar[t_int]
-            abar_prev = abar[t_seq[i + 1]] if i + 1 < len(t_seq) else torch.tensor(1.0, device=device)
+            eps_pred, exist_logit = model.denoise(feats, p_t, t_tensor, abar_t=abar_t)
+            if i + 1 < len(t_seq):
+                abar_prev = abar[t_seq[i + 1]].view(1, 1, 1)
+            else:
+                 abar_prev = torch.tensor(1.0, device=device).view(1, 1, 1)
             p_t = ddim_reverse_step(p_t, eps_pred, abar_t, abar_prev)
-            p_t = p_t.clamp(min=-1.0 + clamp_eps, max=1.0 - clamp_eps)
+            p_t = p_t.clamp(-1.0 + eps, 1.0 - eps)  # [MOD] 與上方同名 eps
 
         # 最後一次 exist_logit → 每點存在機率
         exist_prob_batch = torch.sigmoid(exist_logit)  # [B, N]
@@ -188,12 +219,18 @@ if __name__ == "__main__":
 
                 # 預測點：[-1,1] -> 像素
                 pred_points = p_t_np_all[b]  # (N,2)
-                xs = ((pred_points[:, 0] + 1) * 0.5 * W).astype(int)
-                ys = ((pred_points[:, 1] + 1) * 0.5 * H).astype(int)
+                # xs = ((pred_points[:, 0] + 1) * 0.5 * (W - 1)).astype(int)
+                # ys = ((pred_points[:, 1] + 1) * 0.5 * (H - 1)).astype(int)
+                xs_f = (pred_points[:, 0] + 1) * 0.5 * (W - 1)  # [float]
+                ys_f = (pred_points[:, 1] + 1) * 0.5 * (H - 1)  # [float]
+                m = int(0.06 * min(H, W))
 
                 # 這個 patch 的存在機率
                 exist_prob = exist_np_all[b]  # (N,)
-
+                keep = (xs_f >= m) & (xs_f < W - m) & (ys_f >= m) & (ys_f < H - m)
+                xs_f = xs_f[keep]
+                ys_f = ys_f[keep]
+                exist_prob = exist_prob[keep]
                 # 這個 patch 的 GT（已是像素座標）
                 gt_points_b = points_pad[b].detach().cpu().numpy()  # (N,2)
                 gt_mask_b = mask[b].detach().cpu().numpy().astype(bool)  # (N,)
@@ -202,11 +239,12 @@ if __name__ == "__main__":
                 gt_ys = gt_points_b[:, 1].astype(int) if gt_points_b.size else np.zeros((0,), dtype=int)
 
                 out_name = os.path.basename(meta['image_path']) if 'image_path' in meta else f"{img_key}.jpg"
-
                 per_image_vis_sample[img_key] = {
-                    'img_np': img_np,  # 代表 patch 圖（暫為 RGB/BGR 混合，存檔前再轉）
-                    'xs': xs, 'ys': ys,  # 預測點像素座標
-                    'exist_prob': exist_prob,  # (N,)
+                    'img_np': img_np,
+                    #'xs': xs, 'ys': ys,  # [INT] → 改成下兩行
+                    'xs_f': xs_f.astype(np.float32),  # [MOD] 存浮點
+                    'ys_f': ys_f.astype(np.float32),  # [MOD]
+                    'exist_prob': exist_prob,
                     'gt_xs': gt_xs, 'gt_ys': gt_ys,
                     'out_name': out_name,
                     'H': H, 'W': W,
@@ -237,6 +275,7 @@ if __name__ == "__main__":
     print(f"MAE  (per-image counting) = {mae:.4f}")
     print(f"RMSE (per-image counting) = {rmse:.4f}")
 
+
     # ---------------- 只輸出 Top-10 誤差最小的圖片（以「原圖」為單位） ----------------
     top_k = 10
     ranked = sorted(per_image_error.items(), key=lambda x: x[1])[:top_k]
@@ -249,7 +288,10 @@ if __name__ == "__main__":
 
         vis = per_image_vis_sample[k]
         img_np = vis['img_np'].copy()  # 代表 patch
-        xs, ys = vis['xs'], vis['ys']
+        # xs, ys = vis['xs'], vis['ys']
+        # exist_prob = np.asarray(vis['exist_prob'], dtype=np.float32)
+        px = np.asarray(vis['xs_f'], dtype=np.float32)  # [MOD] 浮點像素 x
+        py = np.asarray(vis['ys_f'], dtype=np.float32)  # [MOD] 浮點像素 y
         exist_prob = np.asarray(vis['exist_prob'], dtype=np.float32)
         H, W = vis['H'], vis['W']
 
@@ -258,16 +300,44 @@ if __name__ == "__main__":
         n = int(min(n, exist_prob.shape[0]))
 
         if n > 0:
-            top_idx = np.argpartition(-exist_prob, n - 1)[:n]
-            top_idx = top_idx[np.argsort(-exist_prob[top_idx])]
+            # 建議半徑與解析度綁定：例如 2% 的短邊
+            r_pix = max(3, int(0.02 * min(H, W)))
+
+            # 轉成 torch 做 NMS
+            #pts_t = torch.from_numpy(np.stack([xs, ys], axis=1)).to(device)  # 若你在 GPU，也可 .to(device)
+            pts_t = torch.from_numpy(np.stack([px, py], axis=1)).to(device).float()
+            scr_t = torch.from_numpy(exist_prob).to(pts_t.device).float()
+
+            keep_idx_t = radius_nms_xyxy(pts_t, scr_t, r=r_pix)  # 長度可能 >= 或 < n
+            # 內框面積比例
+            a = ((W - 2 * m) * (H - 2 * m)) / float(W * H)  # m 要和前面內框過濾一致
+            a = max(a, 1e-6)
+
+            # 內框軟估計（已做過溫度/γ校準更好）
+            n_in = float(exist_prob.sum())
+            n_hat = int(round(n_in / a))  # 面積校正
+
+            # 可選的「下限保護」避免太少
+            n_floor = int(np.ceil(0.8 * len(keep_idx_t)))  # 60% of NMS後候選，可調 0.5~0.7
+            n = max(n_hat, n_floor)
+            n = min(n, len(keep_idx_t))  # 不超過候選
+            # 先取 NMS 後的前 n 個
+            top_idx = keep_idx_t[:n].cpu().numpy()
+
+            # 如果 NMS 後數量不足 n，用剩下最高分補齊（可選）
+            if top_idx.size < n:
+                all_idx = np.arange(exist_prob.shape[0])
+                remain = np.setdiff1d(all_idx, top_idx, assume_unique=False)
+                fill_k = min(n - top_idx.size, remain.size)
+                if fill_k > 0:
+                    fill = remain[np.argsort(-exist_prob[remain])[:fill_k]]
+                    top_idx = np.concatenate([top_idx, fill], axis=0)
+            print(f"[dbg] raw={exist_prob.shape[0]} after_inner={len(px)} "
+                  f"after_nms={len(keep_idx_t)} n_soft={n} drawn={len(top_idx)} "
+                  f"r={r_pix}")
         else:
             top_idx = np.array([], dtype=int)
 
-        # 畫「預測點」（藍色；OpenCV 是 BGR → 藍色 (255,0,0)）
-        for i in top_idx:
-            x = int(np.clip(xs[i], 0, W - 1))
-            y = int(np.clip(ys[i], 0, H - 1))
-            cv2.circle(img_np, (x, y), radius=3, color=(255, 0, 0), thickness=-1)
 
         # 畫「GT 點」（綠色）
         if 'gt_xs' in vis and 'gt_ys' in vis:
@@ -275,7 +345,15 @@ if __name__ == "__main__":
                 gx = int(np.clip(gx, 0, W - 1))
                 gy = int(np.clip(gy, 0, H - 1))
                 cv2.circle(img_np, (gx, gy), radius=3, color=(0, 255, 0), thickness=-1)
-
+        xs_draw = np.clip(np.round(px[top_idx]).astype(int), 0, W - 1)  # [MOD]
+        ys_draw = np.clip(np.round(py[top_idx]).astype(int), 0, H - 1)  # [MOD]
+        # # 畫「預測點」（藍色；OpenCV 是 BGR → 藍色 (255,0,0)）
+        # for i in top_idx:
+        #     x = int(np.clip(xs[i], 0, W - 1))
+        #     y = int(np.clip(ys[i], 0, H - 1))
+        #     cv2.circle(img_np, (x, y), radius=3, color=(255, 0, 0), thickness=-1)
+        for (x, y) in zip(xs_draw, ys_draw):  # [MOD]
+            cv2.circle(img_np, (int(x), int(y)), 3, (255, 0, 0), -1)
         # 存檔（若 img_np 是 RGB，轉 BGR 避免色偏）
         out_name = vis['out_name']
         out_path = os.path.join(save_dir, f"top{rank:02d}_err{err:.2f}_{out_name}")
