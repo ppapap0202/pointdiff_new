@@ -101,21 +101,21 @@ def main():
     scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
     matcher = HungarianMatcher(cost_class=2.0, cost_coord=5)  # 權重需要調參
     criterion = SetCriterion(matcher=matcher,
-                             lambda_exist=800.0,
+                             lambda_exist=50,
                              lambda_x0=1.0,
-                             lambda_cnt=1.0)
+                             lambda_cnt=5)
     T=args.diffusion_T
     sched, signal_scale = Diffusion_schedule(T, device=device, signal_scale=args.signal_scale)
 
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"D:\output\FOCAL_AND_PATCH\last_epoch0717.pth", map_location="cuda:0")
-    #
-    # # 載入模型與優化器參數
-    model.load_state_dict(checkpoint['model_state'])
-    optim.load_state_dict(checkpoint['optim_state'])
-    scaler.load_state_dict(checkpoint['scaler_state'])
+    # checkpoint = torch.load(r"D:\output\FOCAL_AND_PATCH_alpha_0.25\last_epoch0517.pth", map_location="cuda:0")
+    # #
+    # # # 載入模型與優化器參數
+    # model.load_state_dict(checkpoint['model_state'])
+    # #optim.load_state_dict(checkpoint['optim_state'])
+    # #scaler.load_state_dict(checkpoint['scaler_state'])
 
     print('start training')
 

@@ -182,7 +182,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
 
     # ---- 短步 DDIM 統計（與推論一致）----
     total_mae, total_mse, total_imgs = 0.0, 0.0, 0
-
+    total_mae_hard, total_mse_hard = 0.0, 0.0
     # ---- 額外統計：單步口徑 & GT+隨機診斷 ----
     total_mae_soft = 0.0                         # 單步口徑 MAE（對齊 L_cnt 口徑）
     total_mae_gtmix = 0.0                        # GT+隨機候選點 的 MAE
@@ -331,6 +331,11 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
         total_mae += float(np.abs(pred_cnt - gt_cnt).sum())
         total_mse += float(((pred_cnt - gt_cnt) ** 2).sum())
         total_imgs += len(gt_cnt)
+        thr = 0.45
+        pred_cnt_hard = (exist_prob_sample > thr).sum(dim=1).cpu().numpy()
+
+        total_mae_hard += float(np.abs(pred_cnt_hard - gt_cnt).sum())
+        total_mse_hard += float(((pred_cnt_hard - gt_cnt) ** 2).sum())
 
         # 紀錄每張圖誤差（用 sampling 的結果）
         for i in range(B):
@@ -358,6 +363,8 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
     if total_imgs > 0:
         avg_mae  = total_mae / total_imgs
         avg_rmse = (total_mse / total_imgs) ** 0.5
+        avg_mae_hard = total_mae_hard / total_imgs
+        avg_rmse_hard = (total_mse_hard / total_imgs) ** 0.5
         avg_mae_soft  = total_mae_soft / total_imgs
         avg_mae_gtmix = total_mae_gtmix / total_imgs
     else:
@@ -379,7 +386,9 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
     logging.info(
         f"[val] loss={avg_loss:.4f} Lex={avg_Lexist:.4f} Lx0={avg_Lx0:.4f} Lcnt={avg_Lcnt:.4f} "
         f"| MAE={avg_mae:.2f} RMSE={avg_rmse:.2f} "
-        f"(MAE_soft={avg_mae_soft:.2f}; GT+Rand: MAE_gtmix={avg_mae_gtmix:.2f}, "
+        f"(hard: MAE_hard={avg_mae_hard:.2f}, RMSE_hard={avg_rmse_hard:.2f}; "
+        f"soft_step: MAE_soft={avg_mae_soft:.2f}; "
+        f"GT+Rand: MAE_gtmix={avg_mae_gtmix:.2f}, "
         f"avg_p_GT={avg_p_gt:.3f}, avg_p_rand={avg_p_rand:.3f}, AUC~={aucish:.3f})"
     )
 
@@ -411,7 +420,7 @@ def train_one_epoch(
         max_norm: float = 1.0,
         ### NEW: 兩個新權重（短鏈口徑）
         lambda_cnt_val: float = 0.05,
-        lambda_bg: float = 25.,        # 推薦 0.5~1.0
+        lambda_bg: float = 0.5,
     ):
     """
     多步（短鏈）訓練：隨機取 t_start，從 p_{t_start} 開始 unroll K 步，每步都計 loss，最後平均。
@@ -532,7 +541,10 @@ def train_one_epoch(
 
             # 壓背景均值，避免 avg_p_rand 偏胖
             bgmask = (~mask).float()
-            L_bg   = ((prob_v * bgmask).sum(1) / (bgmask.sum(1) + 1e-6)).mean()
+            bg_ratio = bgmask.sum(1) / bgmask.size(1)
+            bg_mean     = ((prob_v * bgmask).sum(1) / (bgmask.sum(1) + 1e-6))
+            bg_loss_per_img = bg_mean * bg_ratio
+            L_bg = bg_loss_per_img.mean()
 
             # 聚合 K 步（平均較穩）+ 加上兩個「短鏈口徑」loss
             loss = torch.stack(loss_steps).mean()
