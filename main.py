@@ -101,27 +101,28 @@ def main():
     scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
     matcher = HungarianMatcher(cost_class=2.0, cost_coord=5)  # 權重需要調參
     criterion = SetCriterion(matcher=matcher,
-                             lambda_exist=50,
-                             lambda_x0=1.0,
-                             lambda_cnt=5)
+                             lambda_exist=args.lambda_exist,
+                             lambda_x0=args.lambda_x0,
+                             lambda_cnt=args.lambda_cnt,
+                             lambda_bg=args.lambda_bg)
     T=args.diffusion_T
     sched, signal_scale = Diffusion_schedule(T, device=device, signal_scale=args.signal_scale)
 
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    # checkpoint = torch.load(r"D:\output\FOCAL_AND_PATCH_alpha_0.25\last_epoch0517.pth", map_location="cuda:0")
-    # #
-    # # # 載入模型與優化器參數
-    # model.load_state_dict(checkpoint['model_state'])
-    # #optim.load_state_dict(checkpoint['optim_state'])
-    # #scaler.load_state_dict(checkpoint['scaler_state'])
+    checkpoint = torch.load(r"D:\output\hard_count\last_epoch0800.pth", map_location="cuda:0")
+    #
+    # # 載入模型與優化器參數
+    model.load_state_dict(checkpoint['model_state'])
+    optim.load_state_dict(checkpoint['optim_state'])
+    scaler.load_state_dict(checkpoint['scaler_state'])
 
     print('start training')
 
     for epoch in range(1, args.epochs+1):
         time_start = time.time()
-        tr_loss = train_one_epoch(model, train_loader, device, optim, criterion, scaler, sched, args.diffusion_T, args.K,args.loss_mode,args.log_every,args.max_norm,)
+        tr_loss = train_one_epoch(model, train_loader, device, optim, criterion, scaler, sched, args.diffusion_T, args.K,args.log_every,args.max_norm,)
         val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, criterion, args.diffusion_T)
 
         logging.info(f"[Epoch {epoch:04d}] train={tr_loss:.4f}  val={val_loss:.4f} val_MAE={val_MAE:.4f}")

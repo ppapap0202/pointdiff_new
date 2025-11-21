@@ -117,7 +117,7 @@ if __name__ == "__main__":
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ckpt_path = r"D:\output\FOCAL_AND_PATCH_alpha_0.25\last_epoch0042.pth"
+    ckpt_path = r"D:\output\hard_count\last_epoch0800.pth"
     model = build_model(args, training=False)
     model = load_checkpoint_into_model(model, ckpt_path, device)
     model.to(device).eval()
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     per_image_pred_hard_sum = defaultdict(float)
     per_image_gt_sum = defaultdict(float)
     per_image_vis_sample = {}
-    save_dir = r"C:\pycharm\pointdiff_new\vis_results\vis_results_hard"
+    save_dir = r"C:\pycharm\pointdiff_new\vis_results\new\vis_results_hard_0800"
     os.makedirs(save_dir, exist_ok=True)
 
     for images, points_pad, mask, metas in loader:
@@ -191,7 +191,7 @@ if __name__ == "__main__":
                 abar_prev = torch.tensor(1.0, device=device).view(1, 1, 1)
 
             p_t = ddim_reverse_step(p_t, eps_pred, abar_t, abar_prev)
-            p_t = p_t.clamp(-1.0 + eps, 1.0 - eps)
+
             # if i in [0, 10, 20, 30, 40, 49]:  # 挑幾個 step 看
             #     p_dbg = p_t.detach().cpu().numpy()[0]  # 先看第0張
             #     xs = (p_dbg[:, 0] + 1) * 0.5 * (W - 1)
@@ -316,7 +316,7 @@ if __name__ == "__main__":
 
     # ---------------- 只輸出 Top-10 誤差最小的圖片（以「原圖」為單位） ----------------
     top_k = 10
-    ranked = sorted(per_image_error_hard.items(), key=lambda x: x[1])[:top_k]
+    ranked = sorted(per_image_error_soft.items(), key=lambda x: x[1])[:top_k]#可以選擇跟誰
 
     print(f"\n[Save Top-{top_k} Visualizations]")
     for rank, (k, err) in enumerate(ranked, start=1):

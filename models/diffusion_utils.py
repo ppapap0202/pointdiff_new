@@ -154,12 +154,13 @@ def eps_loss(eps_pred: torch.Tensor, eps_true: torch.Tensor, mask: torch.Tensor,
 
 
 class setCriterion(nn.Module):
-    def __init__(self, matcher, lambda_exist=1.0, lambda_x0=1.0, lambda_cnt=0.1, gamma=2.0, alpha=0.9):
+    def __init__(self, matcher, lambda_exist=1.0, lambda_x0=1.0, lambda_cnt=0.1, lambda_bg=2, gamma=2.0, alpha=0.9):
         super().__init__()
         self.matcher = matcher
         self.lambda_exist = lambda_exist
         self.lambda_x0 = lambda_x0
         self.lambda_cnt = lambda_cnt
+        self.lambda_bg = lambda_bg
         self.gamma = gamma
         self.alpha = alpha
     def focal_loss_with_logits(self, logits, targets, reduction="mean"):
@@ -224,15 +225,24 @@ class setCriterion(nn.Module):
         L_exist = self.focal_loss_with_logits(exist_logit, target_classes)
 
         # --- 5. (可選) 計算數量損失 L_cnt ---
-        pred_cnt = torch.sigmoid(exist_logit).sum(dim=1)
-        gt_cnt = mask.sum(dim=1).float()
+        prob_v = torch.sigmoid(exist_logit)  # [B, N]
+        pos_mask_pred = (target_classes > 0.5).float()
+        pred_cnt = (prob_v * pos_mask_pred).sum(dim=1)  # [B]
+        gt_cnt = mask.sum(dim=1).float()  # [B]，GT 真實人數（mask=True 的個數）
         L_cnt = F.l1_loss(pred_cnt, gt_cnt)
+         # --- 6.計算背景損失---
 
+        pos_mask_pred = (target_classes > 0.5)  # [B, N] True = matched prediction
+        bgmask = (~pos_mask_pred).float()  # True = 沒配到任何 GT 的預測點 → 背景
+        bg_ratio = bgmask.sum(1) / bgmask.size(1)  # [B]
+        bg_mean = (prob_v * bgmask).sum(1) / (bgmask.sum(1) + 1e-6)  # [B]
+        bg_loss_per_img = bg_mean * bg_ratio
+        L_bg = bg_loss_per_img.mean()
         # --- 總損失 ---
-        loss = self.lambda_x0 * L_x0 + self.lambda_exist * L_exist + self.lambda_cnt * L_cnt
+        loss = self.lambda_x0 * L_x0 + self.lambda_exist * L_exist + self.lambda_cnt * L_cnt + self.lambda_bg * L_bg
 
         # 為了 log，返回各分項損失
-        return loss, L_exist, L_x0, L_cnt
+        return loss, L_exist, L_x0, L_cnt, L_bg
 
     def _get_src_permutation_idx(self, indices):
         # 獲取所有 batch 中被匹配上的 prediction 的索引

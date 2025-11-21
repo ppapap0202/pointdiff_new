@@ -228,7 +228,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
         if exist_logit is not None and exist_logit.dim() == 3 and exist_logit.size(-1) == 1:
             exist_logit = exist_logit.squeeze(-1)
 
-        loss, L_exist, L_x0, L_cnt = criterion(
+        loss, L_exist, L_x0, L_cnt, _ = criterion(
             p_t=p_t, p0=p0, mask=mask, abar_t=abar_t,
             eps_pred=eps_pred, exist_logit=exist_logit,
         )
@@ -415,12 +415,11 @@ def train_one_epoch(
         sched,
         T: int = 1000,
         K: int = 10,  # unroll 步數（建議 5~20）
-        loss_mode: str = "x0_count",  # "eps" 或 "x0_count"（目前僅用於日誌顯示）
         log_every: int = 10,
         max_norm: float = 1.0,
         ### NEW: 兩個新權重（短鏈口徑）
         lambda_cnt_val: float = 0.05,
-        lambda_bg: float = 0.5,
+        lambda_bg: float = 100.,
     ):
     """
     多步（短鏈）訓練：隨機取 t_start，從 p_{t_start} 開始 unroll K 步，每步都計 loss，最後平均。
@@ -486,6 +485,7 @@ def train_one_epoch(
         Lex_steps  = []
         Lx0_steps  = []
         Lcnt_steps = []
+        Lbg_steps = []
 
         with autocast():
             for k in range(K_eff):
@@ -503,7 +503,7 @@ def train_one_epoch(
                 )
 
                 # 損失（單步口徑）
-                loss_k, L_exist, L_x0, L_cnt = criterion(
+                loss_k, L_exist, L_x0, L_cnt, L_bg = criterion(
                     p_t=p_t, p0=p0, mask=mask, abar_t=abar_cur,
                     eps_pred=eps_pred, exist_logit=exist_logit,
                 )
@@ -511,6 +511,7 @@ def train_one_epoch(
                 Lex_steps.append(L_exist)
                 Lx0_steps.append(L_x0)
                 Lcnt_steps.append(L_cnt)
+                Lbg_steps.append(L_bg)
 
                 # --- DDIM 反推一步：p_t -> p_{t-1} ---
                 # x0_hat = (p_t - sqrt(1-abar_t)*eps) / sqrt(abar_t)
@@ -539,20 +540,14 @@ def train_one_epoch(
             gt_cnt     = mask.sum(dim=1).float()
             L_cnt_val  = F.mse_loss(pred_cnt_v, gt_cnt)         # 校準總量（MSE）
 
-            # 壓背景均值，避免 avg_p_rand 偏胖
-            bgmask = (~mask).float()
-            bg_ratio = bgmask.sum(1) / bgmask.size(1)
-            bg_mean     = ((prob_v * bgmask).sum(1) / (bgmask.sum(1) + 1e-6))
-            bg_loss_per_img = bg_mean * bg_ratio
-            L_bg = bg_loss_per_img.mean()
-
             # 聚合 K 步（平均較穩）+ 加上兩個「短鏈口徑」loss
             loss = torch.stack(loss_steps).mean()
             Lex  = torch.stack(Lex_steps).mean()
             Lx0  = torch.stack(Lx0_steps).mean()
             Lcnt = torch.stack(Lcnt_steps).mean()
+            Lbg = torch.stack(Lbg_steps).mean()
 
-            loss = loss + lambda_cnt_val * L_cnt_val + lambda_bg * L_bg  # ### NEW
+            loss = loss + lambda_cnt_val * L_cnt_val  # ### NEW
 
         # 反傳 + 更新
         scaler.scale(loss).backward()
@@ -570,6 +565,7 @@ def train_one_epoch(
         bucket_Lex   += float(Lex)
         bucket_Laux  += float(Lx0)
         bucket_Lcnt  += float(Lcnt)
+        bucket_Lbg += float(Lbg)
         ### NEW: 記錄兩個新指標
         bucket_Lcnt_val += float(L_cnt_val)
         bucket_Lbg      += float(L_bg)
@@ -580,7 +576,7 @@ def train_one_epoch(
             msg = (f"[train-unroll] it={step:05d} "
                    f"loss={bucket_loss / bucket_k:.4f} "
                    f"Lex={bucket_Lex / bucket_k:.4f} "
-                   f"{'Leps' if loss_mode == 'eps' else 'Lx0'}={bucket_Laux / bucket_k:.4f} "
+                   f"Lx0={bucket_Laux / bucket_k:.4f} "
                    f"Lcnt={bucket_Lcnt / bucket_k:.4f} "
                    f"Lcnt_val={bucket_Lcnt_val / bucket_k:.4f} "   # ### NEW
                    f"Lbg={bucket_Lbg / bucket_k:.4f} ")            # ### NEW
