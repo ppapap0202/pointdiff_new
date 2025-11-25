@@ -418,7 +418,7 @@ def train_one_epoch(
         log_every: int = 10,
         max_norm: float = 1.0,
         ### NEW: 兩個新權重（短鏈口徑）
-        lambda_cnt_val: float = 0.05,
+        lambda_cnt_val: float = 0.03,
         lambda_bg: float = 100.,
     ):
     """
@@ -442,9 +442,9 @@ def train_one_epoch(
     bucket_Lex  = 0.0
     bucket_Laux = 0.0  # Laux = Leps 或 Lx0
     bucket_Lcnt = 0.0
-    ### NEW: 新增兩個 bucket
     bucket_Lcnt_val = 0.0
     bucket_Lbg = 0.0
+    bucket_Leps = 0.0
 
     bucket_k = 0
 
@@ -486,7 +486,7 @@ def train_one_epoch(
         Lx0_steps  = []
         Lcnt_steps = []
         Lbg_steps = []
-
+        Leps_steps = []
         with autocast():
             for k in range(K_eff):
                 # --- 當前時間步 ---
@@ -502,16 +502,25 @@ def train_one_epoch(
                     feats, p_t, t_cur, abar_t=abar_cur, clamp_eps=1e-6
                 )
 
-                # 損失（單步口徑）
-                loss_k, L_exist, L_x0, L_cnt, L_bg = criterion(
+                # ===== NEW: compute lambda_t (SNR-based weighting) =====
+                eps = 1e-8
+                alpha_t = abar_cur / (abar_prev + eps)
+                beta_t = 1 - alpha_t
+                snr_t = abar_cur / (1 - abar_cur + eps)
+                lambda_t = ((1 - beta_t) * (1 - abar_cur) / (beta_t + eps)) / ((1.0 + snr_t) ** 1.0)
+                lambda_t_scalar = lambda_t.mean()
+                #print(lambda_t_scalar)
+                loss_k, L_exist, L_x0, L_cnt, L_bg, Leps = criterion(
                     p_t=p_t, p0=p0, mask=mask, abar_t=abar_cur,
                     eps_pred=eps_pred, exist_logit=exist_logit,
+                    lambda_t=lambda_t_scalar,
                 )
                 loss_steps.append(loss_k)
                 Lex_steps.append(L_exist)
                 Lx0_steps.append(L_x0)
                 Lcnt_steps.append(L_cnt)
                 Lbg_steps.append(L_bg)
+                Leps_steps.append(Leps)
 
                 # --- DDIM 反推一步：p_t -> p_{t-1} ---
                 # x0_hat = (p_t - sqrt(1-abar_t)*eps) / sqrt(abar_t)
@@ -546,6 +555,7 @@ def train_one_epoch(
             Lx0  = torch.stack(Lx0_steps).mean()
             Lcnt = torch.stack(Lcnt_steps).mean()
             Lbg = torch.stack(Lbg_steps).mean()
+            Leps = torch.stack(Leps_steps).mean()
 
             loss = loss + lambda_cnt_val * L_cnt_val  # ### NEW
 
@@ -566,9 +576,10 @@ def train_one_epoch(
         bucket_Laux  += float(Lx0)
         bucket_Lcnt  += float(Lcnt)
         bucket_Lbg += float(Lbg)
+        bucket_Leps += float(Leps)
         ### NEW: 記錄兩個新指標
         bucket_Lcnt_val += float(L_cnt_val)
-        bucket_Lbg      += float(L_bg)
+
 
         bucket_k += 1
 
@@ -579,11 +590,13 @@ def train_one_epoch(
                    f"Lx0={bucket_Laux / bucket_k:.4f} "
                    f"Lcnt={bucket_Lcnt / bucket_k:.4f} "
                    f"Lcnt_val={bucket_Lcnt_val / bucket_k:.4f} "   # ### NEW
-                   f"Lbg={bucket_Lbg / bucket_k:.4f} ")            # ### NEW
+                   f"Lbg={bucket_Lbg / bucket_k:.4f} "
+                   f"Leps={bucket_Leps / bucket_k:.4f}")            # ### NEW
+
             print(msg)
 
             # reset bucket
-            bucket_loss = bucket_Lex = bucket_Laux = bucket_Lcnt = 0.0
+            bucket_loss = bucket_Lex = bucket_Laux = bucket_Lcnt = bucket_Leps = 0.0
             bucket_Lcnt_val = bucket_Lbg = 0.0
             bucket_k = 0
 

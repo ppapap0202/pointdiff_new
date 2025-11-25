@@ -117,7 +117,7 @@ if __name__ == "__main__":
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ckpt_path = r"D:\output\hard_count\last_epoch0800.pth"
+    ckpt_path = r"D:\output\lx0\last_epoch0100.pth"
     model = build_model(args, training=False)
     model = load_checkpoint_into_model(model, ckpt_path, device)
     model.to(device).eval()
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     per_image_pred_hard_sum = defaultdict(float)
     per_image_gt_sum = defaultdict(float)
     per_image_vis_sample = {}
-    save_dir = r"C:\pycharm\pointdiff_new\vis_results\new\vis_results_hard_0800"
+    save_dir = r"C:\pycharm\pointdiff_new\vis_results\new\vis_results_Lx0_0100"
     os.makedirs(save_dir, exist_ok=True)
 
     for images, points_pad, mask, metas in loader:
@@ -184,7 +184,7 @@ if __name__ == "__main__":
             t_tensor = torch.full((B, 1), t_int, device=device, dtype=torch.long)
             abar_t = abar[t_int].view(1, 1, 1)  # 讓之後可 broadcast 到 [B,N,1]
 
-            eps_pred, exist_logit = model.denoise(feats, p_t, t_tensor, abar_t=abar_t)
+            eps_pred, exist_logit = model.denoise(feats, p_t, t_tensor, abar_t=abar_t,clamp_eps=1e-6)
             if i + 1 < len(t_seq):
                 abar_prev = abar[t_seq[i + 1]].view(1, 1, 1)
             else:

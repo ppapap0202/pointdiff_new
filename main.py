@@ -87,8 +87,8 @@ def main():
                               collate_fn=collate_points_padded)
     # for a,b,c in train_data:
     #     visualization(a,b,c)
-    # _ = dataset_pos_neg_stats(train_loader)
-    # _ = dataset_pos_neg_stats(val_loader)
+    _ = dataset_pos_neg_stats(train_loader)
+    _ = dataset_pos_neg_stats(val_loader)
     for imgs, pts, mask, metas in train_loader:
         logging.info(f'images.shape: {imgs.shape}')  # (B, C, H, W)
         logging.info(f'points.shape: {pts.shape}')  # (B, max_len, 2)
@@ -111,7 +111,7 @@ def main():
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"D:\output\hard_count\last_epoch0800.pth", map_location="cuda:0")
+    checkpoint = torch.load(r"D:\output\Leps\last_epoch0363.pth", map_location="cuda:0")
     #
     # # 載入模型與優化器參數
     model.load_state_dict(checkpoint['model_state'])

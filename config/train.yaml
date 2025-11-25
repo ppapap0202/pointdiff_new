@@ -11,7 +11,7 @@ crop_size:  [256, 256]
 crop_type: 'center'
 gray: False
 device: cuda
-out_dir: 'D:\output\new_loss'
+out_dir: 'D:\output\Leps'
 #---------------------------MODEL-----------------------------------------------------
 in_ch: 3  # 1=灰階, 3=RGB
 fpn_c: 128
@@ -23,9 +23,9 @@ lr_backbone: 1e-5
 diffusion_T: 1000
 K: 5
 signal_scale: 2.0
-lambda_exist: 100.
-lambda_x0: 1.0
-lambda_cnt:  1.0
-lambda_bg: 30.0
+lambda_exist: 80.
+lambda_x0: 4.0
+lambda_cnt: 0.5
+lambda_bg: 40.0
 log_every:  50
 max_norm:  1.0

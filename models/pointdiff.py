@@ -276,6 +276,40 @@ class ConfidenceHead(nn.Module):
         )
     def forward(self, f):  # f: [B,N,in_dim]
         return self.mlp(f).squeeze(-1)  # [B,N]
+# class ConfidenceHead(nn.Module):
+#     def __init__(self, in_dim, hidden=256):
+#         super().__init__()
+#         self.fc1 = nn.Linear(in_dim, hidden)
+#         self.act1 = nn.SiLU()
+#         self.fc2 = nn.Linear(hidden, hidden)
+#         self.act2 = nn.SiLU()
+#         self.fc3 = nn.Linear(hidden, 1)
+#
+#     def forward(self, f):  # f: [B,N,in_dim]
+#         if not torch.isfinite(f).all():
+#             print("[HEAD] input f has NaN/inf")
+#
+#         h = self.fc1(f)
+#         if not torch.isfinite(h).all():
+#             print("[HEAD] after fc1 has NaN/inf")
+#
+#         h = self.act1(h)
+#         if not torch.isfinite(h).all():
+#             print("[HEAD] after act1 has NaN/inf")
+#
+#         h = self.fc2(h)
+#         if not torch.isfinite(h).all():
+#             print("[HEAD] after fc2 has NaN/inf")
+#
+#         h = self.act2(h)
+#         if not torch.isfinite(h).all():
+#             print("[HEAD] after act2 has NaN/inf")
+#
+#         out = self.fc3(h)
+#         if not torch.isfinite(out).all():
+#             print("[HEAD] after fc3 has NaN/inf")
+#
+#         return out.squeeze(-1)
 
 class ModelBuilder(nn.Module):
     """
@@ -321,10 +355,16 @@ class ModelBuilder(nn.Module):
             # print("[DEBUG] eps_pred", eps_pred.shape, eps_pred.dtype)
             x0_hat = (p_t - sqrt_onem * eps_pred) / sqrt_abar
             x0_hat = x0_hat.clamp(-1.0+1e-3, 1.0-1e-3)
-
+        if not torch.isfinite(x0_hat).all():
+            print("[WARN] x0_hat has NaN/inf")
         # 在 x0_hat 位置再次取樣特徵，回歸存在分數
         pf_hat = self.cond(P4, P8, P16, x0_hat.detach())  # detach 可選：讓 conf 先穩
-        exist_logit = self.conf_head(pf_hat)              # [B,N]
+        if not torch.isfinite(pf_hat).all():
+            print("[WARN] pf_hat has NaN/inf")
+
+        exist_logit = self.conf_head(pf_hat)
+        if not torch.isfinite(exist_logit).all():
+            print("[WARN] exist_logit has NaN/inf")
         return eps_pred, exist_logit
 
 

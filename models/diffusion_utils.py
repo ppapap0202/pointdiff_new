@@ -154,7 +154,24 @@ def eps_loss(eps_pred: torch.Tensor, eps_true: torch.Tensor, mask: torch.Tensor,
 
 
 class setCriterion(nn.Module):
-    def __init__(self, matcher, lambda_exist=1.0, lambda_x0=1.0, lambda_cnt=0.1, lambda_bg=2, gamma=2.0, alpha=0.9):
+    def __init__(
+        self,
+        matcher,
+        lambda_exist: float = 1.0,
+        lambda_x0: float = 1.0,
+        lambda_cnt: float = 0.1,
+        lambda_bg: float = 2.0,
+        gamma: float = 2.0,
+        alpha: float = 0.9,
+    ):
+        """
+        matcher      : 匈牙利匹配模組
+        lambda_exist : L_exist 權重
+        lambda_x0    : L_x0    權重
+        lambda_cnt   : L_cnt   權重
+        lambda_bg    : L_bg    權重
+        gamma, alpha : focal loss 超參數
+        """
         super().__init__()
         self.matcher = matcher
         self.lambda_exist = lambda_exist
@@ -163,19 +180,27 @@ class setCriterion(nn.Module):
         self.lambda_bg = lambda_bg
         self.gamma = gamma
         self.alpha = alpha
+
+    # ---------------- Focal loss (跟你原本一樣) ----------------
     def focal_loss_with_logits(self, logits, targets, reduction="mean"):
+        """
+        logits : [B,N]
+        targets: [B,N] in {0,1}
+        """
         x = logits
         y = targets
+
+        # binary cross entropy with logits：ce = - [y log p + (1-y) log(1-p)]
         ce = torch.clamp(x, min=0) - x * y + torch.log1p(torch.exp(-x.abs()))
 
-        # pt = p  (y=1)；pt = 1-p (y=0)
-        p  = torch.sigmoid(x)
+        # p = sigmoid(x)
+        p = torch.sigmoid(x)
         pt = torch.where(y == 1, p, 1 - p).clamp_(1e-6, 1 - 1e-6)
 
-        # alpha_t
+        # α_t
         alpha_t = torch.where(y == 1, x.new_tensor(self.alpha), x.new_tensor(1 - self.alpha))
 
-        # Focal
+        # focal loss
         loss = alpha_t * (1 - pt).pow(self.gamma) * ce
 
         if reduction == "mean":
@@ -185,88 +210,155 @@ class setCriterion(nn.Module):
         else:
             return loss
 
-# --- 原本的 loss_exist_eps_balanced 保留 ---
-
+    # ---------------- Hybrid loss 主體 ----------------
     def forward(
-        self, p_t, p0, mask, abar_t, eps_pred, exist_logit
+        self,
+        p_t: torch.Tensor,        # [B,N,2] 当前 noisy points
+        p0: torch.Tensor,         # [B,N,2] GT points (在 [-1,1] 座標)
+        mask: torch.Tensor,       # [B,N]   True/1 = 前景 GT
+        abar_t: torch.Tensor,     # [B,1,1] or [B,1] \bar{α}_t
+        eps_pred: torch.Tensor,   # [B,N,2] 模型預測的 ε_t
+        exist_logit: torch.Tensor,# [B,N]   存在度 logits
+        lambda_t: torch.Tensor = None,  # scalar 或 [B,1,1]，論文 SNR-based 權重
     ):
         """
-        改良版 Loss:
-          - L_exist: BCE 在存在 mask 上
-          - L_x0   : x0_hat vs GT points
-          - L_cnt  : soft count vs GT count
+        回傳:
+          loss  : 總 loss（包含 λ_t * L_eps）
+          L_exist, L_x0, L_cnt, L_bg  : 各項方便 log
         """
-        sqrt_ab = (abar_t + 1e-6).sqrt()
-        sqrt_om = (1.0 - abar_t).clamp_min(0).sqrt()
+        eps = 1e-6
+
+        # ---- 1. 先把 abar_t 變成和 p_t 同維度 ----
+        # abar_t: [B,1] or [B,1,1] → [B,1,1] → [B,1,1,1...] 再往後 unsqueeze
+        if abar_t.dim() == 2:  # [B,1] 的情況
+            abar_t = abar_t.unsqueeze(-1)  # [B,1,1]
+        sqrt_ab = (abar_t + eps).sqrt()              # [B,1,1]
+        sqrt_om = (1.0 - abar_t).clamp_min(0).sqrt() # [B,1,1]
         while sqrt_ab.ndim < p_t.ndim:
-            sqrt_ab = sqrt_ab.unsqueeze(-1)
+            sqrt_ab = sqrt_ab.unsqueeze(-1)  # → [B,1,1,1] ... 對齊 [B,N,2]
             sqrt_om = sqrt_om.unsqueeze(-1)
-        # 反推出 x0_hat
-        x0_hat = (p_t - sqrt_om * eps_pred) / sqrt_ab
-        x0_hat = x0_hat.clamp(-1+1e-3, 1-1e-3)
-        # --- 2. 進行匹配 ---
-        # 注意：匹配時使用 detach() 的 x0_hat，避免 L_exist 的梯度影響 L_x0
+
+        # ---- 2. ground-truth noise ε_true + L_eps (論文主角) ----
+        # p_t = sqrt(abar_t) * p0 + sqrt(1-abar_t) * eps_true
+        eps_true = (p_t - sqrt_ab * p0) / (sqrt_om + eps)    # [B,N,2]
+        L_eps = F.mse_loss(eps_pred, eps_true)
+
+        # ---- 3. 反推出 x0_hat（給 x0 loss / 匹配用）----
+        x0_hat = (p_t - sqrt_om * eps_pred) / (sqrt_ab + eps)
+        x0_hat = x0_hat.clamp(-1 + 1e-3, 1 - 1e-3)
+
+        # ---- 4. 匹配 (Hungarian) ----
+        # 注意：使用 detach() 的 x0_hat 去做匹配，避免存在度梯度影響 L_x0
         indices = self.matcher(exist_logit, x0_hat.detach(), p0, mask)
-        idx = self._get_src_permutation_idx(indices)
-        tgt_idx = self._get_tgt_permutation_idx(indices,mask)
-        matched_pred_pts = x0_hat[idx]
-        matched_gt_pts = p0[tgt_idx]
+        idx = self._get_src_permutation_idx(indices)           # (batch_idx, src_idx)
+        tgt_idx = self._get_tgt_permutation_idx(indices, mask) # (batch_idx, tgt_idx)
+
+        matched_pred_pts = x0_hat[idx]  # [M,2]
+        matched_gt_pts   = p0[tgt_idx]  # [M,2]
 
         matched_pred_pts_pix = m11_to_pixels(matched_pred_pts, 256, 256)
-        matched_gt_pts_pix = m11_to_pixels(matched_gt_pts, 256, 256)
+        matched_gt_pts_pix   = m11_to_pixels(matched_gt_pts, 256, 256)
+
         if matched_pred_pts.shape[0] > 0:
             L_x0 = F.smooth_l1_loss(matched_pred_pts_pix, matched_gt_pts_pix)
         else:
             L_x0 = torch.tensor(0.0, device=x0_hat.device)
 
-        # --- 4. 計算存在度損失 L_exist (對所有 N 個點計算) ---
-        target_classes = torch.zeros_like(exist_logit)  # [B, N], 默認都是背景 (0)
-        target_classes[idx] = 1.0  # 將匹配上的預測點的目標設為前景 (1)
+        # ---- 5. L_exist (focal loss on all N) ----
+        target_classes = torch.zeros_like(exist_logit)  # [B,N], 默認背景 0
+        target_classes[idx] = 1.0                      # 被匹配到 GT 的預測 → 正類 1
+
+        if not torch.isfinite(exist_logit).all():
+            print("[WARN] logits not finite before focal_loss")
+
         L_exist = self.focal_loss_with_logits(exist_logit, target_classes)
 
-        # --- 5. (可選) 計算數量損失 L_cnt ---
-        prob_v = torch.sigmoid(exist_logit)  # [B, N]
-        pos_mask_pred = (target_classes > 0.5).float()
+        # ---- 6. L_cnt (soft count) ----
+        prob_v = torch.sigmoid(exist_logit)    # [B,N]
+        pos_mask_pred = (target_classes > 0.5).float()  # [B,N] 1= matched prediction
         pred_cnt = (prob_v * pos_mask_pred).sum(dim=1)  # [B]
-        gt_cnt = mask.sum(dim=1).float()  # [B]，GT 真實人數（mask=True 的個數）
+        gt_cnt   = mask.sum(dim=1).float()              # [B]
         L_cnt = F.l1_loss(pred_cnt, gt_cnt)
-         # --- 6.計算背景損失---
 
-        pos_mask_pred = (target_classes > 0.5)  # [B, N] True = matched prediction
-        bgmask = (~pos_mask_pred).float()  # True = 沒配到任何 GT 的預測點 → 背景
-        bg_ratio = bgmask.sum(1) / bgmask.size(1)  # [B]
-        bg_mean = (prob_v * bgmask).sum(1) / (bgmask.sum(1) + 1e-6)  # [B]
+        # ---- 7. 背景損失 L_bg ----
+        pos_mask_bool = (target_classes > 0.5)  # [B,N] True = matched preds
+        bgmask = (~pos_mask_bool).float()       # [B,N] True = 背景預測點
+
+        bg_ratio = bgmask.sum(1) / (bgmask.size(1) + eps)        # [B]
+        bg_mean  = (prob_v * bgmask).sum(1) / (bgmask.sum(1) + eps)  # [B]
         bg_loss_per_img = bg_mean * bg_ratio
         L_bg = bg_loss_per_img.mean()
-        # --- 總損失 ---
-        loss = self.lambda_x0 * L_x0 + self.lambda_exist * L_exist + self.lambda_cnt * L_cnt + self.lambda_bg * L_bg
 
-        # 為了 log，返回各分項損失
-        return loss, L_exist, L_x0, L_cnt, L_bg
+        # ---- 8. Hybrid Loss：λ_t * L_eps + 其他項 ----
+        if lambda_t is None:
+            # 沒有給 λ_t 就退化成原本多項 loss
+            loss = (
+                self.lambda_x0 * L_x0
+                + self.lambda_exist * L_exist
+                + self.lambda_cnt * L_cnt
+                + self.lambda_bg * L_bg
+            )
+            if not torch.isfinite(loss):
+                print("[ERROR] Non-finite loss detected:",
+                      "Lex=", float(L_exist),
+                      "Lx0=", float(L_x0),
+                      "Lcnt=", float(L_cnt),
+                      "Lbg=", float(L_bg),
+                      )
+                raise RuntimeError("Loss became NaN/inf, stop and inspect.")
+            return loss, L_exist, L_x0, L_cnt, L_bg
+        else:
+            # lambda_t 可能是 scalar，也可能是 [B,1,1] → 取平均
+            if isinstance(lambda_t, torch.Tensor):
+                lambda_t_scalar = lambda_t.mean()
+            else:
+                lambda_t_scalar = float(lambda_t)
 
+            loss = (
+                lambda_t_scalar * L_eps
+                + self.lambda_x0 * L_x0
+                + self.lambda_exist * L_exist
+                + self.lambda_cnt * L_cnt
+                + self.lambda_bg * L_bg
+            )
+            if not torch.isfinite(loss):
+                print("[ERROR] Non-finite loss detected:",
+                      "Lex=", float(L_exist),
+                      "Lx0=", float(L_x0),
+                      "Lcnt=", float(L_cnt),
+                      "Lbg=", float(L_bg),
+                      "Leps=", float(L_eps))
+                raise RuntimeError("Loss became NaN/inf, stop and inspect.")
+            return loss, L_exist, L_x0, L_cnt, L_bg,L_eps
+
+
+
+
+
+
+    # ----------------- 匹配索引工具 -----------------
     def _get_src_permutation_idx(self, indices):
         # 獲取所有 batch 中被匹配上的 prediction 的索引
-        batch_idx = torch.cat([torch.full_like(src, i) for i, (src, _) in enumerate(indices)])
+        batch_idx = torch.cat(
+            [torch.full_like(src, i) for i, (src, _) in enumerate(indices)]
+        )
         src_idx = torch.cat([src for (src, _) in indices])
         return batch_idx, src_idx
 
     def _get_tgt_permutation_idx(self, indices, mask):
         # 獲取所有 batch 中被匹配上的 ground truth 的索引
-        batch_idx = torch.cat([torch.full_like(tgt, i) for i, (_, tgt) in enumerate(indices)])
+        batch_idx = torch.cat(
+            [torch.full_like(tgt, i) for i, (_, tgt) in enumerate(indices)]
+        )
         tgt_idx = torch.cat([tgt for (_, tgt) in indices])
-        # 注意：gt 的索引是相對於 mask 之後的，要轉換回相對於 N
-        # 但由於我們的 p0 也是 [B, N, 2]，可以直接用 mask 找到原始索引
-        # 這裡為了簡化，假設 p0 已經處理好，tgt_idx 直接對應 p0
-        # 如果 p0 是打包的，需要更複雜的索引方式
-        # 假設 gt_mask 和 p0 的順序是一致的，我們可以這樣還原
+
         original_tgt_idx = []
         for i, (_, tgt) in enumerate(indices):
             if len(tgt) > 0:
                 true_indices = mask[i].nonzero().squeeze(1)
-                # ✅ 增加保護，防止 true_indices 為空但 tgt 不為空
                 if len(true_indices) > 0:
                     original_tgt_idx.append(true_indices[tgt])
-            # 找到第 i 個 batch 的有效 gt 點的原始索引
+
         if not original_tgt_idx:
             return batch_idx, torch.tensor([], dtype=torch.long, device=batch_idx.device)
 
