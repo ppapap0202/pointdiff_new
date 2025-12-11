@@ -154,7 +154,11 @@ if __name__ == "__main__":
     per_image_pred_hard_sum = defaultdict(float)
     per_image_gt_sum = defaultdict(float)
     per_image_vis_sample = {}
-    save_dir = r"C:\pycharm\pointdiff_new\vis_results\vis_results_Leps_1079_6"
+    per_image_points_xy = defaultdict(list)  # img_key -> [tensor(K, 2), ...]
+    per_image_points_prob = defaultdict(list)  # img_key -> [tensor(K,), ...]
+    per_image_size = {}                        # img_key -> (H_full, W_full)
+    per_image_gt_points_xy = defaultdict(list)
+    save_dir = r"C:\pycharm\pointdiff_new\vis_results\all_patch\vis_results_Leps_1079_4_worst"
     os.makedirs(save_dir, exist_ok=True)
 
     for images, points_pad, mask, metas in loader:
@@ -205,7 +209,7 @@ if __name__ == "__main__":
         # 把 R 組 p0 接起來：[B, R*N, 2]
         p_all = torch.cat(p0_list, dim=1)
 
-        hard_thresh = getattr(args, "hard_thresh", 0.5)
+        hard_thresh = getattr(args, "hard_thresh", 0)
 
         pred_cnt_list = []
         pred_cnt_hard_list = []
@@ -238,6 +242,7 @@ if __name__ == "__main__":
             x_norm = (x_pix / (W - 1)) * 2.0 - 1.0
             y_norm = (y_pix / (H - 1)) * 2.0 - 1.0
             pts_merged_norm = torch.stack([x_norm, y_norm], dim=1).to(device)  # [M_b, 2]
+            #print(pts_merged_norm.shape)
             M_b = pts_merged_norm.shape[0]
 
             # ---------- 丟入 cond + conf_head ----------
@@ -263,8 +268,8 @@ if __name__ == "__main__":
             gt_cnt_list.append(gt_cnt_b.item())
 
             # 給後面 MAE / 統計用（如果你有 per_image_pred_soft_sum 之類，也可以在這裡加）
-            per_image_pred_soft_sum[img_key] += float(pred_cnt_b.item())
-            per_image_pred_hard_sum[img_key] += float(pred_cnt_hard_b.item())
+            # per_image_pred_soft_sum[img_key] += float(pred_cnt_b.item())
+            # per_image_pred_hard_sum[img_key] += float(pred_cnt_hard_b.item())
             per_image_gt_sum[img_key] += float(gt_cnt_b.item())
 
             # 存 numpy 給可視化用（合併後的 M_b 點）
@@ -272,65 +277,113 @@ if __name__ == "__main__":
             exist_merged_np = exist_prob_b.detach().cpu().numpy()    # (M_b,)
             p_merged_np_all.append(pts_merged_np)
             exist_merged_np_all.append(exist_merged_np)
+            # ---------- (A) 將這個 patch 的點轉成「原圖 global pixel 座標」 ----------
+            # 先算 patch 內 pixel 座標
+            xs_patch = (pts_merged_norm[:, 0] + 1) * 0.5 * (W - 1)  # [M_b]
+            ys_patch = (pts_merged_norm[:, 1] + 1) * 0.5 * (H - 1)  # [M_b]
 
-            # ---------- per_image_vis_sample：只挑一個代表 patch 來畫 ----------
-            if img_key not in per_image_vis_sample:
-                # 這個 patch 的影像（RGB 假設；灰階轉 BGR 方便畫色）
-                img_np = imgs_np_all[b]
-                if img_np.ndim == 2:
-                    img_np = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)
-                elif img_np.shape[2] == 1:
-                    img_np = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)
-                img_np = np.ascontiguousarray(img_np)
-                H_patch, W_patch = img_np.shape[:2]
+            # 2) 從 meta 取出這個 tile 在原圖的左上角 (tile_left, tile_top)
+            #    orig_size = [H_full, W_full]
+            H_full, W_full = meta['orig_size']
+            x0 = meta['tile_left']   # global x offset
+            y0 = meta['tile_top']    # global y offset
+            if img_key not in per_image_size:
+                per_image_size[img_key] = (H_full, W_full)
+            xs_global = xs_patch + x0  # [M_b]
+            ys_global = ys_patch + y0  # [M_b]
 
-                # ★ 現在存的是「多次取樣合併後的 M_b 個點」
-                pred_points_all = pts_merged_np          # (M_b, 2) in [-1,1]（其實剛轉過來是 pixel，但你也可以直接用 xs_all/ys_all）
-                xs_all = (pred_points_all[:, 0] + 1) * 0.5 * (W_patch - 1)
-                ys_all = (pred_points_all[:, 1] + 1) * 0.5 * (H_patch - 1)
-                exist_prob_all = exist_merged_np         # (M_b,)
+            xs_global_int = xs_global.round().long()
+            ys_global_int = ys_global.round().long()
+            xs_global_int = xs_global_int.clamp(0, W_full - 1)
+            ys_global_int = ys_global_int.clamp(0, H_full - 1)
+            # （可選）過濾掉 (0,0) 那顆 padding 背景點
+            # 如果你確定 (0,0) 在原圖不會是真人頭，可以直接濾掉
+            mask_valid = ~((xs_global_int == 0) & (ys_global_int == 0))
+            xs_global_int = xs_global_int[mask_valid]
+            ys_global_int = ys_global_int[mask_valid]
+            exist_prob_valid = exist_prob_b[mask_valid]
 
-                # 原本內框用的浮點座標（從 xs_all / ys_all 複製）
-                xs_f = xs_all.copy()
-                ys_f = ys_all.copy()
-                m_inner = int(0.001 * min(H_patch, W_patch))  # 跟下面保持一致
-
-                exist_prob = exist_prob_all
-                keep = (
-                    (xs_f >= m_inner) & (xs_f < W_patch - m_inner) &
-                    (ys_f >= m_inner) & (ys_f < H_patch - m_inner)
+            # 存到「以原圖為單位」的 dict 裡，等所有 patch 跑完再一起 merge
+            if xs_global_int.numel() > 0:
+                per_image_points_xy[img_key].append(
+                    torch.stack([xs_global_int, ys_global_int], dim=1).cpu()
+                )  # (K, 2)
+                per_image_points_prob[img_key].append(
+                    exist_prob_valid.detach().cpu()
+                )  # (K,)
+            mask_b_cpu = mask[b].detach().cpu()  # 把 boolean mask 拉回 CPU
+            gt_points_b = points_pad[b][mask_b_cpu]  # (n_gt, 2) patch 座標（在 CPU）
+            if gt_points_b.numel() > 0:
+                gt_xs_g = gt_points_b[:, 0] + x0
+                gt_ys_g = gt_points_b[:, 1] + y0
+                gt_xs_g = gt_xs_g.round().long().clamp(0, W_full - 1)
+                gt_ys_g = gt_ys_g.round().long().clamp(0, H_full - 1)
+                per_image_gt_points_xy[img_key].append(
+                    torch.stack([gt_xs_g, gt_ys_g], dim=1)
                 )
-                xs_f = xs_f[keep]
-                ys_f = ys_f[keep]
-                exist_prob = exist_prob[keep]
-
-                # 這個 patch 的 GT（已是像素座標）
-                gt_points_b = points_pad[b].detach().cpu().numpy()  # (N,2)
-                gt_mask_b = mask[b].detach().cpu().numpy().astype(bool)  # (N,)
-                gt_points_b = gt_points_b[gt_mask_b]
-                if gt_points_b.size > 0:
-                    gt_xs = gt_points_b[:, 0].astype(int)
-                    gt_ys = gt_points_b[:, 1].astype(int)
-                else:
-                    gt_xs = np.zeros((0,), dtype=int)
-                    gt_ys = np.zeros((0,), dtype=int)
-
-                out_name = os.path.basename(meta['image_path']) if 'image_path' in meta else f"{img_key}.jpg"
-                per_image_vis_sample[img_key] = {
-                    'img_np': img_np,
-                    'xs_f': xs_f.astype(np.float32),
-                    'ys_f': ys_f.astype(np.float32),
-                    'exist_prob': exist_prob,
-                    'gt_xs': gt_xs,
-                    'gt_ys': gt_ys,
-                    'out_name': out_name,
-                    'H': H_patch,
-                    'W': W_patch,
-                    # 這裡一樣存「所有合併後的點」，給 ALLPTS 用
-                    'xs_all': xs_all.astype(np.float32),
-                    'ys_all': ys_all.astype(np.float32),
-                    'exist_prob_all': exist_prob_all.astype(np.float32),
-                }
+            # ---------- per_image_vis_sample：只挑一個代表 patch 來畫 ----------
+            # ---------- per_image_vis_sample：只挑一個代表「原圖」來畫 ----------
+            # if img_key not in per_image_vis_sample:
+            #     # 1) 讀整張原圖
+            #     img_bgr_full = cv2.imread(meta['image_path'], cv2.IMREAD_COLOR)
+            #     if img_bgr_full is None:
+            #         print(f"[WARN] fail to read image: {meta['image_path']}")
+            #         continue
+            #     img_np = cv2.cvtColor(img_bgr_full, cv2.COLOR_BGR2RGB)
+            #
+            #     H_full, W_full = meta['orig_size']
+            #     # 確保讀進來的尺寸跟 orig_size 一樣，不一樣就 resize 一下
+            #     if (img_np.shape[0], img_np.shape[1]) != (H_full, W_full):
+            #         img_np = cv2.resize(img_np, (W_full, H_full))
+            #     img_np = np.ascontiguousarray(img_np)
+            #
+            #     # 2) 這個 patch 的「全部預測點」(global 座標)
+            #     xs_all = xs_global_int.cpu().numpy().astype(np.float32)
+            #     ys_all = ys_global_int.cpu().numpy().astype(np.float32)
+            #     exist_prob_all = exist_prob_valid.detach().cpu().numpy().astype(np.float32)
+            #
+            #     # 3) 內框過濾（改用原圖的 H_full, W_full）
+            #     xs_f = xs_all.copy()
+            #     ys_f = ys_all.copy()
+            #     m_inner = int(0.001 * min(H_full, W_full))
+            #
+            #     keep_inner = (
+            #             (xs_f >= m_inner) & (xs_f < W_full - m_inner) &
+            #             (ys_f >= m_inner) & (ys_f < H_full - m_inner)
+            #     )
+            #     xs_f = xs_f[keep_inner]
+            #     ys_f = ys_f[keep_inner]
+            #     exist_prob = exist_prob_all[keep_inner]
+            #
+            #     # 4) 這個 patch 的 GT 也轉成 global（patch 座標 + offset）
+            #     gt_points_b = points_pad[b].detach().cpu().numpy()  # (N,2) patch 座標
+            #     gt_mask_b = mask[b].detach().cpu().numpy().astype(bool)
+            #     gt_points_b = gt_points_b[gt_mask_b]
+            #     if gt_points_b.size > 0:
+            #         gt_xs = gt_points_b[:, 0] + x0
+            #         gt_ys = gt_points_b[:, 1] + y0
+            #         gt_xs = np.clip(gt_xs, 0, W_full - 1).astype(int)
+            #         gt_ys = np.clip(gt_ys, 0, H_full - 1).astype(int)
+            #     else:
+            #         gt_xs = np.zeros((0,), dtype=int)
+            #         gt_ys = np.zeros((0,), dtype=int)
+            #
+            #     out_name = os.path.basename(meta['image_path'])
+            #
+            #     per_image_vis_sample[img_key] = {
+            #         'img_np': img_np,  #  整張原圖
+            #         'xs_f': xs_f.astype(np.float32),
+            #         'ys_f': ys_f.astype(np.float32),
+            #         'exist_prob': exist_prob,
+            #         'gt_xs': gt_xs,
+            #         'gt_ys': gt_ys,
+            #         'out_name': out_name,
+            #         'H': H_full,  #  原圖高度
+            #         'W': W_full,  #  原圖寬度
+            #         'xs_all': xs_all.astype(np.float32),
+            #         'ys_all': ys_all.astype(np.float32),
+            #         'exist_prob_all': exist_prob_all.astype(np.float32),
+            #     }
 
         # 這裡再把 patch-level 的 pred/gt 變成 tensor 方便之後用
         pred_cnt = torch.tensor(pred_cnt_list, device=device)          # [B]
@@ -340,7 +393,88 @@ if __name__ == "__main__":
         # 如果你後面還有用到 p_t_np_all / exist_np_all，可以在這裡 assign
         p_t_np_all = p_merged_np_all
         exist_np_all = exist_merged_np_all
+    per_image_pred_soft_sum.clear()
+    per_image_pred_hard_sum.clear()
+    per_image_vis_sample.clear()
+    for img_key in per_image_points_xy.keys():
+        pts_list = per_image_points_xy[img_key]
+        prob_list = per_image_points_prob[img_key]
 
+        pts_all = torch.cat(pts_list, dim=0)  # [M_all, 2]
+        prob_all = torch.cat(prob_list, dim=0)  # [M_all]
+        H_img, W_img = per_image_size[img_key]
+        xs_g = pts_all[:, 0].long().clamp(0, W_img - 1)
+        ys_g = pts_all[:, 1].long().clamp(0, H_img - 1)
+
+
+
+        flat = ys_g * W_img + xs_g
+        uniq_flat, inv = torch.unique(flat, return_inverse=True)
+        x_uniq = (uniq_flat % W_img).float()  # [M_img]
+        y_uniq = (uniq_flat // W_img).float()  # [M_img]
+        M_img = uniq_flat.shape[0]
+        prob_merged = torch.zeros(M_img, dtype=prob_all.dtype)
+
+        for i_pix in range(M_img):
+            hit_mask = (inv == i_pix)
+            if hit_mask.any():
+                prob_merged[i_pix] = prob_all[hit_mask].max()
+
+        pred_soft = float(prob_merged.sum().item())
+        hard_thresh = getattr(args, "hard_thresh", 0.5)
+        pred_hard = float((prob_merged >= hard_thresh).float().sum().item())
+
+        per_image_pred_soft_sum[img_key] = pred_soft
+        per_image_pred_hard_sum[img_key] = pred_hard
+        # ---- 建立可視化用的資料（整張圖） ----
+        img_bgr_full = cv2.imread(img_key, cv2.IMREAD_COLOR)
+        if img_bgr_full is None:
+            print(f"[WARN] fail to read image: {img_key}")
+            continue
+        img_rgb_full = cv2.cvtColor(img_bgr_full, cv2.COLOR_BGR2RGB)
+        if (img_rgb_full.shape[0], img_rgb_full.shape[1]) != (H_img, W_img):
+            img_rgb_full = cv2.resize(img_rgb_full, (W_img, H_img))
+        img_rgb_full = np.ascontiguousarray(img_rgb_full)
+
+        xs_all = x_uniq.cpu().numpy().astype(np.float32)
+        ys_all = y_uniq.cpu().numpy().astype(np.float32)
+        exist_prob_all = prob_merged.cpu().numpy().astype(np.float32)
+
+        # 內框過濾
+        xs_f = xs_all.copy()
+        ys_f = ys_all.copy()
+        m_inner = int(0.001 * min(H_img, W_img))
+        keep_inner = (
+                (xs_f >= m_inner) & (xs_f < W_img - m_inner) &
+                (ys_f >= m_inner) & (ys_f < H_img - m_inner)
+        )
+        xs_f = xs_f[keep_inner]
+        ys_f = ys_f[keep_inner]
+        exist_prob = exist_prob_all[keep_inner]
+
+        # GT 全圖座標
+        if img_key in per_image_gt_points_xy:
+            gt_all = torch.cat(per_image_gt_points_xy[img_key], dim=0)  # (M_gt, 2)
+            gt_xs = gt_all[:, 0].cpu().numpy().clip(0, W_img - 1).astype(int)
+            gt_ys = gt_all[:, 1].cpu().numpy().clip(0, H_img - 1).astype(int)
+        else:
+            gt_xs = np.zeros((0,), dtype=int)
+            gt_ys = np.zeros((0,), dtype=int)
+
+        per_image_vis_sample[img_key] = {
+            'img_np': img_rgb_full,
+            'xs_f': xs_f.astype(np.float32),
+            'ys_f': ys_f.astype(np.float32),
+            'exist_prob': exist_prob.astype(np.float32),
+            'gt_xs': gt_xs,
+            'gt_ys': gt_ys,
+            'out_name': os.path.basename(img_key),
+            'H': H_img,
+            'W': W_img,
+            'xs_all': xs_all,
+            'ys_all': ys_all,
+            'exist_prob_all': exist_prob_all,
+        }
 
     # ---------------- 以「原圖」為單位計算 MAE / RMSE，並列出每張結果 ----------------
     img_keys = sorted(per_image_gt_sum.keys())
@@ -390,7 +524,7 @@ if __name__ == "__main__":
 
     top_k = 10
     # True = 看最慘的，False = 看最好的
-    pick_worst = False
+    pick_worst = True
 
     ranked = sorted(
         error_dict.items(),
