@@ -117,7 +117,7 @@ if __name__ == "__main__":
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ckpt_path = r"D:\output\lx0\last_epoch0100.pth"
+    ckpt_path = r"D:\output\Leps_new\last_epoch1079.pth"
     model = build_model(args, training=False)
     model = load_checkpoint_into_model(model, ckpt_path, device)
     model.to(device).eval()
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     per_image_pred_hard_sum = defaultdict(float)
     per_image_gt_sum = defaultdict(float)
     per_image_vis_sample = {}
-    save_dir = r"C:\pycharm\pointdiff_new\vis_results\new\vis_results_Lx0_0100"
+    save_dir = r"C:\pycharm\pointdiff_new\vis_results\vis_results_Leps_1079_6"
     os.makedirs(save_dir, exist_ok=True)
 
     for images, points_pad, mask, metas in loader:
@@ -172,54 +172,108 @@ if __name__ == "__main__":
         feats = model.encode(images)
         feats_zero = [f * 0 for f in feats] if isinstance(feats, (list, tuple)) else feats * 0
 
-        # 初始 p_t
+        # ---------- 在 p_t 上做 R 次取樣 ----------
         N = points_pad.shape[1]
-        t0 = t_seq[0].item()  # 最髒的時間步（序列第一個）
-        abar_t0 = abar[t0].view(1, 1, 1)  # [1,1,1] 便於 broadcast
-        p_t = torch.randn(B, N, 2, device=device)  # ~ N(0, I)
-        p_t = p_t * torch.sqrt(1.0 - abar_t0)      # ~ N(0, 1 - abar_t0)
-        p_t = p_t.clamp(-1.0 + eps, 1.0 - eps)     # 建議仍做邊界保護
-        # DDIM 多步反推
-        for i, t_int in enumerate(t_seq.tolist()):
-            t_tensor = torch.full((B, 1), t_int, device=device, dtype=torch.long)
-            abar_t = abar[t_int].view(1, 1, 1)  # 讓之後可 broadcast 到 [B,N,1]
+        t0 = t_seq[0].item()                     # 最髒的時間步
+        abar_t0 = abar[t0].view(1, 1, 1)        # [1,1,1]
 
-            eps_pred, exist_logit = model.denoise(feats, p_t, t_tensor, abar_t=abar_t,clamp_eps=1e-6)
-            if i + 1 < len(t_seq):
-                abar_prev = abar[t_seq[i + 1]].view(1, 1, 1)
-            else:
-                abar_prev = torch.tensor(1.0, device=device).view(1, 1, 1)
+        p0_list = []  # 裝 R 組 p0，每個 [B, N, 2]
+        R = getattr(args, "num_realizations", 1)  # 多重取樣次數，預設 1（等同原本）
 
-            p_t = ddim_reverse_step(p_t, eps_pred, abar_t, abar_prev)
+        for r in range(R):
+            p_t = torch.randn(B, N, 2, device=device)  # ~ N(0, I)
+            p_t = p_t * torch.sqrt(1.0 - abar_t0)      # ~ N(0, 1 - abar_t0)
+            p_t = p_t.clamp(-1.0 + eps, 1.0 - eps)
 
-            # if i in [0, 10, 20, 30, 40, 49]:  # 挑幾個 step 看
-            #     p_dbg = p_t.detach().cpu().numpy()[0]  # 先看第0張
-            #     xs = (p_dbg[:, 0] + 1) * 0.5 * (W - 1)
-            #     ys = (p_dbg[:, 1] + 1) * 0.5 * (H - 1)
-            #     xs_i = np.clip(np.round(xs).astype(int), 0, W - 1)
-            #     ys_i = np.clip(np.round(ys).astype(int), 0, H - 1)
-            #     uniq = np.unique(np.stack([xs_i, ys_i], axis=1), axis=0)
-            #     print(f"[dbg-step {i}] unique_pixels={len(uniq)}")
-        # 最後一次 exist_logit → 每點存在機率
-        exist_prob_batch = torch.sigmoid(exist_logit)  # [B, N]
-        pred_cnt = exist_prob_batch.sum(dim=1)         # [B]
+            # DDIM 多步反推
+            for i, t_int in enumerate(t_seq.tolist()):
+                t_tensor = torch.full((B, 1), t_int, device=device, dtype=torch.long)
+                abar_t = abar[t_int].view(1, 1, 1)  # [1,1,1]
+
+                eps_pred, _ = model.denoise(
+                    feats, p_t, t_tensor, abar_t=abar_t, clamp_eps=1e-6
+                )
+                if i + 1 < len(t_seq):
+                    abar_prev = abar[t_seq[i + 1]].view(1, 1, 1)
+                else:
+                    abar_prev = torch.tensor(1.0, device=device).view(1, 1, 1)
+
+                p_t = ddim_reverse_step(p_t, eps_pred, abar_t, abar_prev)
+
+            p0_list.append(p_t.detach())  # [B, N, 2]
+
+        # 把 R 組 p0 接起來：[B, R*N, 2]
+        p_all = torch.cat(p0_list, dim=1)
+
         hard_thresh = getattr(args, "hard_thresh", 0.5)
-        pred_cnt_hard = (exist_prob_batch >= hard_thresh).float().sum(dim=1)  # [B]
-        gt_cnt = mask.sum(dim=1).float()  # [B]
 
-        # 便利暫存需要的 numpy
-        p_t_np_all = p_t.detach().cpu().numpy()            # [B, N, 2] in [-1,1]
-        exist_np_all = exist_prob_batch.detach().cpu().numpy()  # [B, N]
+        pred_cnt_list = []
+        pred_cnt_hard_list = []
+        gt_cnt_list = []
+
+        # 給可視化用的 list（每張 patch 對應一個 (M_b,2)/(M_b,)）
+        p_merged_np_all = []
+        exist_merged_np_all = []
 
         # 依「原圖 key」累加人數 & 暫存代表 patch（含 GT）
         for b in range(B):
             meta = metas[b]
             img_key = get_image_key_from_meta(meta)
 
-            per_image_pred_soft_sum[img_key] += float(pred_cnt[b].item())
-            per_image_pred_hard_sum[img_key] += float(pred_cnt_hard[b].item())
-            per_image_gt_sum[img_key] += float(gt_cnt[b].item())
+            # ---------- 合併多次取樣的座標（以 pixel 去重） ----------
+            pts_norm = p_all[b]  # [R*N, 2] in [-1,1]
 
+            xs = (pts_norm[:, 0] + 1) * 0.5 * (W - 1)
+            ys = (pts_norm[:, 1] + 1) * 0.5 * (H - 1)
+
+            xs_int = xs.round().clamp(0, W - 1).long()
+            ys_int = ys.round().clamp(0, H - 1).long()
+
+            flat = ys_int * W + xs_int          # [R*N]
+            uniq_flat = torch.unique(flat)      # [M_b]
+
+            x_pix = (uniq_flat % W).float()
+            y_pix = (uniq_flat // W).float()
+
+            x_norm = (x_pix / (W - 1)) * 2.0 - 1.0
+            y_norm = (y_pix / (H - 1)) * 2.0 - 1.0
+            pts_merged_norm = torch.stack([x_norm, y_norm], dim=1).to(device)  # [M_b, 2]
+            M_b = pts_merged_norm.shape[0]
+
+            # ---------- 丟入 cond + conf_head ----------
+            p_norm_b_1 = pts_merged_norm.unsqueeze(0)  # [1, M_b, 2]
+
+            if isinstance(feats, (list, tuple)):
+                feats_b = [f[b:b+1] for f in feats]          # 每個 [1, ...]
+                pf_b = model.cond(*feats_b, p_norm_b_1)     # [1, M_b, C]
+            else:
+                feats_b = feats[b:b+1]
+                pf_b = model.cond(feats_b, p_norm_b_1)      # [1, M_b, C]
+
+            exist_logit_b = model.conf_head(pf_b)[0]        # [M_b]
+            exist_prob_b = torch.sigmoid(exist_logit_b)     # [M_b]
+
+            # ---------- 用 merged 的 exist_prob_b 算這張 patch 的 soft / hard count ----------
+            pred_cnt_b = exist_prob_b.sum()
+            pred_cnt_hard_b = (exist_prob_b >= hard_thresh).float().sum()
+            gt_cnt_b = mask[b].sum().float()
+
+            pred_cnt_list.append(pred_cnt_b.item())
+            pred_cnt_hard_list.append(pred_cnt_hard_b.item())
+            gt_cnt_list.append(gt_cnt_b.item())
+
+            # 給後面 MAE / 統計用（如果你有 per_image_pred_soft_sum 之類，也可以在這裡加）
+            per_image_pred_soft_sum[img_key] += float(pred_cnt_b.item())
+            per_image_pred_hard_sum[img_key] += float(pred_cnt_hard_b.item())
+            per_image_gt_sum[img_key] += float(gt_cnt_b.item())
+
+            # 存 numpy 給可視化用（合併後的 M_b 點）
+            pts_merged_np = pts_merged_norm.detach().cpu().numpy()   # (M_b, 2)
+            exist_merged_np = exist_prob_b.detach().cpu().numpy()    # (M_b,)
+            p_merged_np_all.append(pts_merged_np)
+            exist_merged_np_all.append(exist_merged_np)
+
+            # ---------- per_image_vis_sample：只挑一個代表 patch 來畫 ----------
             if img_key not in per_image_vis_sample:
                 # 這個 patch 的影像（RGB 假設；灰階轉 BGR 方便畫色）
                 img_np = imgs_np_all[b]
@@ -230,11 +284,11 @@ if __name__ == "__main__":
                 img_np = np.ascontiguousarray(img_np)
                 H_patch, W_patch = img_np.shape[:2]
 
-                # ---------- NEW: 存「所有 raw N 點」的 pixel 座標 ----------
-                pred_points_all = p_t_np_all[b]          # (N,2) in [-1,1]
+                # ★ 現在存的是「多次取樣合併後的 M_b 個點」
+                pred_points_all = pts_merged_np          # (M_b, 2) in [-1,1]（其實剛轉過來是 pixel，但你也可以直接用 xs_all/ys_all）
                 xs_all = (pred_points_all[:, 0] + 1) * 0.5 * (W_patch - 1)
                 ys_all = (pred_points_all[:, 1] + 1) * 0.5 * (H_patch - 1)
-                exist_prob_all = exist_np_all[b]         # (N,)
+                exist_prob_all = exist_merged_np         # (M_b,)
 
                 # 原本內框用的浮點座標（從 xs_all / ys_all 複製）
                 xs_f = xs_all.copy()
@@ -272,11 +326,21 @@ if __name__ == "__main__":
                     'out_name': out_name,
                     'H': H_patch,
                     'W': W_patch,
-                    # ---------- NEW: 存全部 raw N 點 ----------
+                    # 這裡一樣存「所有合併後的點」，給 ALLPTS 用
                     'xs_all': xs_all.astype(np.float32),
                     'ys_all': ys_all.astype(np.float32),
                     'exist_prob_all': exist_prob_all.astype(np.float32),
                 }
+
+        # 這裡再把 patch-level 的 pred/gt 變成 tensor 方便之後用
+        pred_cnt = torch.tensor(pred_cnt_list, device=device)          # [B]
+        pred_cnt_hard = torch.tensor(pred_cnt_hard_list, device=device)# [B]
+        gt_cnt = torch.tensor(gt_cnt_list, device=device)              # [B]
+
+        # 如果你後面還有用到 p_t_np_all / exist_np_all，可以在這裡 assign
+        p_t_np_all = p_merged_np_all
+        exist_np_all = exist_merged_np_all
+
 
     # ---------------- 以「原圖」為單位計算 MAE / RMSE，並列出每張結果 ----------------
     img_keys = sorted(per_image_gt_sum.keys())
@@ -315,10 +379,28 @@ if __name__ == "__main__":
     print(f"[HARD] Per-image MAE={MAE_hard:.2f}, RMSE={RMSE_hard:.2f}")
 
     # ---------------- 只輸出 Top-10 誤差最小的圖片（以「原圖」為單位） ----------------
-    top_k = 10
-    ranked = sorted(per_image_error_soft.items(), key=lambda x: x[1])[:top_k]#可以選擇跟誰
+    metric = "hard"  # 或 "soft"
 
-    print(f"\n[Save Top-{top_k} Visualizations]")
+    if metric == "hard":
+        error_dict = per_image_error_hard
+    elif metric == "soft":
+        error_dict = per_image_error_soft
+    else:
+        raise ValueError(f"Unknown metric: {metric}")
+
+    top_k = 10
+    # True = 看最慘的，False = 看最好的
+    pick_worst = False
+
+    ranked = sorted(
+        error_dict.items(),
+        key=lambda x: x[1],
+        reverse=pick_worst
+    )[:top_k]
+    if pick_worst:
+        print(f"\n[Save bottom-{top_k} Visualizations]")
+    else:
+        print(f"\n[Save top-{top_k} Visualizations]")
     for rank, (k, err) in enumerate(ranked, start=1):
         if k not in per_image_vis_sample:
             print(f"  (skip) {k} has no vis sample cached.")

@@ -418,7 +418,7 @@ def train_one_epoch(
         log_every: int = 10,
         max_norm: float = 1.0,
         ### NEW: 兩個新權重（短鏈口徑）
-        lambda_cnt_val: float = 0.03,
+        lambda_cnt_val: float = 0,
         lambda_bg: float = 100.,
     ):
     """
@@ -501,6 +501,33 @@ def train_one_epoch(
                 eps_pred, exist_logit = model.denoise(
                     feats, p_t, t_cur, abar_t=abar_cur, clamp_eps=1e-6
                 )
+                exist_logit = torch.clamp(exist_logit, -30.0, 30.0)
+                finite_vals = exist_logit[torch.isfinite(exist_logit)]
+                # if finite_vals.numel() > 0:
+                #     print("  finite logits range: min=",
+                #           finite_vals.min().item(),
+                #           "max=",
+                #           finite_vals.max().item())
+                #print(exist_logit.size())
+                if not torch.isfinite(eps_pred).all() or not torch.isfinite(exist_logit).all():
+                    print(f"[DEBUG] step={step}, k={k}")
+                    print("  t_cur:", t_cur.flatten().tolist()[:8])  # 看一下是哪些 t 爆的
+
+                    # 分開看 nan / inf
+                    bad_mask = ~torch.isfinite(exist_logit)
+                    nan_mask = torch.isnan(exist_logit)
+                    inf_mask = torch.isinf(exist_logit)
+
+                    print("  exist_logit has", bad_mask.sum().item(), "bad values "
+                                                                      f"(nan={nan_mask.sum().item()}, inf={inf_mask.sum().item()})")
+
+                    # 列出前幾個壞掉的位置 & 值
+                    idx_bad = torch.nonzero(bad_mask, as_tuple=False)
+                    print("  first bad indices (up to 10):", idx_bad[:10].tolist())
+                    if idx_bad.numel() > 0:
+                        vals = exist_logit[bad_mask]
+                        print("  first bad values (up to 10):", vals[:10].detach().cpu().tolist())
+
 
                 # ===== NEW: compute lambda_t (SNR-based weighting) =====
                 eps = 1e-8
@@ -534,7 +561,7 @@ def train_one_epoch(
                 p_t_next = sqrt_ab_p * x0_hat + sqrt_om_p * eps_pred
 
                 # 穩定性（若顯存夠、想做「可微短鏈」可移除 detach 或只留最後幾步不 detach）
-                p_t = p_t_next.clamp(-1.0 + 1e-3, 1.0 - 1e-3)
+                p_t = p_t_next.detach().clamp(-1.0 + 1e-3, 1.0 - 1e-3)
 
             # === 短鏈結束後：用「最終 x0」對齊驗證口徑，計算 L_cnt_val 與 L_bg ===
             x0_like = x0_hat  # 顯存緊可用 x0_hat.detach()

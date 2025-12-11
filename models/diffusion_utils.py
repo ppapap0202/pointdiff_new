@@ -162,7 +162,7 @@ class setCriterion(nn.Module):
         lambda_cnt: float = 0.1,
         lambda_bg: float = 2.0,
         gamma: float = 2.0,
-        alpha: float = 0.9,
+        alpha: float = 0.6,
     ):
         """
         matcher      : 匈牙利匹配模組
@@ -259,8 +259,85 @@ class setCriterion(nn.Module):
         matched_pred_pts_pix = m11_to_pixels(matched_pred_pts, 256, 256)
         matched_gt_pts_pix   = m11_to_pixels(matched_gt_pts, 256, 256)
 
-        if matched_pred_pts.shape[0] > 0:
-            L_x0 = F.smooth_l1_loss(matched_pred_pts_pix, matched_gt_pts_pix)
+        # ---- 5.L_x0：依「每張圖人數」加權的定位 loss ----
+        # ----不做配對-----
+        # eps = 1e-6
+        #
+        # # 先把所有 slot 的座標都轉成像素座標
+        # pred_pts_pix = m11_to_pixels(x0_hat, 256, 256)  # [B,N,2]
+        # gt_pts_pix   = m11_to_pixels(p0,     256, 256)  # [B,N,2]
+        #
+        # gt_counts = mask.sum(dim=1).float()  # [B]
+        #
+        # # 計算每張圖的人數權重（跟你原本一樣）
+        # valid = gt_counts > 0
+        # if valid.any():
+        #     median_cnt = gt_counts[valid].median()
+        # else:
+        #     median_cnt = gt_counts.new_tensor(1.0)
+        #
+        # w_raw = (gt_counts + 1.0) / (median_cnt + 1.0)
+        # w_img = torch.sqrt(w_raw).clamp(0.4, 4.0)  # 人多的圖權重較大
+        #
+        # per_img_losses = []
+        # per_img_weights = []
+        # B = mask.size(0)
+        #
+        # for b in range(B):
+        #     nb = int(gt_counts[b].item())
+        #     if nb > 0:
+        #         # 這裡假設 p0 / x0_hat 裡「mask=True 的那些 slot」就是該圖的 GT slot
+        #         sel = mask[b].bool()          # [N]
+        #         pred_b = pred_pts_pix[b, sel] # [nb,2]
+        #         gt_b   = gt_pts_pix[b, sel]   # [nb,2]
+        #
+        #         Lx0_b = F.smooth_l1_loss(pred_b, gt_b, reduction='mean')
+        #         per_img_losses.append(Lx0_b)
+        #         per_img_weights.append(w_img[b])
+        #
+        # if per_img_losses:
+        #     per_img_losses  = torch.stack(per_img_losses)   # [B_eff]
+        #     per_img_weights = torch.stack(per_img_weights)  # [B_eff]
+        #     L_x0 = (per_img_losses * per_img_weights).sum() / (per_img_weights.sum() + eps)
+        # else:
+        #     L_x0 = torch.tensor(0.0, device=x0_hat.device)
+        # ----做配對-----
+        if matched_pred_pts_pix.shape[0] > 0:
+            batch_idx_pred, _ = idx
+            batch_idx_tgt, _  = tgt_idx
+            # 一般情況下兩者應該相同
+            # assert torch.equal(batch_idx_pred, batch_idx_tgt)
+
+            gt_counts = mask.sum(dim=1).float()  # [B]
+
+            valid = gt_counts > 0
+            if valid.any():
+                median_cnt = gt_counts[valid].median()
+            else:
+                median_cnt = gt_counts.new_tensor(1.0)
+
+            eps = 1e-6
+            w_raw = (gt_counts + 1.0) / (median_cnt + 1.0)  # normalize by median
+            w_img = torch.sqrt(w_raw).clamp(0.4,4)  # 人多圖 → 權重大
+
+            per_img_losses = []
+            per_img_weights = []
+            B = mask.size(0)
+            for b in range(B):
+                sel = (batch_idx_pred == b)
+                if sel.any():
+                    pred_b = matched_pred_pts_pix[sel]   # [Mb,2]
+                    gt_b   = matched_gt_pts_pix[sel]     # [Mb,2]
+                    Lx0_b  = F.smooth_l1_loss(pred_b, gt_b, reduction='mean')
+                    per_img_losses.append(Lx0_b)
+                    per_img_weights.append(w_img[b])
+
+            if per_img_losses:
+                per_img_losses  = torch.stack(per_img_losses)   # [B_eff]
+                per_img_weights = torch.stack(per_img_weights)  # [B_eff]
+                L_x0 = (per_img_losses * per_img_weights).sum() / (per_img_weights.sum() + eps)
+            else:
+                L_x0 = torch.tensor(0.0, device=x0_hat.device)
         else:
             L_x0 = torch.tensor(0.0, device=x0_hat.device)
 
@@ -329,7 +406,7 @@ class setCriterion(nn.Module):
                       "Lbg=", float(L_bg),
                       "Leps=", float(L_eps))
                 raise RuntimeError("Loss became NaN/inf, stop and inspect.")
-            return loss, L_exist, L_x0, L_cnt, L_bg,L_eps
+            return loss, L_exist, L_x0, L_cnt, L_bg, L_eps
 
 
 
