@@ -129,20 +129,23 @@ def eps_loss(eps_pred: torch.Tensor, eps_true: torch.Tensor, mask: torch.Tensor,
     # eps_*: [B,N,2], mask: [B,N] bool, abar_t: [B,1,1] 或 [B,N,1]
     l2 = (eps_pred - eps_true).pow(2).sum(-1)  # [B,N]
 
-    # Step 2: 加權 (例如 SNR 權重)
     if abar_t is not None:
-        w = (1.0 - abar_t.squeeze(-1)).clamp_min(1e-8)  # [B,N]
-        l2 = l2 * w
+        w_t = (1.0 - abar_t.squeeze(-1)).clamp_min(1e-8)  # [B,N]
+        l2 = l2 * w_t
 
-    # Step 3: 只保留正樣本
-    l2 = l2 * mask.float()
+    pos = mask.float()
+    neg = 1.0 - pos
+    w_pos = 1.0  # 正樣本
+    w_neg = 0.1  # 背景給一點點力道，不是 0
 
-    # Step 4: 每張圖的「平均誤差」
-    num_pos = mask.sum(dim=1).clamp(min=1)  # [B]，避免除零
-    per_img = l2.sum(dim=1) / num_pos  # [B]
+    w = w_pos * pos + w_neg * neg  # [B,N]
+    l2 = l2 * w
+
+    per_img = l2.sum(dim=1) / (w.sum(dim=1) + 1e-6)
+    L_eps = per_img.mean()
 
     # Step 5: batch 平均
-    return per_img.mean()
+    return L_eps
     # l2 = (eps_pred - eps_true) ** 2                  # [B,N,2]
     # l2 = l2.sum(dim=-1)                              # [B,N]
     # if abar_t is not None:
@@ -220,6 +223,7 @@ class setCriterion(nn.Module):
         eps_pred: torch.Tensor,   # [B,N,2] 模型預測的 ε_t
         exist_logit: torch.Tensor,# [B,N]   存在度 logits
         lambda_t: torch.Tensor = None,  # scalar 或 [B,1,1]，論文 SNR-based 權重
+            aux_weight: float = 1.0,
     ):
         """
         回傳:
@@ -391,21 +395,31 @@ class setCriterion(nn.Module):
             else:
                 lambda_t_scalar = float(lambda_t)
 
-            loss = (
-                lambda_t_scalar * L_eps
-                + self.lambda_x0 * L_x0
-                + self.lambda_exist * L_exist
-                + self.lambda_cnt * L_cnt
-                + self.lambda_bg * L_bg
-            )
-            if not torch.isfinite(loss):
-                print("[ERROR] Non-finite loss detected:",
-                      "Lex=", float(L_exist),
-                      "Lx0=", float(L_x0),
-                      "Lcnt=", float(L_cnt),
-                      "Lbg=", float(L_bg),
-                      "Leps=", float(L_eps))
-                raise RuntimeError("Loss became NaN/inf, stop and inspect.")
+            if lambda_t is None:
+                # 這是舊的 fallback，也可以乘上 aux_weight
+                loss = aux_weight * (
+                        self.lambda_x0 * L_x0
+                        + self.lambda_exist * L_exist
+                        + self.lambda_cnt * L_cnt
+                        + self.lambda_bg * L_bg
+                )
+            else:
+                # lambda_t 處理 L_eps (已經算好了)
+                if isinstance(lambda_t, torch.Tensor):
+                    lambda_t_scalar = lambda_t.mean()
+                else:
+                    lambda_t_scalar = float(lambda_t)
+
+                # [MOD] 這裡加上 aux_weight
+                loss = (
+                        lambda_t_scalar * L_eps
+                        + aux_weight * (  # <--- 讓所有輔助 Loss 隨 t 衰減
+                                self.lambda_x0 * L_x0
+                                + self.lambda_exist * L_exist
+                                + self.lambda_cnt * L_cnt
+                                + self.lambda_bg * L_bg
+                        )
+                )
             return loss, L_exist, L_x0, L_cnt, L_bg, L_eps
 
 

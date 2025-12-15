@@ -111,7 +111,7 @@ def main():
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"D:\output\Leps_MASK\last_epoch0006.pth", map_location="cuda:0")
+    checkpoint = torch.load(r"D:\output\Leps_new\last_epoch1473.pth", map_location="cuda:0")
     #
     # # 載入模型與優化器參數
     model.load_state_dict(checkpoint['model_state'])

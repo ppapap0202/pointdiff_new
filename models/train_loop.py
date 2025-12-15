@@ -537,10 +537,17 @@ def train_one_epoch(
                 lambda_t = ((1 - beta_t) * (1 - abar_cur) / (beta_t + eps)) / ((1.0 + snr_t) ** 1.0)
                 lambda_t_scalar = lambda_t.mean()
                 #print(lambda_t_scalar)
+                # 使用 abar_cur 作為衰減係數。
+                # t 小 (接近 1) -> 權重接近 1 -> 強力監督分類與計數
+                # t 大 (接近 0) -> 權重接近 0 -> 忽略分類與計數 Loss
+                aux_weight_scalar = (abar_cur ** 2).mean().item()
+                # 註: 如果希望衰減得更快(只在最後幾步學分類)，可以用 abar_cur.mean() ** 2
+
                 loss_k, L_exist, L_x0, L_cnt, L_bg, Leps = criterion(
                     p_t=p_t, p0=p0, mask=mask, abar_t=abar_cur,
                     eps_pred=eps_pred, exist_logit=exist_logit,
                     lambda_t=lambda_t_scalar,
+                    aux_weight=aux_weight_scalar,
                 )
                 loss_steps.append(loss_k)
                 Lex_steps.append(L_exist)

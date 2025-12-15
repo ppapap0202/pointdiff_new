@@ -30,4 +30,4 @@ lambda_bg: 10
 log_every:  50
 max_norm:  1.0
 #---------------------------realization-----------------------------------------------------
-num_realizations: 4
+num_realizations: 8
