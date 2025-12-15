@@ -158,7 +158,7 @@ if __name__ == "__main__":
     per_image_points_prob = defaultdict(list)  # img_key -> [tensor(K,), ...]
     per_image_size = {}                        # img_key -> (H_full, W_full)
     per_image_gt_points_xy = defaultdict(list)
-    save_dir = r"C:\pycharm\pointdiff_new\vis_results\all_patch\vis_results_Leps_1079_4_worst"
+    save_dir = r"C:\pycharm\pointdiff_new\vis_results\all_patch\vis_results_Leps_1079_8_worst"
     os.makedirs(save_dir, exist_ok=True)
 
     for images, points_pad, mask, metas in loader:
@@ -209,7 +209,7 @@ if __name__ == "__main__":
         # 把 R 組 p0 接起來：[B, R*N, 2]
         p_all = torch.cat(p0_list, dim=1)
 
-        hard_thresh = getattr(args, "hard_thresh", 0)
+        hard_thresh = getattr(args, "hard_thresh", 0.5)
 
         pred_cnt_list = []
         pred_cnt_hard_list = []
@@ -221,9 +221,11 @@ if __name__ == "__main__":
 
         # 依「原圖 key」累加人數 & 暫存代表 patch（含 GT）
         for b in range(B):
+            #print(b)
             meta = metas[b]
+            #print(meta)
             img_key = get_image_key_from_meta(meta)
-
+            #print(img_key)
             # ---------- 合併多次取樣的座標（以 pixel 去重） ----------
             pts_norm = p_all[b]  # [R*N, 2] in [-1,1]
 
@@ -292,13 +294,25 @@ if __name__ == "__main__":
             xs_global = xs_patch + x0  # [M_b]
             ys_global = ys_patch + y0  # [M_b]
 
+            # 1. 先算出 Global 座標（這部分維持不變）
+            xs_global = xs_patch + x0  # [M_b]
+            ys_global = ys_patch + y0  # [M_b]
+
+            # 2. 轉成 Global 整數並 Clamp（這部分維持不變）
             xs_global_int = xs_global.round().long()
             ys_global_int = ys_global.round().long()
             xs_global_int = xs_global_int.clamp(0, W_full - 1)
             ys_global_int = ys_global_int.clamp(0, H_full - 1)
-            # （可選）過濾掉 (0,0) 那顆 padding 背景點
-            # 如果你確定 (0,0) 在原圖不會是真人頭，可以直接濾掉
-            mask_valid = ~((xs_global_int == 0) & (ys_global_int == 0))
+
+            # 3. 【關鍵修改】：改用 xs_patch 和 ys_patch 來製作遮罩
+            #    將 Patch 座標轉整數，檢查是否落在 Patch 的原點 (0,0)
+            xs_patch_int = xs_patch.round().long()
+            ys_patch_int = ys_patch.round().long()
+
+            #    過濾條件：只要在 Patch 內的 (0,0)，就視為 Padding/背景雜訊
+            mask_valid = ~((xs_patch_int == 0) & (ys_patch_int == 0))
+
+            # 4. 應用遮罩（這部分維持不變）
             xs_global_int = xs_global_int[mask_valid]
             ys_global_int = ys_global_int[mask_valid]
             exist_prob_valid = exist_prob_b[mask_valid]
@@ -389,10 +403,10 @@ if __name__ == "__main__":
         pred_cnt = torch.tensor(pred_cnt_list, device=device)          # [B]
         pred_cnt_hard = torch.tensor(pred_cnt_hard_list, device=device)# [B]
         gt_cnt = torch.tensor(gt_cnt_list, device=device)              # [B]
-
         # 如果你後面還有用到 p_t_np_all / exist_np_all，可以在這裡 assign
         p_t_np_all = p_merged_np_all
         exist_np_all = exist_merged_np_all
+
     per_image_pred_soft_sum.clear()
     per_image_pred_hard_sum.clear()
     per_image_vis_sample.clear()
@@ -420,10 +434,30 @@ if __name__ == "__main__":
             if hit_mask.any():
                 prob_merged[i_pix] = prob_all[hit_mask].max()
 
-        pred_soft = float(prob_merged.sum().item())
-        hard_thresh = getattr(args, "hard_thresh", 0.5)
-        pred_hard = float((prob_merged >= hard_thresh).float().sum().item())
+        valid_mask = (prob_merged > hard_thresh)
+        x_valid = x_uniq[valid_mask]
+        y_valid = y_uniq[valid_mask]
+        s_valid = prob_merged[valid_mask]
 
+        r_pix = max(3, int(0.005 * min(H_img, W_img)))
+
+        # 執行 NMS
+        if x_valid.numel() > 0:
+            pts_t = torch.stack([x_valid, y_valid], dim=1).to(device)  # [N, 2]
+            scr_t = s_valid.to(device)
+
+            # 呼叫你原本定義好的 radius_nms_xyxy
+            # 注意：radius_nms_xyxy 需確保能在這裡被呼叫 (它定義在 global scope 沒問題)
+            keep_idx = radius_nms_xyxy(pts_t, scr_t, r=r_pix)
+
+            # 4. 算出 NMS 後的最終人數
+            pred_hard_nms = float(len(keep_idx))
+        else:
+            pred_hard_nms = 0.0
+
+        pred_soft = float(prob_merged.sum().item())
+        pred_hard_raw = float((prob_merged >= hard_thresh).float().sum().item())
+        pred_hard = pred_hard_nms
         per_image_pred_soft_sum[img_key] = pred_soft
         per_image_pred_hard_sum[img_key] = pred_hard
         # ---- 建立可視化用的資料（整張圖） ----
@@ -524,7 +558,7 @@ if __name__ == "__main__":
 
     top_k = 10
     # True = 看最慘的，False = 看最好的
-    pick_worst = True
+    pick_worst = False
 
     ranked = sorted(
         error_dict.items(),
@@ -553,7 +587,7 @@ if __name__ == "__main__":
         n = int(min(n, exist_prob.shape[0]))
 
         if n > 0:
-            r_pix = max(3, int(0.02 * min(H, W)))
+            r_pix = max(3, int(0.005 * min(H, W)))
 
             pts_t = torch.from_numpy(np.stack([px, py], axis=1)).to(device).float()
             scr_t = torch.from_numpy(exist_prob).to(pts_t.device).float()
