@@ -117,7 +117,7 @@ if __name__ == "__main__":
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ckpt_path = r"D:\output\Leps_new\last_epoch1079.pth"
+    ckpt_path = r"D:\output\Leps_MASK\last_epoch1058.pth"
     model = build_model(args, training=False)
     model = load_checkpoint_into_model(model, ckpt_path, device)
     model.to(device).eval()
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     per_image_points_prob = defaultdict(list)  # img_key -> [tensor(K,), ...]
     per_image_size = {}                        # img_key -> (H_full, W_full)
     per_image_gt_points_xy = defaultdict(list)
-    save_dir = r"C:\pycharm\pointdiff_new\vis_results\all_patch\vis_results_Leps_1079_8_worst"
+    save_dir = r"C:\pycharm\pointdiff_new\vis_results\all_patch\vis_results_Leps_MASK_1058_8_worst"
     os.makedirs(save_dir, exist_ok=True)
 
     for images, points_pad, mask, metas in loader:

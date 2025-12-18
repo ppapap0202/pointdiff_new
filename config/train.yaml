@@ -25,9 +25,9 @@ K: 5
 signal_scale: 2.0
 lambda_exist: 80.
 lambda_x0: 4.0
-lambda_cnt: 1
-lambda_bg: 10
-log_every:  50
+lambda_cnt: 0
+lambda_bg: 0
+log_every:  0
 max_norm:  1.0
 #---------------------------realization-----------------------------------------------------
 num_realizations: 8

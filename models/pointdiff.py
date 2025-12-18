@@ -173,7 +173,7 @@ class MSFusionGate(nn.Module):
         return out
 
 class PointConditioner(nn.Module):
-    def __init__(self, c_fpn=128, cond_c=64, patch=1, with_gate=False):
+    def __init__(self, c_fpn=128, cond_c=64, patch=3, with_gate=False):
         super().__init__()
         self.c4  = nn.Conv2d(c_fpn, cond_c, 1)
         self.c8  = nn.Conv2d(c_fpn, cond_c, 1)
@@ -186,17 +186,28 @@ class PointConditioner(nn.Module):
         self.with_gate = with_gate
         if with_gate:
             self.gate = MSFusionGate(cond_c=cond_c)
-        self.out_dim = cond_c * 3
+        self.global_pool = nn.AdaptiveAvgPool2d(1)
+        self.global_proj = nn.Linear(c_fpn, cond_c)  # 把 P16 壓扁成 vector
+        self.out_dim = cond_c * 3+cond_c
 
     def forward(self, P4, P8, P16, p_norm):
         f4  = sample_point_feats(self.c4(P4),  p_norm, patch=self.patch)
         f8  = sample_point_feats(self.c8(P8),  p_norm, patch=self.patch)
         f16 = sample_point_feats(self.c16(P16), p_norm, patch=self.patch)
+        # 計算 Global Context (來自 P16，視野最大)
+        # P16: [B, C, H/16, W/16] -> [B, C, 1, 1] -> [B, C]
+        global_ctx = self.global_pool(P16).flatten(1)
+        global_ctx = self.global_proj(global_ctx)  # [B, cond_c]
+        # 擴展到每個點: [B, cond_c] -> [B, N, cond_c]
+        N = p_norm.shape[1]
+        global_ctx_expanded = global_ctx.unsqueeze(1).expand(-1, N, -1)
         if self.patch > 1:
             f4  = self.flat4(f4);  f8  = self.flat8(f8);  f16 = self.flat16(f16)
         if self.with_gate:
-            return self.gate(f4, f8, f16)  # [B,N,3C]（結構更穩、泛化更好）
-        return torch.cat([f4, f8, f16], dim=-1)
+            # 如果你有用 Gate，Gate 也要改，這裡示範簡單拼接
+            local_feat = self.gate(f4, f8, f16)
+            return torch.cat([local_feat, global_ctx_expanded], dim=-1)
+        return torch.cat([f4, f8, f16, global_ctx_expanded], dim=-1)
 
 # ---------- timestep embedding ----------
 class TimestepEmbed(nn.Module):
@@ -276,40 +287,7 @@ class ConfidenceHead(nn.Module):
         )
     def forward(self, f):  # f: [B,N,in_dim]
         return self.mlp(f).squeeze(-1)  # [B,N]
-# class ConfidenceHead(nn.Module):
-#     def __init__(self, in_dim, hidden=256):
-#         super().__init__()
-#         self.fc1 = nn.Linear(in_dim, hidden)
-#         self.act1 = nn.SiLU()
-#         self.fc2 = nn.Linear(hidden, hidden)
-#         self.act2 = nn.SiLU()
-#         self.fc3 = nn.Linear(hidden, 1)
-#
-#     def forward(self, f):  # f: [B,N,in_dim]
-#         if not torch.isfinite(f).all():
-#             print("[HEAD] input f has NaN/inf")
-#
-#         h = self.fc1(f)
-#         if not torch.isfinite(h).all():
-#             print("[HEAD] after fc1 has NaN/inf")
-#
-#         h = self.act1(h)
-#         if not torch.isfinite(h).all():
-#             print("[HEAD] after act1 has NaN/inf")
-#
-#         h = self.fc2(h)
-#         if not torch.isfinite(h).all():
-#             print("[HEAD] after fc2 has NaN/inf")
-#
-#         h = self.act2(h)
-#         if not torch.isfinite(h).all():
-#             print("[HEAD] after act2 has NaN/inf")
-#
-#         out = self.fc3(h)
-#         if not torch.isfinite(out).all():
-#             print("[HEAD] after fc3 has NaN/inf")
-#
-#         return out.squeeze(-1)
+
 
 class ModelBuilder(nn.Module):
     """
@@ -322,8 +300,8 @@ class ModelBuilder(nn.Module):
         self.backbone = EncoderFPN(in_ch=in_ch, out_c=fpn_c)
         self.temb = TimestepEmbed(dim=t_dim)
         self.cond = PointConditioner(c_fpn=fpn_c, cond_c=cond_c, patch=3, with_gate=True)
-        self.head_eps = DenoiserHeadRes(in_dim=cond_c*3 + t_dim + 2, hidden=384, depth=3, dropout=0.2)
-        self.conf_head = ConfidenceHead(in_dim=cond_c*3, hidden=256)
+        self.head_eps = DenoiserHeadRes(in_dim=cond_c*4 + t_dim + 2, hidden=384, depth=3, dropout=0.2)
+        self.conf_head = ConfidenceHead(in_dim=cond_c*4, hidden=256)
 
     def encode(self, images):
         # images: [B,in_ch,H,W]
