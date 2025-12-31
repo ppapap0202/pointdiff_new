@@ -105,11 +105,10 @@ class hungarianMatcher(nn.Module):
         return indices
 
 # --- 像素座標 -> [-1,1] 正規化（align_corners=False 對應公式: x~ = 2x/W - 1） ---
-def pixels_to_m11(points_xy: torch.Tensor, H: int, W: int, scale: float=1.0):
-    # points_xy: [B,N,2], 回傳 [B,N,2] in [-1,1]*scale
-    x = (2.0 * points_xy[..., 0] / W) - 1.0
-    y = (2.0 * points_xy[..., 1] / H) - 1.0
-    return torch.stack([x, y], dim=-1) * scale
+def pixels_to_m11(points_xy, H, W):
+    x = 2.0 * points_xy[..., 0] / max(W - 1, 1) - 1.0
+    y = 2.0 * points_xy[..., 1] / max(H - 1, 1) - 1.0
+    return torch.stack([x, y], dim=-1)
 
 # --- 前向擴散：p_t = sqrt(ᾱ_t)*p0 + sqrt(1-ᾱ_t)*ε ；回傳 p_t, ε, ᾱ_t ---
 def forward_noisy(p0_m11: torch.Tensor, t_idx: torch.Tensor, sched: CosineAbarSchedule):
@@ -255,7 +254,7 @@ class setCriterion(nn.Module):
         # 注意：使用 detach() 的 x0_hat 去做匹配，避免存在度梯度影響 L_x0
         indices = self.matcher(exist_logit, x0_hat.detach(), p0, mask)
         idx = self._get_src_permutation_idx(indices)           # (batch_idx, src_idx)
-        tgt_idx = self._get_tgt_permutation_idx(indices, mask) # (batch_idx, tgt_idx)
+        tgt_idx = self._get_tgt_permutation_idx(indices)
 
         matched_pred_pts = x0_hat[idx]  # [M,2]
         matched_gt_pts   = p0[tgt_idx]  # [M,2]
@@ -436,22 +435,8 @@ class setCriterion(nn.Module):
         src_idx = torch.cat([src for (src, _) in indices])
         return batch_idx, src_idx
 
-    def _get_tgt_permutation_idx(self, indices, mask):
-        # 獲取所有 batch 中被匹配上的 ground truth 的索引
-        batch_idx = torch.cat(
-            [torch.full_like(tgt, i) for i, (_, tgt) in enumerate(indices)]
-        )
+    def _get_tgt_permutation_idx(self, indices):
+        batch_idx = torch.cat([torch.full_like(tgt, i) for i, (_, tgt) in enumerate(indices)])
         tgt_idx = torch.cat([tgt for (_, tgt) in indices])
+        return batch_idx, tgt_idx
 
-        original_tgt_idx = []
-        for i, (_, tgt) in enumerate(indices):
-            if len(tgt) > 0:
-                true_indices = mask[i].nonzero().squeeze(1)
-                if len(true_indices) > 0:
-                    original_tgt_idx.append(true_indices[tgt])
-
-        if not original_tgt_idx:
-            return batch_idx, torch.tensor([], dtype=torch.long, device=batch_idx.device)
-
-        final_tgt_idx = torch.cat(original_tgt_idx)
-        return batch_idx, final_tgt_idx

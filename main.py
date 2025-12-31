@@ -49,17 +49,22 @@ def collate_points_padded(batch):
     import torch
     imgs, pts, metas = zip(*batch)
     imgs = torch.stack(imgs, 0)  # (B,C,H,W)
+    B, C, H, W = imgs.shape
 
     # 計算此 batch 內最大點數
     max_n = 900#max(p.size(0) for p in pts)
     B = len(pts)
-    padded = torch.full((B, max_n, 2), fill_value=-10.0)  # padding 用 -10
+    padded = torch.empty((B, max_n, 2), dtype=torch.float32)  # 先不填
     mask = torch.zeros((B, max_n), dtype=torch.bool)
+
+    padded[..., 0].uniform_(0, W - 1)
+    padded[..., 1].uniform_(0, H - 1)
 
     for i, p in enumerate(pts):
         n = p.size(0)
         if n > 0:
-            padded[i, :n] = p
+            n = min(n, max_n)
+            padded[i, :n] = p[:n]
             mask[i, :n] = True
 
     return imgs, padded, mask, list(metas)
@@ -111,20 +116,22 @@ def main():
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    # checkpoint = torch.load(r"D:\output\Leps_new\last_epoch1473.pth", map_location="cuda:0")
-    # #
-    # # # 載入模型與優化器參數
-    # model.load_state_dict(checkpoint['model_state'])
-    # optim.load_state_dict(checkpoint['optim_state'])
-    # scaler.load_state_dict(checkpoint['scaler_state'])
+    checkpoint = torch.load(r"D:\output\patch_5\last_epoch0014.pth", map_location="cuda:0")
+    #
+    # # 載入模型與優化器參數
+    model.load_state_dict(checkpoint['model_state'])
+    optim.load_state_dict(checkpoint['optim_state'])
+    scaler.load_state_dict(checkpoint['scaler_state'])
 
     print('start training')
 
     for epoch in range(1, args.epochs+1):
-        time_start = time.time()
-        tr_loss = train_one_epoch(model, train_loader, device, optim, criterion, scaler, sched, args.diffusion_T, args.K,args.log_every,args.max_norm,)
-        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, criterion, args.diffusion_T)
 
+        t0 = time.time()
+        tr_loss = train_one_epoch(model, train_loader, device, optim, criterion, scaler, sched, args.diffusion_T, args.K,args.log_every,args.max_norm,)
+        t1 = time.time()
+        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, criterion, args.diffusion_T)
+        t2 = time.time()
         logging.info(f"[Epoch {epoch:04d}] train={tr_loss:.4f}  val={val_loss:.4f} val_MAE={val_MAE:.4f}")
         last_path = os.path.join(args.out_dir, f"last_epoch{epoch:04d}.pth")
         torch.save({
@@ -139,8 +146,8 @@ def main():
             best_path = os.path.join(args.out_dir, f"best_epoch{epoch:04d}_val{val_loss:.2f}.pth")
             print('save model',best_path)
             torch.save(model.state_dict(), best_path)
-        time_end = time.time()
-        print('time cost', time_end - time_start)
+        t4 = time.time()
+        print("train_sec", t1 - t0, "val_sec", t2 - t1, "one epoch", (t4 - t0) )
 
 
 

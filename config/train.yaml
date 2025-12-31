@@ -1,6 +1,6 @@
 seed: 7113064165
 batch_size: 32
-num_workers: 4
+num_workers: 16
 epochs: 1500
 dataset_file: SHHA
 data_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data'
@@ -11,7 +11,7 @@ crop_size:  [256, 256]
 crop_type: 'center'
 gray: False
 device: cuda
-out_dir: 'D:\output\Leps_MASK'
+out_dir: 'D:\output\patch_5'
 #---------------------------MODEL-----------------------------------------------------
 in_ch: 3  # 1=灰階, 3=RGB
 fpn_c: 128
@@ -24,10 +24,15 @@ diffusion_T: 1000
 K: 5
 signal_scale: 2.0
 lambda_exist: 80.
-lambda_x0: 4.0
+lambda_x0: 8.0
 lambda_cnt: 0
 lambda_bg: 0
-log_every:  0
+log_every:  50
 max_norm:  1.0
 #---------------------------realization-----------------------------------------------------
-num_realizations: 8
+ckpt_path: 'D:\output\patch_5\last_epoch0290.pth'
+save_dir: 'C:\pycharm\pointdiff_new\vis_results\all_patch_PATCH5_0290_2'
+hard_thresh: 0.35
+metric: 'hard'
+pick_worst: False
+num_realizations: 2

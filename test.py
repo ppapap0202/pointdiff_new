@@ -117,7 +117,7 @@ if __name__ == "__main__":
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ckpt_path = r"D:\output\Leps_MASK\last_epoch1058.pth"
+    ckpt_path = args.ckpt_path
     model = build_model(args, training=False)
     model = load_checkpoint_into_model(model, ckpt_path, device)
     model.to(device).eval()
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     per_image_points_prob = defaultdict(list)  # img_key -> [tensor(K,), ...]
     per_image_size = {}                        # img_key -> (H_full, W_full)
     per_image_gt_points_xy = defaultdict(list)
-    save_dir = r"C:\pycharm\pointdiff_new\vis_results\all_patch\vis_results_Leps_MASK_1058_8_worst"
+    save_dir = args.save_dir
     os.makedirs(save_dir, exist_ok=True)
 
     for images, points_pad, mask, metas in loader:
@@ -185,6 +185,7 @@ if __name__ == "__main__":
         R = getattr(args, "num_realizations", 1)  # 多重取樣次數，預設 1（等同原本）
 
         for r in range(R):
+            print(r)
             p_t = torch.randn(B, N, 2, device=device)  # ~ N(0, I)
             p_t = p_t * torch.sqrt(1.0 - abar_t0)      # ~ N(0, 1 - abar_t0)
             p_t = p_t.clamp(-1.0 + eps, 1.0 - eps)
@@ -209,7 +210,7 @@ if __name__ == "__main__":
         # 把 R 組 p0 接起來：[B, R*N, 2]
         p_all = torch.cat(p0_list, dim=1)
 
-        hard_thresh = getattr(args, "hard_thresh", 0.5)
+        hard_thresh = args.hard_thresh
 
         pred_cnt_list = []
         pred_cnt_hard_list = []
@@ -434,26 +435,24 @@ if __name__ == "__main__":
             if hit_mask.any():
                 prob_merged[i_pix] = prob_all[hit_mask].max()
 
-        valid_mask = (prob_merged > hard_thresh)
+        valid_mask = (prob_merged > hard_thresh)  # 注意：這裡用 >，後面畫圖也用同一套
         x_valid = x_uniq[valid_mask]
         y_valid = y_uniq[valid_mask]
         s_valid = prob_merged[valid_mask]
 
         r_pix = max(3, int(0.005 * min(H_img, W_img)))
 
-        # 執行 NMS
+        pred_xy_hard_nms = np.zeros((0, 2), dtype=np.float32)  # (K,2) global pixel
         if x_valid.numel() > 0:
-            pts_t = torch.stack([x_valid, y_valid], dim=1).to(device)  # [N, 2]
-            scr_t = s_valid.to(device)
+            pts_t = torch.stack([x_valid, y_valid], dim=1).to(device).float()  # [N,2]
+            scr_t = s_valid.to(device).float()
+            keep_idx = radius_nms_xyxy(pts_t, scr_t, r=r_pix).detach().cpu()
 
-            # 呼叫你原本定義好的 radius_nms_xyxy
-            # 注意：radius_nms_xyxy 需確保能在這裡被呼叫 (它定義在 global scope 沒問題)
-            keep_idx = radius_nms_xyxy(pts_t, scr_t, r=r_pix)
+            x_keep = x_valid[keep_idx].detach().cpu().numpy().astype(np.float32)
+            y_keep = y_valid[keep_idx].detach().cpu().numpy().astype(np.float32)
+            pred_xy_hard_nms = np.stack([x_keep, y_keep], axis=1)  # (K,2)
 
-            # 4. 算出 NMS 後的最終人數
-            pred_hard_nms = float(len(keep_idx))
-        else:
-            pred_hard_nms = 0.0
+        pred_hard_nms = float(pred_xy_hard_nms.shape[0])
 
         pred_soft = float(prob_merged.sum().item())
         pred_hard_raw = float((prob_merged >= hard_thresh).float().sum().item())
@@ -508,6 +507,8 @@ if __name__ == "__main__":
             'xs_all': xs_all,
             'ys_all': ys_all,
             'exist_prob_all': exist_prob_all,
+            'pred_xy_hard_nms': pred_xy_hard_nms,  # <- 新增：硬預測最終點
+            'r_pix': int(r_pix),  # <- 新增：用的 NMS 半徑
         }
 
     # ---------------- 以「原圖」為單位計算 MAE / RMSE，並列出每張結果 ----------------
@@ -558,7 +559,7 @@ if __name__ == "__main__":
 
     top_k = 10
     # True = 看最慘的，False = 看最好的
-    pick_worst = False
+    pick_worst = args.pick_worst
 
     ranked = sorted(
         error_dict.items(),
@@ -575,52 +576,29 @@ if __name__ == "__main__":
             continue
 
         vis = per_image_vis_sample[k]
-        img_np = vis['img_np'].copy()  # 代表 patch
-        px = np.asarray(vis['xs_f'], dtype=np.float32)
-        py = np.asarray(vis['ys_f'], dtype=np.float32)
-        exist_prob = np.asarray(vis['exist_prob'], dtype=np.float32)
+        img_np = vis['img_np'].copy()
         H = vis['H']
         W = vis['W']
 
-        # === 用模型估計的人數 n = round(sum(sigmoid))，挑 top-n 分數最高的點 ===
-        n = int(max(0, round(float(exist_prob.sum()))))
-        n = int(min(n, exist_prob.shape[0]))
+        # 取出 hard+NMS 最終點（這批點數會對齊 pred_total）
+        pred_xy = np.asarray(vis.get('pred_xy_hard_nms', np.zeros((0, 2), np.float32)), dtype=np.float32)
+        r_pix = int(vis.get('r_pix', max(3, int(0.005 * min(H, W)))))
 
-        if n > 0:
-            r_pix = max(3, int(0.005 * min(H, W)))
+        # 畫 GT（綠色）
+        if 'gt_xs' in vis and 'gt_ys' in vis:
+            for (gx, gy) in zip(vis['gt_xs'], vis['gt_ys']):
+                gx = int(np.clip(gx, 0, W - 1))
+                gy = int(np.clip(gy, 0, H - 1))
+                cv2.circle(img_np, (gx, gy), radius=3, color=(0, 255, 0), thickness=-1)
 
-            pts_t = torch.from_numpy(np.stack([px, py], axis=1)).to(device).float()
-            scr_t = torch.from_numpy(exist_prob).to(pts_t.device).float()
+        # 畫 Hard 預測（藍色）
+        for (x, y) in pred_xy:
+            x_i = int(np.clip(round(float(x)), 0, W - 1))
+            y_i = int(np.clip(round(float(y)), 0, H - 1))
+            cv2.circle(img_np, (x_i, y_i), 3, (255, 0, 0), -1)
 
-            keep_idx_t = radius_nms_xyxy(pts_t, scr_t, r=r_pix)
-
-            # ---------- MOD: 在這裡重新定義 m，避免使用到外面 loop 的殘值 ----------
-            m = int(0.001 * min(H, W))
-            a = ((W - 2 * m) * (H - 2 * m)) / float(W * H)
-            a = max(a, 1e-6)
-
-            n_in = float(exist_prob.sum())
-            n_hat = int(round(n_in / a))
-
-            n_floor = int(np.ceil(0.8 * len(keep_idx_t)))
-            n = max(n_hat, n_floor)
-            n = min(n, len(keep_idx_t))
-
-            top_idx = keep_idx_t[:n].cpu().numpy()
-
-            if top_idx.size < n:
-                all_idx = np.arange(exist_prob.shape[0])
-                remain = np.setdiff1d(all_idx, top_idx, assume_unique=False)
-                fill_k = min(n - top_idx.size, remain.size)
-                if fill_k > 0:
-                    fill = remain[np.argsort(-exist_prob[remain])[:fill_k]]
-                    top_idx = np.concatenate([top_idx, fill], axis=0)
-
-            print(f"[dbg] raw={exist_prob.shape[0]} after_inner={len(px)} "
-                  f"after_nms={len(keep_idx_t)} n_soft={n} drawn={len(top_idx)} "
-                  f"r={r_pix}")
-        else:
-            top_idx = np.array([], dtype=int)
+        n = int(pred_xy.shape[0])
+        print(f"[dbg-hard] hard_draw={n} r={r_pix}")
 
         # 畫「GT 點」（綠色）
         if 'gt_xs' in vis and 'gt_ys' in vis:
@@ -628,11 +606,6 @@ if __name__ == "__main__":
                 gx = int(np.clip(gx, 0, W - 1))
                 gy = int(np.clip(gy, 0, H - 1))
                 cv2.circle(img_np, (gx, gy), radius=3, color=(0, 255, 0), thickness=-1)
-
-        xs_draw = np.clip(np.round(px[top_idx]).astype(int), 0, W - 1)
-        ys_draw = np.clip(np.round(py[top_idx]).astype(int), 0, H - 1)
-        for (x, y) in zip(xs_draw, ys_draw):
-            cv2.circle(img_np, (int(x), int(y)), 3, (255, 0, 0), -1)
 
         try:
             img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
@@ -661,12 +634,6 @@ if __name__ == "__main__":
         uniq = np.unique(np.stack([xs_int, ys_int], axis=1), axis=0)
 
         print(f"[dbg-ALL] total={len(xs_all)} unique_pixels={len(uniq)}")
-        # 先畫 GT（綠色）
-        if 'gt_xs' in vis and 'gt_ys' in vis:
-            for (gx, gy) in zip(vis['gt_xs'], vis['gt_ys']):
-                gx = int(np.clip(gx, 0, W - 1))
-                gy = int(np.clip(gy, 0, H - 1))
-                cv2.circle(img_all, (gx, gy), 3, (0, 255, 0), -1)
 
         # 再畫所有候選點（紅色，N 一般是 900）
         for x, y in zip(xs_all, ys_all):

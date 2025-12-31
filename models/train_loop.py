@@ -5,7 +5,7 @@ from torch.cuda.amp import autocast, GradScaler
 from models.diffusion_utils import pixels_to_m11, forward_noisy
 import torch.nn.functional as F
 import time
-
+import inspect, os
 
 # @torch.no_grad()
 # def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 1000):
@@ -178,7 +178,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
     # ---- 累積器（supervised loss 統計）----
     total_loss = 0.0
     n_steps = 0
-    run_Lcnt = run_Lexist = run_Laux = 0.0   # Laux: 這裡代表 Lx0
+    run_Lcnt = run_Lexist = run_Laux = run_Leps =0.0   # Laux: 這裡代表 Lx0
 
     # ---- 短步 DDIM 統計（與推論一致）----
     total_mae, total_mse, total_imgs = 0.0, 0.0, 0
@@ -197,6 +197,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
     abar_all = sched.abar.to(device=device)
 
     for images, points_pad, mask, metas in data_loader:
+        #print(len(data_loader))
         images     = images.to(device, non_blocking=True)      # [B,C,H,W]
         points_pad = points_pad.to(device, non_blocking=True)  # [B,N,2] (pixels)
         mask       = mask.to(device, non_blocking=True)        # [B,N] (bool/0-1)
@@ -206,7 +207,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
 
         # 影像只 encode 一次
         feats = model.encode(images)
-
+        cond_cache = model.cond.precompute(*feats)
         # pixel -> [-1,1]（若已是 [-1,1]，可直接 p0 = points_pad）
         p0 = pixels_to_m11(points_pad, H, W)                   # [B,N,2]
 
@@ -222,13 +223,13 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
             abar_t = abar_t_
         abar_t = abar_t.to(device=device)
 
-        eps_pred, exist_logit = model.denoise(feats, p_t, t_int, abar_t=abar_t, clamp_eps=1e-6)
+        eps_pred, exist_logit = model.denoise(feats, p_t, t_int, abar_t=abar_t, clamp_eps=1e-6, cond_cache=cond_cache)
 
         # （如果模型輸出 [B,N,1]，壓成 [B,N] ）
         if exist_logit is not None and exist_logit.dim() == 3 and exist_logit.size(-1) == 1:
             exist_logit = exist_logit.squeeze(-1)
 
-        loss, L_exist, L_x0, L_cnt, _ = criterion(
+        loss, L_exist, L_x0, L_cnt, L_eps  = criterion(
             p_t=p_t, p0=p0, mask=mask, abar_t=abar_t,
             eps_pred=eps_pred, exist_logit=exist_logit,
         )
@@ -239,6 +240,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
         run_Lcnt   += float(L_cnt)
         run_Lexist += float(L_exist)
         run_Laux   += float(L_x0)
+        run_Leps   += float(L_eps)
 
         # ---- 單步口徑的軟計數（對齊 L_cnt）→ MAE_soft ----
         exist_prob_supervised = torch.sigmoid(exist_logit)                  # [B,N]
@@ -357,8 +359,9 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
         avg_Lexist = run_Lexist / n_steps
         avg_Lcnt   = run_Lcnt   / n_steps
         avg_Lx0    = run_Laux   / n_steps
+        avg_Leps = run_Leps / n_steps
     else:
-        avg_loss = avg_Lexist = avg_Lx0 = avg_Lcnt = 0.0
+        avg_loss = avg_Lexist = avg_Lx0 = avg_Lcnt = avg_Leps=0.0
 
     if total_imgs > 0:
         avg_mae  = total_mae / total_imgs
@@ -384,10 +387,10 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
         aucish = float('nan')
 
     logging.info(
-        f"[val] loss={avg_loss:.4f} Lex={avg_Lexist:.4f} Lx0={avg_Lx0:.4f} Lcnt={avg_Lcnt:.4f} "
+        f"[val] loss={avg_loss:.4f} Lex={avg_Lexist:.4f} Lx0={avg_Lx0:.4f} Lcnt={avg_Lcnt:.4f},Leps={avg_Leps:.4f}  "
         f"| MAE={avg_mae:.2f} RMSE={avg_rmse:.2f} "
         f"(hard: MAE_hard={avg_mae_hard:.2f}, RMSE_hard={avg_rmse_hard:.2f}; "
-        f"soft_step: MAE_soft={avg_mae_soft:.2f}; "
+        #f"soft_step: MAE_soft={avg_mae_soft:.2f}; "
         f"GT+Rand: MAE_gtmix={avg_mae_gtmix:.2f}, "
         f"avg_p_GT={avg_p_gt:.3f}, avg_p_rand={avg_p_rand:.3f}, AUC~={aucish:.3f})"
     )
@@ -456,6 +459,7 @@ def train_one_epoch(
     K_eff_global = max(1, min(K_int, T_int - 1))
 
     for step, (images, points_pad, mask, metas) in enumerate(data_loader, start=1):
+        #print(len(data_loader))
         images     = images.to(device, non_blocking=True)   # [B,C,H,W]
         points_pad = points_pad.to(device, non_blocking=True)  # [B,N,2] (像素座標)
         mask       = mask.to(device, non_blocking=True)        # [B,N]   True=前景
@@ -465,7 +469,7 @@ def train_one_epoch(
 
         # encode 一次
         feats = model.encode(images)
-
+        cond_cache = model.cond.precompute(*feats)
         # 若 points_pad 已是 [-1,1]，可改成 p0 = points_pad
         p0 = pixels_to_m11(points_pad, H, W)  # [B,N,2]
 
@@ -498,51 +502,42 @@ def train_one_epoch(
                 abar_prev = sched.get(t_prev).unsqueeze(-1)     # [B,1,1]
 
                 # 預測
+                need_exist = (k >= K_eff - 4)
+
                 eps_pred, exist_logit = model.denoise(
-                    feats, p_t, t_cur, abar_t=abar_cur, clamp_eps=1e-6
+                    feats, p_t, t_cur,
+                    abar_t=abar_cur, clamp_eps=1e-6,
+                    cond_cache=cond_cache,
+                    need_exist=need_exist
                 )
-                exist_logit = torch.clamp(exist_logit, -30.0, 30.0)
-                finite_vals = exist_logit[torch.isfinite(exist_logit)]
-                # if finite_vals.numel() > 0:
-                #     print("  finite logits range: min=",
-                #           finite_vals.min().item(),
-                #           "max=",
-                #           finite_vals.max().item())
-                #print(exist_logit.size())
-                if not torch.isfinite(eps_pred).all() or not torch.isfinite(exist_logit).all():
-                    print(f"[DEBUG] step={step}, k={k}")
-                    print("  t_cur:", t_cur.flatten().tolist()[:8])  # 看一下是哪些 t 爆的
 
-                    # 分開看 nan / inf
-                    bad_mask = ~torch.isfinite(exist_logit)
-                    nan_mask = torch.isnan(exist_logit)
-                    inf_mask = torch.isinf(exist_logit)
+                # # eps_pred 檢查
+                # if not torch.isfinite(eps_pred).all():
+                #     print(f"[DEBUG] step={step}, k={k} eps_pred NaN/inf")
 
-                    print("  exist_logit has", bad_mask.sum().item(), "bad values "
-                                                                      f"(nan={nan_mask.sum().item()}, inf={inf_mask.sum().item()})")
-
-                    # 列出前幾個壞掉的位置 & 值
-                    idx_bad = torch.nonzero(bad_mask, as_tuple=False)
-                    print("  first bad indices (up to 10):", idx_bad[:10].tolist())
-                    if idx_bad.numel() > 0:
-                        vals = exist_logit[bad_mask]
-                        print("  first bad values (up to 10):", vals[:10].detach().cpu().tolist())
-
-
-                # ===== NEW: compute lambda_t (SNR-based weighting) =====
+                # ===== lambda_t =====
                 eps = 1e-8
                 alpha_t = abar_cur / (abar_prev + eps)
                 beta_t = 1 - alpha_t
                 snr_t = abar_cur / (1 - abar_cur + eps)
                 lambda_t = ((1 - beta_t) * (1 - abar_cur) / (beta_t + eps)) / ((1.0 + snr_t) ** 1.0)
                 lambda_t_scalar = lambda_t.mean()
-                #print(lambda_t_scalar)
-                # 使用 abar_cur 作為衰減係數。
-                # t 小 (接近 1) -> 權重接近 1 -> 強力監督分類與計數
-                # t 大 (接近 0) -> 權重接近 0 -> 忽略分類與計數 Loss
-                aux_weight_scalar = (abar_cur ** 2).mean().item()
-                # 註: 如果希望衰減得更快(只在最後幾步學分類)，可以用 abar_cur.mean() ** 2
 
+                # ===== exist gate（只在最後兩步算分類）=====
+                if not need_exist:
+                    exist_logit = torch.zeros((B, N_gt), device=device, dtype=eps_pred.dtype)
+                    lambda_t_scalar = lambda_t_scalar * 0.0
+                    aux_weight_scalar = lambda_t_scalar * 0.0
+                else:
+                    if exist_logit is None:
+                        raise RuntimeError("need_exist=True but denoise returned None exist_logit")
+                    exist_logit = torch.clamp(exist_logit, -30.0, 30.0)
+                    aux_weight_scalar = (abar_cur ** 2).mean()
+
+                    # if not torch.isfinite(exist_logit).all():
+                    #     print(f"[DEBUG] step={step}, k={k} exist_logit NaN/inf")
+
+                # ===== loss =====
                 loss_k, L_exist, L_x0, L_cnt, L_bg, Leps = criterion(
                     p_t=p_t, p0=p0, mask=mask, abar_t=abar_cur,
                     eps_pred=eps_pred, exist_logit=exist_logit,
@@ -573,7 +568,7 @@ def train_one_epoch(
             # === 短鏈結束後：用「最終 x0」對齊驗證口徑，計算 L_cnt_val 與 L_bg ===
             x0_like = x0_hat  # 顯存緊可用 x0_hat.detach()
 
-            pf_val  = model.cond(*feats, x0_like)               # [B,N,cond*3]
+            pf_val = model.cond.forward_cached(cond_cache, x0_like)              # [B,N,cond*3]
             logit_v = model.conf_head(pf_val)                   # [B,N] or [B,N,1]
             if logit_v.dim() == 3 and logit_v.size(-1) == 1:
                 logit_v = logit_v.squeeze(-1)

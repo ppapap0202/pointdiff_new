@@ -118,39 +118,59 @@ class EncoderFPN(nn.Module):
 import torch
 import torch.nn.functional as F
 
+import torch
+import torch.nn.functional as F
+
 def sample_point_feats(P, p_norm, patch=1):
     """
-    P: [B,C,H,W], p_norm: [B,N,2] in [-1,1]
-    patch: 取樣鄰域大小，1 表示只取中心點；>1 會展開 k×k 鄰域並拼接
+    Fast version.
+    P: [B,C,H,W]
+    p_norm: [B,N,2] in [-1,1] (x,y)
+    patch: odd int. 1 means center only; >1 returns C*patch*patch by concatenation.
     """
     B, C, H, W = P.shape
     B2, N, _ = p_norm.shape
     assert B == B2, "Batch size mismatch"
 
-    # 取樣中心點
-    grid = p_norm.view(B, N, 1, 2)
+    # center only
+    if patch <= 1:
+        grid = p_norm.view(B, N, 1, 2)
+        feat = F.grid_sample(
+            P, grid, mode='bilinear',
+            align_corners=True, padding_mode='zeros'
+        )  # [B,C,N,1]
+        return feat.squeeze(-1).transpose(1, 2)  # [B,N,C]
+
+    assert patch % 2 == 1, "patch should be odd (e.g., 3/5/7)."
+    r = patch // 2
+
+    dx = 2.0 / max(W - 1, 1)
+    dy = 2.0 / max(H - 1, 1)
+
+    offs = []
+    for j in range(-r, r + 1):
+        for i in range(-r, r + 1):
+            offs.append((i * dx, j * dy))
+    offs = torch.tensor(offs, device=p_norm.device, dtype=p_norm.dtype)  # [K,2]
+    K = offs.shape[0]  # patch*patch
+
+    # p_norm: [B,N,2] -> [B,N,1,2]
+    base = p_norm.unsqueeze(2)  # [B,N,1,2]
+    grid = base + offs.view(1, 1, K, 2)  # [B,N,K,2] (may go out of [-1,1], zeros padding handles it)
+    # reshape to grid_sample format: [B, H_out, W_out, 2]
+    # we want H_out=N, W_out=K
+    grid = grid.view(B, N, K, 2)
+
     feat = F.grid_sample(
         P, grid, mode='bilinear',
-        align_corners=True, padding_mode='border'
-    )  # [B,C,N,1]
-    feat = feat.squeeze(-1).transpose(1, 2)  # [B,N,C]
+        align_corners=True, padding_mode='zeros'
+    )  # [B,C,N,K]
 
-    # 若 patch>1，取周圍 k×k 鄰域
-    if patch > 1:
-        r = patch // 2
-        dx = 2.0 / max(W - 1, 1)
-        dy = 2.0 / max(H - 1, 1)
-        feats = [feat]
-        for j in range(-r, r + 1):
-            for i in range(-r, r + 1):
-                if i == 0 and j == 0:
-                    continue
-                grid_off = (p_norm + torch.tensor([i*dx, j*dy], device=p_norm.device)).view(B, N, 1, 2).clamp(-1, 1)
-                f = F.grid_sample(P, grid_off, mode='bilinear', align_corners=True, padding_mode='border')
-                feats.append(f.squeeze(-1).transpose(1, 2))
-        feat = torch.cat(feats, dim=-1)  # [B,N,C*patch*patch]
-
+    # rearrange to [B,N,C*K] with the SAME offset ordering
+    feat = feat.permute(0, 2, 1, 3).contiguous()  # [B,N,C,K]
+    feat = feat.view(B, N, C * K)                 # [B,N,C*patch*patch]
     return feat
+
 
 
 class MSFusionGate(nn.Module):
@@ -173,7 +193,7 @@ class MSFusionGate(nn.Module):
         return out
 
 class PointConditioner(nn.Module):
-    def __init__(self, c_fpn=128, cond_c=64, patch=3, with_gate=False):
+    def __init__(self, c_fpn=128, cond_c=64, patch=5, with_gate=False):
         super().__init__()
         self.c4  = nn.Conv2d(c_fpn, cond_c, 1)
         self.c8  = nn.Conv2d(c_fpn, cond_c, 1)
@@ -187,27 +207,55 @@ class PointConditioner(nn.Module):
         if with_gate:
             self.gate = MSFusionGate(cond_c=cond_c)
         self.global_pool = nn.AdaptiveAvgPool2d(1)
-        self.global_proj = nn.Linear(c_fpn, cond_c)  # 把 P16 壓扁成 vector
-        self.out_dim = cond_c * 3+cond_c
+        self.global_proj = nn.Linear(c_fpn, cond_c)
+        self.out_dim = cond_c * 3 + cond_c  # local(3C)+global(C)
+
+    @torch.no_grad()
+    def precompute(self, P4, P8, P16):
+        """
+        每個 batch 只做一次的昂貴部分：
+          1) 1x1 conv 降維後的 feature map
+          2) global context (from P16)
+        回傳 cache dict，之後 forward_cached() 可重用。
+        """
+        q4  = self.c4(P4)     # [B,cond_c,H4,W4]
+        q8  = self.c8(P8)     # [B,cond_c,H8,W8]
+        q16 = self.c16(P16)   # [B,cond_c,H16,W16]
+
+        g = self.global_pool(P16).flatten(1)     # [B,c_fpn]
+        g = self.global_proj(g)                  # [B,cond_c]
+        return {"q4": q4, "q8": q8, "q16": q16, "g": g}
+
+    def forward_cached(self, cache, p_norm):
+        """
+        cache: 由 precompute() 得到
+        p_norm: [B,N,2] in [-1,1]
+        """
+        q4, q8, q16, g = cache["q4"], cache["q8"], cache["q16"], cache["g"]
+
+        f4  = sample_point_feats(q4,  p_norm, patch=self.patch)   # [B,N,cond_c*k*k] or [B,N,cond_c]
+        f8  = sample_point_feats(q8,  p_norm, patch=self.patch)
+        f16 = sample_point_feats(q16, p_norm, patch=self.patch)
+
+        if self.patch > 1:
+            f4  = self.flat4(f4)
+            f8  = self.flat8(f8)
+            f16 = self.flat16(f16)
+
+        if self.with_gate:
+            local_feat = self.gate(f4, f8, f16)   # [B,N,3*cond_c]
+        else:
+            local_feat = torch.cat([f4, f8, f16], dim=-1)
+
+        N = p_norm.shape[1]
+        g_exp = g.unsqueeze(1).expand(-1, N, -1)  # [B,N,cond_c]
+        return torch.cat([local_feat, g_exp], dim=-1)  # [B,N, 3C + C] = [B,N,4C]
 
     def forward(self, P4, P8, P16, p_norm):
-        f4  = sample_point_feats(self.c4(P4),  p_norm, patch=self.patch)
-        f8  = sample_point_feats(self.c8(P8),  p_norm, patch=self.patch)
-        f16 = sample_point_feats(self.c16(P16), p_norm, patch=self.patch)
-        # 計算 Global Context (來自 P16，視野最大)
-        # P16: [B, C, H/16, W/16] -> [B, C, 1, 1] -> [B, C]
-        global_ctx = self.global_pool(P16).flatten(1)
-        global_ctx = self.global_proj(global_ctx)  # [B, cond_c]
-        # 擴展到每個點: [B, cond_c] -> [B, N, cond_c]
-        N = p_norm.shape[1]
-        global_ctx_expanded = global_ctx.unsqueeze(1).expand(-1, N, -1)
-        if self.patch > 1:
-            f4  = self.flat4(f4);  f8  = self.flat8(f8);  f16 = self.flat16(f16)
-        if self.with_gate:
-            # 如果你有用 Gate，Gate 也要改，這裡示範簡單拼接
-            local_feat = self.gate(f4, f8, f16)
-            return torch.cat([local_feat, global_ctx_expanded], dim=-1)
-        return torch.cat([f4, f8, f16, global_ctx_expanded], dim=-1)
+        # 舊介面保留：不想改其他地方時仍可用
+        cache = self.precompute(P4, P8, P16)
+        return self.forward_cached(cache, p_norm)
+
 
 # ---------- timestep embedding ----------
 class TimestepEmbed(nn.Module):
@@ -274,7 +322,7 @@ class DenoiserHeadRes(nn.Module):
         for blk in self.blocks: h = blk(h)
         h = self.norm(h)
         eps = self.eps_head(h)
-        #exist_logit = self.exist_head(h).squeeze(-1)
+        exist_logit = self.exist_head(h).squeeze(-1)
         return eps
 
 class ConfidenceHead(nn.Module):
@@ -307,42 +355,47 @@ class ModelBuilder(nn.Module):
         # images: [B,in_ch,H,W]
         return self.backbone(images)
 
-    def denoise(self, feats, p_t, t, abar_t=None, clamp_eps=1e-6):
-        # feats: tuple(P4,P8,P16), p_t: [B,N,2] in [-1,1], t: [B,1] or [B,N]
+    def denoise(self, feats, p_t, t, abar_t=None, clamp_eps=1e-6, cond_cache=None, need_exist=True):
         P4, P8, P16 = feats
-        pf = self.cond(P4, P8, P16, p_t)            # [B,N,cond_c*3]
-        te = self.temb(t)                           # [B,1,t_dim] or [B,N,t_dim]
-        if te.dim()==3 and te.size(1)==1:
+
+        # pf at p_t
+        if cond_cache is None:
+            pf = self.cond(P4, P8, P16, p_t)
+        else:
+            pf = self.cond.forward_cached(cond_cache, p_t)
+
+        te = self.temb(t)
+        if te.dim() == 3 and te.size(1) == 1:
             te = te.expand(pf.size(0), pf.size(1), te.size(-1))
-        x = torch.cat([pf, te, p_t], dim=-1)        # [B,N,cond_c*3 + t_dim + 2]
-        #print(x.shape)
-        eps_pred = self.head_eps(x)  # [B,N,2]
-        # 若傳入 abar_t，還原 x0_hat；否則預設 t=0 的簡化（不傳也行）
+
+        x = torch.cat([pf, te, p_t], dim=-1)
+        eps_pred = self.head_eps(x)
+
+        # x0_hat
         if abar_t is None:
-            # 只有當 t=0 才合理；一般訓練會給 abar_t
             x0_hat = p_t
         else:
-            # x0 = (p_t - sqrt(1-abar)*eps) / sqrt(abar)
             abar = abar_t
-            if abar.dim() == 3 and abar.size(1) == 1:  # [B,1,1] → [B,N,1]
+            if abar.dim() == 3 and abar.size(1) == 1:
                 abar = abar.expand(pf.size(0), pf.size(1), 1)
             sqrt_abar = (abar + clamp_eps).sqrt()
             sqrt_onem = (1.0 - abar).clamp_min(0).sqrt()
-            # print("[DEBUG] p_t", p_t.shape, p_t.dtype)
-            # print("[DEBUG] abar", abar.shape, abar.dtype)
-            # print("[DEBUG] eps_pred", eps_pred.shape, eps_pred.dtype)
-            x0_hat = (p_t - sqrt_onem * eps_pred) / sqrt_abar
-            x0_hat = x0_hat.clamp(-1.0+1e-3, 1.0-1e-3)
-        if not torch.isfinite(x0_hat).all():
-            print("[WARN] x0_hat has NaN/inf")
-        # 在 x0_hat 位置再次取樣特徵，回歸存在分數
-        pf_hat = self.cond(P4, P8, P16, x0_hat.detach())  # detach 可選：讓 conf 先穩
-        if not torch.isfinite(pf_hat).all():
-            print("[WARN] pf_hat has NaN/inf")
+            x0_hat = (p_t - sqrt_onem * eps_pred) / (sqrt_abar + 1e-12)
+            x0_hat = x0_hat.clamp(-1.0 + 1e-3, 1.0 - 1e-3)
 
-        exist_logit = self.conf_head(pf_hat)
-        if not torch.isfinite(exist_logit).all():
-            print("[WARN] exist_logit has NaN/inf")
+        # exist head optional
+        exist_logit = None
+        if need_exist:
+            if cond_cache is None:
+                pf_hat = self.cond(P4, P8, P16, x0_hat.detach())
+            else:
+                pf_hat = self.cond.forward_cached(cond_cache, x0_hat.detach())
+            exist_logit = self.conf_head(pf_hat)
+        # if need_exist:
+        #     print("[DEBUG] need_exist=True")
+        #     print("[DEBUG] exist_logit type:", type(exist_logit))
+        #     assert exist_logit is not None, "BUG: need_exist=True but exist_logit is None"
         return eps_pred, exist_logit
+
 
 
