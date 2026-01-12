@@ -241,14 +241,41 @@ class setCriterion(nn.Module):
             sqrt_ab = sqrt_ab.unsqueeze(-1)  # → [B,1,1,1] ... 對齊 [B,N,2]
             sqrt_om = sqrt_om.unsqueeze(-1)
 
-        # ---- 2. ground-truth noise ε_true + L_eps (論文主角) ----
-        # p_t = sqrt(abar_t) * p0 + sqrt(1-abar_t) * eps_true
-        eps_true = (p_t - sqrt_ab * p0) / (sqrt_om + eps)    # [B,N,2]
-        L_eps = F.mse_loss(eps_pred, eps_true)
+        # ---- 2. ground-truth noise ε_true + L_eps ----
+        eps_true = (p_t - sqrt_ab * p0) / (sqrt_om + eps)  # [B,N,2]
+        maskb = mask.bool()
 
+        if maskb.any():
+            # per-point mse (sum over xy)
+            per_pt = (eps_pred - eps_true).pow(2).sum(dim=-1)  # [B,N]
+
+            # only GT slots
+            per_pt = per_pt * maskb.float()  # [B,N]
+
+            # per-image average (divide by #GT in that image)
+            den = maskb.float().sum(dim=1).clamp_min(1.0)  # [B]
+            per_img = per_pt.sum(dim=1) / den  # [B]
+
+            # batch average
+            L_eps = per_img.mean()
+        else:
+            L_eps = eps_pred.new_tensor(0.0)
+
+        # ---- early return if aux_weight==0 ----
+        if (aux_weight is not None) and (float(aux_weight) == 0.0):
+            if lambda_t is None:
+                loss = L_eps
+            else:
+                lambda_t_scalar = lambda_t.mean() if isinstance(lambda_t, torch.Tensor) else float(lambda_t)
+                loss = lambda_t_scalar * L_eps
+
+            zero = eps_pred.new_tensor(0.0)
+            return loss, zero, zero, zero, zero, L_eps
+        # =========================================================
         # ---- 3. 反推出 x0_hat（給 x0 loss / 匹配用）----
         x0_hat = (p_t - sqrt_om * eps_pred) / (sqrt_ab + eps)
         x0_hat = x0_hat.clamp(-1 + 1e-3, 1 - 1e-3)
+
 
         # ---- 4. 匹配 (Hungarian) ----
         # 注意：使用 detach() 的 x0_hat 去做匹配，避免存在度梯度影響 L_x0
