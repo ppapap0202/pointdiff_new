@@ -600,12 +600,7 @@ if __name__ == "__main__":
         n = int(pred_xy.shape[0])
         print(f"[dbg-hard] hard_draw={n} r={r_pix}")
 
-        # 畫「GT 點」（綠色）
-        if 'gt_xs' in vis and 'gt_ys' in vis:
-            for (gx, gy) in zip(vis['gt_xs'], vis['gt_ys']):
-                gx = int(np.clip(gx, 0, W - 1))
-                gy = int(np.clip(gy, 0, H - 1))
-                cv2.circle(img_np, (gx, gy), radius=3, color=(0, 255, 0), thickness=-1)
+
 
         try:
             img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
@@ -645,7 +640,12 @@ if __name__ == "__main__":
             img_all_bgr = cv2.cvtColor(img_all, cv2.COLOR_RGB2BGR)
         except cv2.error:
             img_all_bgr = img_all
-
+        # 畫「GT 點」（綠色）
+        if 'gt_xs' in vis and 'gt_ys' in vis:
+            for (gx, gy) in zip(vis['gt_xs'], vis['gt_ys']):
+                gx = int(np.clip(gx, 0, W - 1))
+                gy = int(np.clip(gy, 0, H - 1))
+                cv2.circle(img_np, (gx, gy), radius=3, color=(0, 255, 0), thickness=-1)
         out_path_all = os.path.join(
             save_dir,
             f"top{rank:02d}_ALLPTS_pred{pred_total:.2f}_gt{gt_total:.2f}_err{err:.2f}_{out_name}"

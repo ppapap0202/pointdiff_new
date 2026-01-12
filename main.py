@@ -116,11 +116,11 @@ def main():
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"D:\output\patch_5\last_epoch0014.pth", map_location="cuda:0")
+    checkpoint = torch.load(r"D:\output\convnext_base_patch_5\last_epoch0003.pth", map_location="cuda:0")
     #
     # # 載入模型與優化器參數
     model.load_state_dict(checkpoint['model_state'])
-    optim.load_state_dict(checkpoint['optim_state'])
+    #optim.load_state_dict(checkpoint['optim_state'])
     scaler.load_state_dict(checkpoint['scaler_state'])
 
     print('start training')

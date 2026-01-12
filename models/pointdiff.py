@@ -263,7 +263,6 @@ class EncoderFPN(nn.Module):
         P4  = self.smooth4(l4)
         return P4, P8, P16
 
-
 # ---------- ROI-free 點特徵取樣 ----------
 
 

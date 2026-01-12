@@ -11,7 +11,7 @@ crop_size:  [256, 256]
 crop_type: 'center'
 gray: False
 device: cuda
-out_dir: 'D:\output\patch_5'
+out_dir: 'D:\output\convnext_base_patch_5'
 #---------------------------MODEL-----------------------------------------------------
 in_ch: 3  # 1=灰階, 3=RGB
 fpn_c: 128
@@ -23,16 +23,16 @@ lr_backbone: 1e-5
 diffusion_T: 1000
 K: 5
 signal_scale: 2.0
-lambda_exist: 80.
-lambda_x0: 8.0
+lambda_exist: 300.
+lambda_x0: 0.1
 lambda_cnt: 0
 lambda_bg: 0
 log_every:  50
 max_norm:  1.0
 #---------------------------realization-----------------------------------------------------
-ckpt_path: 'D:\output\patch_5\last_epoch0290.pth'
-save_dir: 'C:\pycharm\pointdiff_new\vis_results\all_patch_PATCH5_0290_2'
-hard_thresh: 0.35
+ckpt_path: 'D:\output\ConfidenceHead_LayerNorm_patch_5\last_epoch0800.pth'
+save_dir: 'C:\pycharm\pointdiff_new\vis_results\all_patch\ConfidenceHead_LayerNorm_patch_5_0800_2'
+hard_thresh: 0.45
 metric: 'hard'
 pick_worst: False
 num_realizations: 2
