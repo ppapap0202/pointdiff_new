@@ -6,6 +6,41 @@ from models.diffusion_utils import pixels_to_m11, forward_noisy
 import torch.nn.functional as F
 import time
 import inspect, os
+def m11_to_pixels_batch(p_m11: torch.Tensor, H: int, W: int) -> torch.Tensor:
+    """
+    p_m11: [B,N,2] in [-1,1]
+    return: [B,N,2] in pixel coords
+    """
+    x = (p_m11[..., 0] + 1) * 0.5 * (W - 1)
+    y = (p_m11[..., 1] + 1) * 0.5 * (H - 1)
+    return torch.stack([x, y], dim=-1)
+
+@torch.no_grad()
+def point_nms_count(xy_pix: torch.Tensor, score: torch.Tensor, r: float) -> int:
+    """
+    xy_pix: [M,2] (pixel)
+    score : [M]
+    r     : radius in pixels
+    return: kept count after greedy NMS
+    """
+    M = xy_pix.size(0)
+    if M == 0:
+        return 0
+    order = score.argsort(descending=True)
+    xy = xy_pix[order]
+
+    keep = []
+    r2 = float(r) * float(r)
+    for i in range(M):
+        if not keep:
+            keep.append(i)
+            continue
+        # 跟已保留點算距離（平方距離比較快）
+        prev = xy[keep]  # [K,2]
+        d2 = ((prev - xy[i]).pow(2).sum(dim=1))  # [K]
+        if (d2 >= r2).all():
+            keep.append(i)
+    return len(keep)
 
 # @torch.no_grad()
 # def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 1000):
@@ -291,7 +326,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
                 pairwise_pairs += 1
 
         # ---- 多步 DDIM 模擬（與推論一致的 steps/序列）----
-        steps = 50  # 建議與你的測試腳本一致
+        steps = 20  # 建議與你的測試腳本一致
         t_seq = torch.linspace(T-1, 0, steps, device=device, dtype=torch.long)
 
         p_t_gen = torch.empty((B, N, 2), device=device).uniform_(-1.0 + clamp_eps, 1.0 - clamp_eps)
@@ -334,7 +369,24 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
         total_mse += float(((pred_cnt - gt_cnt) ** 2).sum())
         total_imgs += len(gt_cnt)
         thr = 0.45
-        pred_cnt_hard = (exist_prob_sample > thr).sum(dim=1).cpu().numpy()
+        nms_r = 3.0  # 你可以先試 6~10，越大去重越兇（像素）
+
+        # 先把 x0_hat（[-1,1]）轉成 pixel 座標
+        x0_pix = m11_to_pixels_batch(x0_hat, H, W)  # [B,N,2]
+
+        pred_cnt_hard_list = []
+        for b in range(B):
+            prob_b = exist_prob_sample[b]  # [N]
+            cand = prob_b > thr
+
+            xy_b = x0_pix[b, cand]  # [M,2]
+            sc_b = prob_b[cand]  # [M]
+
+            # NMS 去重後的 count
+            cnt_b = point_nms_count(xy_b, sc_b, r=nms_r)
+            pred_cnt_hard_list.append(cnt_b)
+
+        pred_cnt_hard = np.array(pred_cnt_hard_list, dtype=np.float32)
 
         total_mae_hard += float(np.abs(pred_cnt_hard - gt_cnt).sum())
         total_mse_hard += float(((pred_cnt_hard - gt_cnt) ** 2).sum())
@@ -414,7 +466,7 @@ def train_one_epoch(
         device,
         optimizer,
         criterion,
-        scaler: GradScaler,
+        scaler,   # GradScaler
         sched,
         T: int = 1000,
         K: int = 10,  # unroll 步數（建議 5~20）
@@ -432,24 +484,27 @@ def train_one_epoch(
     - data_loader 輸出：(images[B,C,H,W], points_pad[B,N,2](pixels), mask[B,N], metas)
     - sched: CosineAbarSchedule，提供 .abar (tensor 長度 T)
     """
-    import torch.nn.functional as F  # ### NEW: 確保有 F
+    import torch
+    import torch.nn.functional as F
+    from torch.cuda.amp import autocast
 
     model.train()
 
-    # ===== 供 epoch 統計 =====
-    epoch_loss_sum = 0.0
+    # ============================================================
+    # ### CHANGED (1): 統計變數改成「GPU tensor 累積」，避免每 step .item()/float() 同步
+    # ============================================================
+    epoch_loss_sum = torch.zeros((), device=device)   # scalar tensor on GPU
     epoch_step_cnt = 0
 
-    # bucket（分段顯示）
-    bucket_loss = 0.0
-    bucket_Lex  = 0.0
-    bucket_Laux = 0.0  # Laux = Leps 或 Lx0
-    bucket_Lcnt = 0.0
-    bucket_Lcnt_val = 0.0
-    bucket_Lbg = 0.0
-    bucket_Leps = 0.0
-
+    bucket_loss     = torch.zeros((), device=device)
+    bucket_Lex      = torch.zeros((), device=device)
+    bucket_Laux     = torch.zeros((), device=device)  # Laux = Lx0
+    bucket_Lcnt     = torch.zeros((), device=device)
+    bucket_Lcnt_val = torch.zeros((), device=device)
+    bucket_Lbg      = torch.zeros((), device=device)
+    bucket_Leps     = torch.zeros((), device=device)
     bucket_k = 0
+    # ============================================================
 
     # 參數檢查
     T_int = int(T)
@@ -459,10 +514,9 @@ def train_one_epoch(
     K_eff_global = max(1, min(K_int, T_int - 1))
 
     for step, (images, points_pad, mask, metas) in enumerate(data_loader, start=1):
-        #print(len(data_loader))
-        images     = images.to(device, non_blocking=True)   # [B,C,H,W]
-        points_pad = points_pad.to(device, non_blocking=True)  # [B,N,2] (像素座標)
-        mask       = mask.to(device, non_blocking=True)        # [B,N]   True=前景
+        images     = images.to(device, non_blocking=True)      # [B,C,H,W]
+        points_pad = points_pad.to(device, non_blocking=True)  # [B,N,2]
+        mask       = mask.to(device, non_blocking=True)        # [B,N]
 
         B, C, H, W = images.shape
         N_gt = points_pad.size(1)  # e.g., 900
@@ -470,15 +524,16 @@ def train_one_epoch(
         # encode 一次
         feats = model.encode(images)
         cond_cache = model.cond.precompute(*feats)
+
         # 若 points_pad 已是 [-1,1]，可改成 p0 = points_pad
         p0 = pixels_to_m11(points_pad, H, W)  # [B,N,2]
 
         # ---- 隨機起點 t_start ∈ [K_eff, T-1] ----
         K_eff = K_eff_global
-        low, high = K_eff, T_int  # randint 的 high 為開區間
+        low, high = K_eff, T_int
         if low >= high:
             low = max(1, high - 1)
-        t_start = torch.randint(low=low, high=high, size=(B, 1), device=device, dtype=torch.long)  # [B,1]
+        t_start = torch.randint(low=low, high=high, size=(B, 1), device=device, dtype=torch.long)
 
         # 從真實 p0 前向加噪到 p_{t_start}
         p_t, _, _ = forward_noisy(p0, t_start, sched)  # [B,N,2]
@@ -489,19 +544,17 @@ def train_one_epoch(
         Lex_steps  = []
         Lx0_steps  = []
         Lcnt_steps = []
-        Lbg_steps = []
+        Lbg_steps  = []
         Leps_steps = []
+
         with autocast():
             for k in range(K_eff):
-                # --- 當前時間步 ---
-                t_cur = (t_start - k).clamp(min=0)              # [B,1]
-                abar_cur = sched.get(t_cur).unsqueeze(-1)       # [B,1,1]
+                t_cur = (t_start - k).clamp(min=0)          # [B,1]
+                abar_cur = sched.get(t_cur).unsqueeze(-1)   # [B,1,1]
 
-                # DDIM 需要的上一個時間步
-                t_prev = (t_cur - 1).clamp(min=0)               # [B,1]
-                abar_prev = sched.get(t_prev).unsqueeze(-1)     # [B,1,1]
+                t_prev = (t_cur - 1).clamp(min=0)           # [B,1]
+                abar_prev = sched.get(t_prev).unsqueeze(-1) # [B,1,1]
 
-                # 預測
                 need_exist = (k >= K_eff - 4)
 
                 eps_pred, exist_logit = model.denoise(
@@ -511,10 +564,6 @@ def train_one_epoch(
                     need_exist=need_exist
                 )
 
-                # # eps_pred 檢查
-                # if not torch.isfinite(eps_pred).all():
-                #     print(f"[DEBUG] step={step}, k={k} eps_pred NaN/inf")
-
                 # ===== lambda_t =====
                 eps = 1e-8
                 alpha_t = abar_cur / (abar_prev + eps)
@@ -523,7 +572,7 @@ def train_one_epoch(
                 lambda_t = ((1 - beta_t) * (1 - abar_cur) / (beta_t + eps)) / ((1.0 + snr_t) ** 1.0)
                 lambda_t_scalar = lambda_t.mean()
 
-                # ===== exist gate（只在最後兩步算分類）=====
+                # ===== exist gate（只在最後幾步算分類）=====
                 if not need_exist:
                     exist_logit = torch.zeros((B, N_gt), device=device, dtype=eps_pred.dtype)
                     lambda_t_scalar = lambda_t_scalar * 0.0
@@ -533,9 +582,6 @@ def train_one_epoch(
                         raise RuntimeError("need_exist=True but denoise returned None exist_logit")
                     exist_logit = torch.clamp(exist_logit, -30.0, 30.0)
                     aux_weight_scalar = (abar_cur ** 2).mean()
-
-                    # if not torch.isfinite(exist_logit).all():
-                    #     print(f"[DEBUG] step={step}, k={k} exist_logit NaN/inf")
 
                 # ===== loss =====
                 loss_k, L_exist, L_x0, L_cnt, L_bg, Leps = criterion(
@@ -552,41 +598,38 @@ def train_one_epoch(
                 Leps_steps.append(Leps)
 
                 # --- DDIM 反推一步：p_t -> p_{t-1} ---
-                # x0_hat = (p_t - sqrt(1-abar_t)*eps) / sqrt(abar_t)
                 sqrt_ab_t = abar_cur.clamp_min(1e-12).sqrt()
                 sqrt_om_t = (1.0 - abar_cur).clamp_min(0).sqrt()
                 x0_hat = (p_t - sqrt_om_t * eps_pred) / (sqrt_ab_t + 1e-12)
 
-                # eta=0 的 DDIM（deterministic）
                 sqrt_ab_p = abar_prev.clamp_min(1e-12).sqrt()
                 sqrt_om_p = (1.0 - abar_prev).clamp_min(0).sqrt()
                 p_t_next = sqrt_ab_p * x0_hat + sqrt_om_p * eps_pred
 
-                # 穩定性（若顯存夠、想做「可微短鏈」可移除 detach 或只留最後幾步不 detach）
                 p_t = p_t_next.detach().clamp(-1.0 + 1e-3, 1.0 - 1e-3)
 
             # === 短鏈結束後：用「最終 x0」對齊驗證口徑，計算 L_cnt_val 與 L_bg ===
             x0_like = x0_hat  # 顯存緊可用 x0_hat.detach()
 
-            pf_val = model.cond.forward_cached(cond_cache, x0_like)              # [B,N,cond*3]
-            logit_v = model.conf_head(pf_val)                   # [B,N] or [B,N,1]
+            pf_val = model.cond.forward_cached(cond_cache, x0_like)
+            logit_v = model.conf_head(pf_val)
             if logit_v.dim() == 3 and logit_v.size(-1) == 1:
                 logit_v = logit_v.squeeze(-1)
-            prob_v  = torch.sigmoid(logit_v)                    # [B,N]
+            prob_v  = torch.sigmoid(logit_v)
 
-            pred_cnt_v = prob_v.sum(dim=1)                      # 短鏈口徑的軟和
+            pred_cnt_v = prob_v.sum(dim=1)
             gt_cnt     = mask.sum(dim=1).float()
-            L_cnt_val  = F.mse_loss(pred_cnt_v, gt_cnt)         # 校準總量（MSE）
+            L_cnt_val  = F.mse_loss(pred_cnt_v, gt_cnt)
 
-            # 聚合 K 步（平均較穩）+ 加上兩個「短鏈口徑」loss
+            # 聚合 K 步（平均較穩）+ 加上短鏈口徑 loss
             loss = torch.stack(loss_steps).mean()
             Lex  = torch.stack(Lex_steps).mean()
             Lx0  = torch.stack(Lx0_steps).mean()
             Lcnt = torch.stack(Lcnt_steps).mean()
-            Lbg = torch.stack(Lbg_steps).mean()
+            Lbg  = torch.stack(Lbg_steps).mean()
             Leps = torch.stack(Leps_steps).mean()
 
-            loss = loss + lambda_cnt_val * L_cnt_val  # ### NEW
+            loss = loss + lambda_cnt_val * L_cnt_val
 
         # 反傳 + 更新
         scaler.scale(loss).backward()
@@ -596,42 +639,55 @@ def train_one_epoch(
         scaler.step(optimizer)
         scaler.update()
 
-        # ===== 統計 =====
-        epoch_loss_sum += float(loss)
+        # ============================================================
+        # ### CHANGED (2): 這裡不再用 float(loss)/float(Lex)...（那些會強制同步）
+        #                 改成用 GPU tensor detach 後累積；只在 log 時才 .item()
+        # ============================================================
+        epoch_loss_sum += loss.detach()
         epoch_step_cnt += 1
 
-        bucket_loss  += float(loss)
-        bucket_Lex   += float(Lex)
-        bucket_Laux  += float(Lx0)
-        bucket_Lcnt  += float(Lcnt)
-        bucket_Lbg += float(Lbg)
-        bucket_Leps += float(Leps)
-        ### NEW: 記錄兩個新指標
-        bucket_Lcnt_val += float(L_cnt_val)
-
-
+        bucket_loss     += loss.detach()
+        bucket_Lex      += Lex.detach()
+        bucket_Laux     += Lx0.detach()
+        bucket_Lcnt     += Lcnt.detach()
+        bucket_Lcnt_val += L_cnt_val.detach()
+        bucket_Lbg      += Lbg.detach()
+        bucket_Leps     += Leps.detach()
         bucket_k += 1
+        # ============================================================
 
+        # ============================================================
+        # ### CHANGED (3): log 時才同步一次（.item() 只出現在這裡）
+        # ============================================================
         if step % log_every == 0:
-            msg = (f"[train-unroll] it={step:05d} "
-                   f"loss={bucket_loss / bucket_k:.4f} "
-                   f"Lex={bucket_Lex / bucket_k:.4f} "
-                   f"Lx0={bucket_Laux / bucket_k:.4f} "
-                   f"Lcnt={bucket_Lcnt / bucket_k:.4f} "
-                   f"Lcnt_val={bucket_Lcnt_val / bucket_k:.4f} "   # ### NEW
-                   f"Lbg={bucket_Lbg / bucket_k:.4f} "
-                   f"Leps={bucket_Leps / bucket_k:.4f}")            # ### NEW
+            inv_k = 1.0 / max(1, bucket_k)
 
+            msg = (f"[train-unroll] it={step:05d} "
+                   f"loss={(bucket_loss * inv_k).item():.4f} "
+                   f"Lex={(bucket_Lex * inv_k).item():.4f} "
+                   f"Lx0={(bucket_Laux * inv_k).item():.4f} "
+                   f"Lcnt={(bucket_Lcnt * inv_k).item():.4f} "
+                   f"Lcnt_val={(bucket_Lcnt_val * inv_k).item():.4f} "
+                   f"Lbg={(bucket_Lbg * inv_k).item():.4f} "
+                   f"Leps={(bucket_Leps * inv_k).item():.4f}")
             print(msg)
 
-            # reset bucket
-            bucket_loss = bucket_Lex = bucket_Laux = bucket_Lcnt = bucket_Leps = 0.0
-            bucket_Lcnt_val = bucket_Lbg = 0.0
+            bucket_loss.zero_()
+            bucket_Lex.zero_()
+            bucket_Laux.zero_()
+            bucket_Lcnt.zero_()
+            bucket_Lcnt_val.zero_()
+            bucket_Lbg.zero_()
+            bucket_Leps.zero_()
             bucket_k = 0
+        # ============================================================
 
-    # 避免除以 0
+    # ============================================================
+    # ### CHANGED (4): return 時才 .item() 一次
+    # ============================================================
     if epoch_step_cnt == 0:
         return 0.0
-    return epoch_loss_sum / epoch_step_cnt
+    return (epoch_loss_sum / epoch_step_cnt).item()
+    # ============================================================
 
 
