@@ -3,6 +3,7 @@ import logging
 import torch
 from torch.cuda.amp import autocast, GradScaler
 from models.diffusion_utils import pixels_to_m11, forward_noisy
+from models.pointdiff import sample_point_tokens, pool_local_tokens
 import torch.nn.functional as F
 import time
 import inspect, os
@@ -299,8 +300,21 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
                 rand_pts = (u * (1.0 - 2*clamp_eps) + clamp_eps) * 2.0 - 1.0  # (-1+eps,1-eps)
                 p_candidates[b, nb:] = rand_pts
 
-        pf_cand = model.cond(*feats, p_candidates)         # [B,N,cond*3]
-        logit_cand = model.conf_head(pf_cand)              # [B,N] or [B,N,1]
+        # pf_cand: [B,N,4C]
+        pf_cand = model.cond(*feats, p_candidates)
+        # local tokens at candidates
+        cache = model.cond.precompute(*feats)  # 若你已有 cond_cache 就直接用，不要重算
+        tok4 = sample_point_tokens(cache["q4"], p_candidates, patch=model.cond.patch)
+        tok8 = sample_point_tokens(cache["q8"], p_candidates, patch=model.cond.patch)
+        tok16 = sample_point_tokens(cache["q16"], p_candidates, patch=model.cond.patch)
+        local_tokens = torch.cat([tok4, tok8, tok16], dim=0)  # [S, BN, C], S=3*patch^2
+        # pool -> [B,N,2C]
+        B, N, _ = p_candidates.shape
+        pooled = pool_local_tokens(local_tokens, B, N, use_max=True)
+        # conf input -> [B,N,6C]
+        conf_in = torch.cat([pf_cand, pooled], dim=-1)
+        # logits -> [B,N]
+        logit_cand = model.conf_head(conf_in)
         if logit_cand.dim() == 3 and logit_cand.size(-1) == 1:
             logit_cand = logit_cand.squeeze(-1)
         prob_cand = torch.sigmoid(logit_cand)              # [B,N]
@@ -355,9 +369,23 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
             p_t_gen = p_t_gen.clamp(min=-1.0 + clamp_eps, max=1.0 - clamp_eps)
 
         # 走完 DDIM：p_t_gen ≈ x0_hat；在最終 x0 位置重算存在度（與推論一致）
-        x0_hat = p_t_gen.detach()                   # [B,N,2]
-        pf_hat = model.cond(*feats, x0_hat)         # [B,N,cond*3]
-        exist_logit_x0 = model.conf_head(pf_hat)    # [B,N] or [B,N,1]
+        x0_hat = p_t_gen.detach()  # [B,N,2]
+
+        # 1) pf_hat: [B,N,4C]
+        pf_hat = model.cond(*feats, x0_hat)  # or forward_cached(cache, x0_hat)
+
+        # 2) local tokens (要拿 q4/q8/q16，所以最好先 precompute)
+        cache = model.cond.precompute(*feats)
+        tok4 = sample_point_tokens(cache["q4"], x0_hat, patch=model.cond.patch)
+        tok8 = sample_point_tokens(cache["q8"], x0_hat, patch=model.cond.patch)
+        tok16 = sample_point_tokens(cache["q16"], x0_hat, patch=model.cond.patch)
+        local_tokens = torch.cat([tok4, tok8, tok16], dim=0)  # [S, BN, C]
+        # 3) pool -> [B,N,2C]
+        B, N, _ = x0_hat.shape
+        pooled = pool_local_tokens(local_tokens, B, N, use_max=True)
+        # 4) conf_in -> [B,N,6C]
+        conf_in = torch.cat([pf_hat, pooled], dim=-1)
+        exist_logit_x0 = model.conf_head(conf_in)
         if exist_logit_x0.dim() == 3 and exist_logit_x0.size(-1) == 1:
             exist_logit_x0 = exist_logit_x0.squeeze(-1)
         exist_prob_sample = torch.sigmoid(exist_logit_x0)  # [B,N]
@@ -612,7 +640,22 @@ def train_one_epoch(
             x0_like = x0_hat  # 顯存緊可用 x0_hat.detach()
 
             pf_val = model.cond.forward_cached(cond_cache, x0_like)
-            logit_v = model.conf_head(pf_val)
+            x0_like = x0_hat  # 顯存緊可用 x0_hat.detach()
+
+            # 1) pf_hat: [B,N,4C]
+            pf_hat = model.cond.forward_cached(cond_cache, x0_like)
+
+            # 2) local tokens at x0_like: [S, BN, C]
+            tok4 = sample_point_tokens(cond_cache["q4"], x0_like, patch=model.cond.patch)
+            tok8 = sample_point_tokens(cond_cache["q8"], x0_like, patch=model.cond.patch)
+            tok16 = sample_point_tokens(cond_cache["q16"], x0_like, patch=model.cond.patch)
+            local_tokens_exist = torch.cat([tok4, tok8, tok16], dim=0)  # [S, BN, C]
+            # 3) pool -> [B,N,2C]
+            B, N, _ = x0_like.shape
+            pooled = pool_local_tokens(local_tokens_exist, B, N, use_max=True)  # mean+max
+            # 4) concat -> [B,N,6C]
+            conf_in = torch.cat([pf_hat, pooled], dim=-1)
+            logit_v = model.conf_head(conf_in)
             if logit_v.dim() == 3 and logit_v.size(-1) == 1:
                 logit_v = logit_v.squeeze(-1)
             prob_v  = torch.sigmoid(logit_v)

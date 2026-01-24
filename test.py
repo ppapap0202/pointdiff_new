@@ -5,6 +5,7 @@ import torch
 import time
 from torch.utils.data import DataLoader
 from models import build_model
+from models.pointdiff import sample_point_tokens, pool_local_tokens
 from models.diffusion_utils import CosineAbarSchedule
 from dataset.dataset import ImageDataset
 import torch.nn.functional as F
@@ -249,17 +250,30 @@ if __name__ == "__main__":
             M_b = pts_merged_norm.shape[0]
 
             # ---------- 丟入 cond + conf_head ----------
-            p_norm_b_1 = pts_merged_norm.unsqueeze(0)  # [1, M_b, 2]
+            p_norm_b_1 = pts_merged_norm.unsqueeze(0)  # [1,M,2]
+            feats_b = [f[b:b + 1] for f in feats]
 
-            if isinstance(feats, (list, tuple)):
-                feats_b = [f[b:b+1] for f in feats]          # 每個 [1, ...]
-                pf_b = model.cond(*feats_b, p_norm_b_1)     # [1, M_b, C]
-            else:
-                feats_b = feats[b:b+1]
-                pf_b = model.cond(feats_b, p_norm_b_1)      # [1, M_b, C]
+            # 1) 先做 cache（避免重算）
+            cache_b = model.cond.precompute(*feats_b)
 
-            exist_logit_b = model.conf_head(pf_b)[0]        # [M_b]
-            exist_prob_b = torch.sigmoid(exist_logit_b)     # [M_b]
+            # 2) pf_hat: [1,M,4C] = [1,M,256]
+            pf_b = model.cond.forward_cached(cache_b, p_norm_b_1)
+
+            # 3) local tokens at p_norm_b_1: [S, 1*M, C]
+            tok4 = sample_point_tokens(cache_b["q4"], p_norm_b_1, patch=model.cond.patch)
+            tok8 = sample_point_tokens(cache_b["q8"], p_norm_b_1, patch=model.cond.patch)
+            tok16 = sample_point_tokens(cache_b["q16"], p_norm_b_1, patch=model.cond.patch)
+            local_tokens_b = torch.cat([tok4, tok8, tok16], dim=0)
+
+            # 4) pool -> [1,M,2C] = [1,M,128]
+            pooled_b = pool_local_tokens(local_tokens_b, B=1, N=p_norm_b_1.size(1), use_max=True)
+
+            # 5) concat -> [1,M,6C] = [1,M,384]
+            conf_in_b = torch.cat([pf_b, pooled_b], dim=-1)
+
+            # 6) logits -> [1,M]
+            exist_logit_b = model.conf_head(conf_in_b)[0]  # [M]
+            exist_prob_b = torch.sigmoid(exist_logit_b)
 
             # ---------- 用 merged 的 exist_prob_b 算這張 patch 的 soft / hard count ----------
             pred_cnt_b = exist_prob_b.sum()

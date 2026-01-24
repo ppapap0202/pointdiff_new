@@ -264,6 +264,161 @@ class EncoderFPN(nn.Module):
         return P4, P8, P16
 
 # ---------- ROI-free 點特徵取樣 ----------
+def sample_point_tokens(P, p_norm, patch=1):
+    """
+    ROI-free token sampling around points (no flatten).
+    P:      [B,C,H,W]
+    p_norm: [B,N,2] in [-1,1] (x,y)
+    patch:  odd int (e.g., 5) -> K=patch*patch tokens
+
+    return:
+      tokens: [K, B*N, C]  (K=patch*patch)
+    """
+    assert patch >= 1 and (patch % 2 == 1), "patch must be odd and >=1"
+    B, C, H, W = P.shape
+    _, N, _ = p_norm.shape
+    if patch == 1:
+        # K=1 special case, keep shape [1, B*N, C]
+        grid = p_norm.view(B, N, 1, 2)
+        feat = F.grid_sample(P, grid, mode='bilinear', align_corners=True, padding_mode='zeros')  # [B,C,N,1]
+        feat = feat.permute(3, 0, 2, 1).contiguous()  # [1,B,N,C]
+        return feat.view(1, B * N, C)
+
+    r = patch // 2
+    dx = 2.0 / max(W - 1, 1)
+    dy = 2.0 / max(H - 1, 1)
+
+    offs = []
+    for j in range(-r, r + 1):
+        for i in range(-r, r + 1):
+            offs.append((i * dx, j * dy))
+    offs = torch.tensor(offs, device=p_norm.device, dtype=p_norm.dtype)  # [K,2]
+    K = offs.shape[0]
+    base = p_norm.unsqueeze(2)                 # [B,N,1,2]
+    grid = base + offs.view(1, 1, K, 2)        # [B,N,K,2]
+    grid = grid.view(B, N, K, 2)
+
+    feat = F.grid_sample(
+        P, grid, mode='bilinear',
+        align_corners=True, padding_mode='zeros'
+    )  # [B,C,N,K]
+    # SAME offset ordering as sample_point_feats, but keep token axis:
+    # [B,C,N,K] -> [K,B*N,C]
+    feat = feat.permute(0, 2, 1, 3).contiguous()  # [B,N,C,K]
+    feat = feat.permute(3, 0, 1, 2).contiguous()  # [K,B,N,C]
+    feat = feat.view(K, B * N, C)                 # [K,B*N,C]
+    return feat
+
+class PointDynamicConv(nn.Module):
+    def __init__(self, hidden_dim=64, dim_dynamic=32, num_dynamic=2, token_count=75):
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.dim_dynamic = dim_dynamic
+        self.num_dynamic = num_dynamic
+        self.token_count = token_count
+
+        self.num_params = self.hidden_dim * self.dim_dynamic
+        self.dynamic_layer = nn.Linear(self.hidden_dim, self.num_dynamic * self.num_params)
+
+        self.norm1 = nn.LayerNorm(self.dim_dynamic)
+        self.norm2 = nn.LayerNorm(self.hidden_dim)
+        self.norm3 = nn.LayerNorm(self.hidden_dim)
+        self.activation = nn.ReLU(inplace=True)
+
+        self.out_layer = nn.Linear(self.hidden_dim * token_count, self.hidden_dim)
+
+    def forward(self, pro_features, roi_tokens):
+        K, BN, C = roi_tokens.shape
+        assert K == self.token_count, f"Expected K={self.token_count}, got {K}"
+        assert C == self.hidden_dim, f"roi_tokens C={C} must match hidden_dim={self.hidden_dim}"
+
+        features = roi_tokens.permute(1, 0, 2).contiguous()  # [BN,K,C]
+        parameters = self.dynamic_layer(pro_features).permute(1, 0, 2).contiguous()  # [BN,1,2*num_params]
+        param1 = parameters[:, :, :self.num_params].view(-1, self.hidden_dim, self.dim_dynamic)
+        param2 = parameters[:, :, self.num_params:].view(-1, self.dim_dynamic, self.hidden_dim)
+
+        features = torch.bmm(features, param1)
+        features = self.activation(self.norm1(features))
+
+        features = torch.bmm(features, param2)
+        features = self.activation(self.norm2(features))
+
+        features = features.flatten(1)                # [BN, K*C]
+        features = self.out_layer(features)           # [BN, C]
+        features = self.activation(self.norm3(features))
+        return features
+
+
+class PointRCNNHead(nn.Module):
+    """
+    RCNNHead-style refinement for ROI-free point denoising:
+      - self-attn across points
+      - dynamic interaction between point state and local patch tokens
+     - FFN + time FiLM
+      - predict eps (dx, dy)
+    """
+    def __init__(self, d_model=64, nhead=4, dim_ff=256, dim_dynamic=32, t_dim=256, dropout=0.1, token_count=75):
+        super().__init__()
+        assert d_model % nhead == 0, "d_model must be divisible by nhead"
+        self.d_model = d_model
+        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.inst_interact = PointDynamicConv(hidden_dim=d_model, dim_dynamic=dim_dynamic, num_dynamic=2, token_count=token_count)
+
+
+        self.linear1 = nn.Linear(d_model, dim_ff)
+        self.linear2 = nn.Linear(dim_ff, d_model)
+
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.norm3 = nn.LayerNorm(d_model)
+
+        self.drop1 = nn.Dropout(dropout)
+        self.drop2 = nn.Dropout(dropout)
+        self.drop3 = nn.Dropout(dropout)
+        self.ff_act = nn.SiLU()
+
+        # time FiLM (per-image), then repeat to points
+        self.time_mlp = nn.Sequential(nn.SiLU(), nn.Linear(t_dim, d_model * 2))
+
+        self.eps_head = nn.Linear(d_model, 2)
+
+    def forward(self, local_tokens, pro_features, time_img):
+        """
+        local_tokens: [S, B*N, d_model]
+        pro_features: [B, N, d_model]
+        time_img:     [B, t_dim] or [B,1,t_dim]
+        return: eps_pred [B,N,2]
+        return: pro_next: [B,N,C]
+        """
+        if time_img.dim() == 3 and time_img.size(1) == 1:
+            time_img = time_img.squeeze(1)  # [B,t_dim]
+        B, N, C = pro_features.shape
+        assert C == self.d_model
+
+        # 1) self-attn across points (N as seq_len, B as batch)
+        x = pro_features.permute(1, 0, 2).contiguous()  # [N,B,C]
+        x2 = self.self_attn(x, x, x)[0]
+        x = self.norm1(x + self.drop1(x2))
+
+        # 2) dynamic interaction with local tokens
+        x_bn = x.permute(1, 0, 2).contiguous().view(1, B * N, C)  # [1,BN,C]
+        dx = self.inst_interact(x_bn, local_tokens)               # [BN,C]
+        x_bn = self.norm2(x_bn + self.drop2(dx.unsqueeze(0)))
+
+        # 3) FFN
+        h = self.linear2(self.drop3(self.ff_act(self.linear1(x_bn))))
+        x_bn = self.norm3(x_bn + h)                               # [1,BN,C]
+        feat = x_bn.squeeze(0)                                    # [BN,C]
+
+        # 4) time FiLM
+        ss = self.time_mlp(time_img)                              # [B,2C]
+        ss = ss.repeat_interleave(N, dim=0)                       # [BN,2C]
+        scale, shift = ss.chunk(2, dim=1)
+        feat = feat * (1.0 + scale) + shift
+
+        eps = self.eps_head(feat).view(B, N, 2)
+        pro_next = feat.view(B, N, C)
+        return eps, pro_next
 
 
 def sample_point_feats(P, p_norm, patch=1):
@@ -334,7 +489,7 @@ class PointConditioner(nn.Module):
         self.global_proj = nn.Linear(c_fpn, cond_c)
         self.out_dim = cond_c * 3 + cond_c  # local(3C)+global(C)
 
-    @torch.no_grad()
+
     def precompute(self, P4, P8, P16):
         """
         每個 batch 只做一次的昂貴部分：
@@ -522,6 +677,25 @@ class DenoiserHeadRes(nn.Module):
 #         return self.mlp(f).squeeze(-1)  # [B,N]
 
 #加layer norm的
+
+def pool_local_tokens(local_tokens, B, N, use_max=True):
+    """
+    local_tokens: [S, BN, C]
+    return pooled: [B, N, C*(1 or 2)]
+    """
+    # [S, BN, C] -> [BN, S, C]
+    tok = local_tokens.permute(1, 0, 2).contiguous()
+
+    mean_tok = tok.mean(dim=1)  # [BN, C]
+    if use_max:
+        max_tok = tok.max(dim=1).values  # [BN, C]
+        pooled = torch.cat([mean_tok, max_tok], dim=-1)  # [BN, 2C]
+    else:
+        pooled = mean_tok  # [BN, C]
+
+    return pooled.view(B, N, -1)
+
+
 class ConfidenceHead(nn.Module):
     def __init__(self, in_dim, hidden=256, p_prior=0.07):
         super().__init__()
@@ -553,9 +727,23 @@ class ModelBuilder(nn.Module):
         self.backbone = EncoderFPN(in_ch=in_ch, out_c=fpn_c)
         self.temb = TimestepEmbed(dim=t_dim)
         self.cond = PointConditioner(c_fpn=fpn_c, cond_c=cond_c, patch=5, with_gate=True)
-        #self.head_eps = EpsHeadFiLM(pf_dim=cond_c * 4, t_dim=t_dim, hidden=512, depth=6, dropout=0.1)
-        self.head_eps = DenoiserHeadRes(in_dim=cond_c * 4 + t_dim + 2, hidden=384, depth=3, dropout=0.2)
-        self.conf_head = ConfidenceHead(in_dim=cond_c*4, hidden=256)
+        # #self.head_eps = EpsHeadFiLM(pf_dim=cond_c * 4, t_dim=t_dim, hidden=512, depth=6, dropout=0.1)
+        # self.head_eps = DenoiserHeadRes(in_dim=cond_c * 4 + t_dim + 2, hidden=384, depth=3, dropout=0.2)
+        self.pf_proj = nn.Linear(cond_c * 4, cond_c)  # proposal feature dim = cond_c
+        self.num_refine = 3
+        token_count = 3 * (self.cond.patch * self.cond.patch)
+        self.head_eps = nn.ModuleList([
+            PointRCNNHead(
+                d_model=cond_c,
+                nhead=4,
+                dim_ff=cond_c * 4,
+                dim_dynamic=max(8, cond_c // 2),
+                t_dim=t_dim,
+                dropout=0.1,
+                token_count=token_count
+            ) for _ in range(self.num_refine)
+        ])
+        self.conf_head = ConfidenceHead(in_dim=cond_c*6, hidden=256, p_prior=0.07)
 
     def encode(self, images):
         # images: [B,in_ch,H,W]
@@ -564,44 +752,103 @@ class ModelBuilder(nn.Module):
     def denoise(self, feats, p_t, t, abar_t=None, clamp_eps=1e-6, cond_cache=None, need_exist=True):
         P4, P8, P16 = feats
 
-        # pf at p_t
-        if cond_cache is None:
-            pf = self.cond(P4, P8, P16, p_t)
-        else:
-            pf = self.cond.forward_cached(cond_cache, p_t)
+        # # pf at p_t
+        # if cond_cache is None:
+        #     pf = self.cond(P4, P8, P16, p_t)
+        # else:
+        #     pf = self.cond.forward_cached(cond_cache, p_t)
+        #
+        # te = self.temb(t)
+        # if te.dim() == 3 and te.size(1) == 1:
+        #     te = te.expand(pf.size(0), pf.size(1), te.size(-1))
+        #
+        # x = torch.cat([pf, te, p_t], dim=-1)
+        # # eps_pred = self.head_eps(pf, te, p_t)
+        # eps_pred = self.head_eps(x)
+        cache = cond_cache
+        if cache is None:
+            cache = self.cond.precompute(P4, P8, P16)
 
+        # time embedding (per-image)
         te = self.temb(t)
         if te.dim() == 3 and te.size(1) == 1:
-            te = te.expand(pf.size(0), pf.size(1), te.size(-1))
-
-        x = torch.cat([pf, te, p_t], dim=-1)
-        # eps_pred = self.head_eps(pf, te, p_t)
-        eps_pred = self.head_eps(x)
-
-        # x0_hat
-        if abar_t is None:
-            x0_hat = p_t
+            te_img = te.squeeze(1)
+        elif te.dim() == 3:
+            te_img = te[:, 0, :]
         else:
+            te_img = te
+
+        # --- DiffusionDet-style refine ---
+        p_noisy = p_t  # ✅ noisy input 固定
+        p_ref = p_t  # ✅ reference 會被更新（用來抽 tokens）
+        pf = self.cond.forward_cached(cache, p_ref)  # [B,N,4C]
+        pro = self.pf_proj(pf)  # [B,N,C]
+
+        eps_pred = None
+        x0_hat_last = None
+
+        # prepare abar expanded (for stable x0_hat computation)
+        if abar_t is not None:
             abar = abar_t
             if abar.dim() == 3 and abar.size(1) == 1:
-                abar = abar.expand(pf.size(0), pf.size(1), 1)
+                abar = abar.expand(p_noisy.size(0), p_noisy.size(1), 1)  # [B,N,1]
+            elif abar.dim() == 1:
+                B = p_noisy.size(0)
+                abar = abar.view(B, 1, 1).expand(B, p_noisy.size(1), 1)
+            elif abar.dim() == 2:  # [B,1]
+                B = p_noisy.size(0)
+                abar = abar.view(B, 1, 1).expand(B, p_noisy.size(1), 1)
+
             sqrt_abar = (abar + clamp_eps).sqrt()
             sqrt_onem = (1.0 - abar).clamp_min(0).sqrt()
-            x0_hat = (p_t - sqrt_onem * eps_pred) / (sqrt_abar + 1e-12)
-            x0_hat = x0_hat.clamp(-1.0 + 1e-3, 1.0 - 1e-3)
 
-        # exist head optional
+        for head in self.head_eps:
+            # ✅ 每一個 stage 都用 p_ref 重新抽 local tokens
+            tok4 = sample_point_tokens(cache["q4"], p_ref, patch=self.cond.patch)
+            tok8 = sample_point_tokens(cache["q8"], p_ref, patch=self.cond.patch)
+            tok16 = sample_point_tokens(cache["q16"], p_ref, patch=self.cond.patch)
+            local_tokens = torch.cat([tok4, tok8, tok16], dim=0)  # [3*patch^2, B*N, C]
+
+            # stage forward
+            eps_i, pro = head(local_tokens, pro, te_img)
+            eps_pred = eps_i
+
+            # ✅ 用「固定的 noisy input p_noisy」算 x0_hat（讓 eps 對同一個 noisy 狀態）
+            if abar_t is not None:
+                x0_hat = (p_noisy - sqrt_onem * eps_i) / (sqrt_abar + 1e-12)
+                x0_hat = x0_hat.clamp(-1.0 + 1e-3, 1.0 - 1e-3)
+                x0_hat_last = x0_hat
+
+                # ✅ 下一 stage 用 x0_hat 當作新的 reference 來抽 tokens（像 DiffusionDet 更新 reference box）
+                p_ref = x0_hat.detach()
+            else:
+                # 沒有 abar_t 的話就退化：reference 不更新（或你也可以做 p_ref = (p_ref - eps_i).clamp(...)）
+                p_ref = p_ref
+
+        # exist head: 用最後的 x0_hat 取特徵
         exist_logit = None
         if need_exist:
-            if cond_cache is None:
-                pf_hat = self.cond(P4, P8, P16, x0_hat.detach())
-            else:
-                pf_hat = self.cond.forward_cached(cond_cache, x0_hat.detach())
-            exist_logit = self.conf_head(pf_hat)
-        # if need_exist:
-        #     print("[DEBUG] need_exist=True")
-        #     print("[DEBUG] exist_logit type:", type(exist_logit))
-        #     assert exist_logit is not None, "BUG: need_exist=True but exist_logit is None"
+            ref_for_exist = x0_hat_last.detach() if x0_hat_last is not None else p_ref.detach()
+
+            # 1) pf_hat: [B,N,4C]
+            pf_hat = self.cond.forward_cached(cache, ref_for_exist)
+
+            # 2) local tokens at ref_for_exist: [S, B*N, C]
+            tok4 = sample_point_tokens(cache["q4"], ref_for_exist, patch=self.cond.patch)
+            tok8 = sample_point_tokens(cache["q8"], ref_for_exist, patch=self.cond.patch)
+            tok16 = sample_point_tokens(cache["q16"], ref_for_exist, patch=self.cond.patch)
+            local_tokens_exist = torch.cat([tok4, tok8, tok16], dim=0)  # [S, BN, C]
+
+            # 3) pool tokens -> [B,N,2C]
+            B, N, _ = ref_for_exist.shape
+            pooled = pool_local_tokens(local_tokens_exist, B, N, use_max=True)  # mean+max
+
+            # 4) concat -> [B,N,6C]
+            conf_in = torch.cat([pf_hat, pooled], dim=-1)
+
+            # 5) score
+            exist_logit = self.conf_head(conf_in)
+
         return eps_pred, exist_logit
 
 

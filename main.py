@@ -104,7 +104,7 @@ def main():
     #print(model)
     optim = build_optimizers(model, lr=args.lr, lr_backbone=args.lr_backbone, weight_decay=1e-4)
     scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
-    matcher = HungarianMatcher(cost_class=2.0, cost_coord=5)  # 權重需要調參
+    matcher = HungarianMatcher(cost_class=0.0, cost_coord=1.0)  # 權重需要調參
     criterion = SetCriterion(matcher=matcher,
                              lambda_exist=args.lambda_exist,
                              lambda_x0=args.lambda_x0,
@@ -116,7 +116,7 @@ def main():
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"D:\output\convnext_base_patch_5\last_epoch0003.pth", map_location="cuda:0")
+    checkpoint = torch.load(r"D:\output\PointRCNN_refine_ConfidenceHead_with_token_LEX\last_epoch0066.pth", map_location="cuda:0")
     #
     # # 載入模型與優化器參數
     model.load_state_dict(checkpoint['model_state'])
