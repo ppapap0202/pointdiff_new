@@ -11,6 +11,17 @@ from models import build_model
 from models.diffusion_utils import CosineAbarSchedule
 from dataset.dataset import ImageDataset
 
+import random
+
+def set_seed(seed: int = 7113064165):
+    random.seed(seed)
+    np.random.seed(seed % (2**32 - 1))
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    # Determinism flags (can reduce performance; comment out if undesired)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 
 # ----------------------------
 # Utils
@@ -146,6 +157,40 @@ def radius_nms_xy(pts_xy: torch.Tensor, scores: torch.Tensor, r: float):
     return torch.tensor(keep, dtype=torch.long)
 
 
+@torch.no_grad()
+def point_nms_count(xy_pix: torch.Tensor, score: torch.Tensor, r: float) -> int:
+    """
+    VAL-style greedy radius NMS count.
+    xy_pix: [M,2] float (pixel coords)
+    score : [M] float
+    r     : radius in pixels
+    return: kept count
+    """
+    M = xy_pix.size(0)
+    if M == 0:
+        return 0
+    order = score.argsort(descending=True)
+    xy = xy_pix[order]
+    keep = []
+    r2 = float(r) * float(r)
+    for i in range(M):
+        if not keep:
+            keep.append(i)
+            continue
+        prev = xy[keep]  # [K,2]
+        d2 = ((prev - xy[i]).pow(2).sum(dim=1))
+        if (d2 >= r2).all():
+            keep.append(i)
+    return len(keep)
+
+def dedup_points_xy(xy_np: np.ndarray, decimals: int = 3) -> np.ndarray:
+    """Deduplicate XY points by rounding."""
+    if xy_np.shape[0] == 0:
+        return xy_np
+    key = np.round(xy_np, decimals=decimals)
+    _, idx = np.unique(key, axis=0, return_index=True)
+    return xy_np[np.sort(idx)]
+
 def parse_args():
     def load_config(yaml_path):
         with open(yaml_path, "r", encoding="utf-8") as f:
@@ -175,6 +220,7 @@ def parse_args():
     # parser.add_argument("--top_k_vis", type=int, default=int(getattr(cfg, "top_k_vis", 10)))
     # parser.add_argument("--nms_r_ratio", type=float, default=float(getattr(cfg, "nms_r_ratio", 0.005)))
     # parser.add_argument("--inner_margin_ratio", type=float, default=float(getattr(cfg, "inner_margin_ratio", 0.001)))
+    # parser.add_argument("--seed", type=int, default=int(getattr(cfg, "seed", 7113064165)))
     return parser.parse_args()
 
 
@@ -184,6 +230,10 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # --- VAL-style deterministic seed ---
+    seed = int(getattr(args, 'seed', 7113064165))
+    set_seed(seed)
 
     assert args.ckpt_path, "Please set --ckpt_path"
     assert args.test_root, "Please set --test_root"
@@ -226,7 +276,7 @@ if __name__ == "__main__":
     # per-image aggregation (global)
     per_image_points_xy = defaultdict(list)   # img_key -> [tensor(K,2) cpu]
     per_image_points_prob = defaultdict(list) # img_key -> [tensor(K,) cpu]
-    per_image_gt_sum = defaultdict(float)
+    per_image_gt_sum = defaultdict(float)  # (deprecated; kept for compatibility)
     per_image_gt_points_xy = defaultdict(list)
     per_image_size = {}  # img_key -> (H_full, W_full)
     per_image_vis_sample = {}  # img_key -> dict for visualization
@@ -252,12 +302,10 @@ if __name__ == "__main__":
         t0 = int(t_seq[0].item())          # most noisy
         abar_t0 = abar[t0].view(1, 1, 1)   # [1,1,1]
 
-        R = int(args.num_realizations)
+        R = 1  # VAL-style: single realization
         for r in range(R):
-            # init p_t ~ N(0, 1-abar_t0)
-            p_t = torch.randn(B, N, 2, device=device)
-            p_t = p_t * torch.sqrt(1.0 - abar_t0)
-            p_t = p_t.clamp(-1.0 + eps, 1.0 - eps)
+            # VAL-style init: uniform in [-1,1]
+            p_t = torch.empty((B, N, 2), device=device).uniform_(-1.0 + eps, 1.0 - eps)
 
             exist_prob_last = None
 
@@ -309,9 +357,7 @@ if __name__ == "__main__":
             if img_key not in per_image_size:
                 per_image_size[img_key] = (int(H_full), int(W_full))
 
-            # GT sum (per image)
-            gt_cnt_b = float(mask[b].sum().item())
-            per_image_gt_sum[img_key] += gt_cnt_b
+            # GT count will be computed from deduplicated global GT points at the end (VAL-style)
 
             # GT points (global) for visualization later
             # points_pad are pixels in patch coordinate on CPU right now
@@ -339,105 +385,62 @@ if __name__ == "__main__":
                     }
 
             # ----------------------------
-            # Accumulate predictions (global) from each realization
+            # Accumulate predictions (global) VAL-style: keep prob>thr candidates, no pixel-merge here
             # ----------------------------
+            thr = args.hard_thresh
             for r in range(R):
-                pts_norm = p0_list[r][b]      # [N,2] on GPU
-                sc = prob_list[r][b]          # [N] on GPU
+                pts_norm = p0_list[r][b]      # [N,2] on GPU, in [-1,1]
+                sc = prob_list[r][b]          # [N]   on GPU
 
-                # [-1,1] -> patch pixel
+                cand = sc > thr
+                if not cand.any():
+                    continue
+
+                pts_norm = pts_norm[cand]
+                sc = sc[cand]
+
+                # [-1,1] -> patch pixel (float, not rounded)
                 xs = (pts_norm[:, 0] + 1) * 0.5 * (W - 1)
                 ys = (pts_norm[:, 1] + 1) * 0.5 * (H - 1)
-                xs_int = xs.round().clamp(0, W - 1).long()
-                ys_int = ys.round().clamp(0, H - 1).long()
 
-                # patch pixel id
-                flat = ys_int * W + xs_int  # [N]
+                # to global pixel (float)
+                xs_g = (xs + x0).clamp(0, W_full - 1)
+                ys_g = (ys + y0).clamp(0, H_full - 1)
 
-                # patch merge: uniq pixel + max score
-                uniq_flat, prob_merge = pixel_max_merge(flat, sc)  # [M], [M]
+                per_image_points_xy[img_key].append(torch.stack([xs_g, ys_g], dim=1).detach().cpu())
+                per_image_points_prob[img_key].append(sc.detach().cpu())
 
-                x_pix = (uniq_flat % W).float()
-                y_pix = (uniq_flat // W).float()
-
-                # filter out (0,0) padding noise (as you did)
-                mask_valid = ~((x_pix.round().long() == 0) & (y_pix.round().long() == 0))
-                x_pix = x_pix[mask_valid]
-                y_pix = y_pix[mask_valid]
-                prob_merge = prob_merge[mask_valid]
-
-                # to global pixel
-                xs_g = (x_pix + x0).round().long().clamp(0, W_full - 1)
-                ys_g = (y_pix + y0).round().long().clamp(0, H_full - 1)
-
-                if xs_g.numel() > 0:
-                    per_image_points_xy[img_key].append(torch.stack([xs_g, ys_g], dim=1).detach().cpu())
-                    per_image_points_prob[img_key].append(prob_merge.detach().cpu())
-
+    
     # ----------------------------
-    # Merge per image and compute metrics
+    # Merge per image and compute metrics (VAL-style)
     # ----------------------------
-    per_image_pred_soft_sum = {}
     per_image_pred_hard_sum = {}
-    per_image_error_soft = {}
     per_image_error_hard = {}
 
-    hard_thresh = float(args.hard_thresh)
-    inner_margin_ratio = float(args.inner_margin_ratio)
+    thr = 0.45
+    nms_r = 3.0
 
-    for img_key in sorted(per_image_gt_sum.keys()):
-        H_img, W_img = per_image_size[img_key]
+    # compute per-image GT count from deduplicated global GT points
+    per_image_gt_cnt = {}
+    for img_key in sorted(per_image_size.keys()):
+        if img_key in per_image_gt_points_xy and len(per_image_gt_points_xy[img_key]) > 0:
+            gt_all = torch.cat(per_image_gt_points_xy[img_key], dim=0).numpy().astype(np.float32)  # [M,2] int-ish
+            gt_all = dedup_points_xy(gt_all, decimals=3)
+            per_image_gt_cnt[img_key] = float(gt_all.shape[0])
+        else:
+            per_image_gt_cnt[img_key] = 0.0
 
-        if img_key not in per_image_points_xy:
-            per_image_pred_soft_sum[img_key] = 0.0
+    for img_key in sorted(per_image_gt_cnt.keys()):
+        if img_key not in per_image_points_xy or len(per_image_points_xy[img_key]) == 0:
             per_image_pred_hard_sum[img_key] = 0.0
             continue
 
-        pts_all = torch.cat(per_image_points_xy[img_key], dim=0)   # [M_all,2] cpu (int)
-        prob_all = torch.cat(per_image_points_prob[img_key], dim=0) # [M_all] cpu
-
-        xs_g = pts_all[:, 0].long().clamp(0, W_img - 1)
-        ys_g = pts_all[:, 1].long().clamp(0, H_img - 1)
-
-        flat = ys_g * W_img + xs_g
-        uniq_flat, prob_merged = pixel_max_merge(flat.to(torch.long), prob_all.to(torch.float32))
-
-        x_uniq = (uniq_flat % W_img).float()
-        y_uniq = (uniq_flat // W_img).float()
-
-        # optional inner-margin filter (same as your original intention)
-        m_inner = int(inner_margin_ratio * min(H_img, W_img))
-        keep_inner = (
-            (x_uniq >= m_inner) & (x_uniq < W_img - m_inner) &
-            (y_uniq >= m_inner) & (y_uniq < H_img - m_inner)
-        )
-        x_uniq = x_uniq[keep_inner]
-        y_uniq = y_uniq[keep_inner]
-        prob_merged = prob_merged[keep_inner]
-
-        # soft count
-        pred_soft = float(prob_merged.sum().item())
-
-        # hard raw count (no nms)
-        # pred_hard_raw = float((prob_merged >= hard_thresh).float().sum().item())
-
-        # hard + NMS
-        valid_mask = (prob_merged > hard_thresh)
-        x_valid = x_uniq[valid_mask]
-        y_valid = y_uniq[valid_mask]
-        s_valid = prob_merged[valid_mask]
-
-        r_pix = max(3, int(float(args.nms_r_ratio) * min(H_img, W_img)))
-
-        pred_xy_hard_nms = np.zeros((0, 2), dtype=np.float32)
-        if x_valid.numel() > 0:
-            pts_t = torch.stack([x_valid, y_valid], dim=1).float()
-            scr_t = s_valid.float()
-            keep_idx = radius_nms_xy(pts_t, scr_t, r=r_pix)
-            x_keep = x_valid[keep_idx].numpy().astype(np.float32)
-            y_keep = y_valid[keep_idx].numpy().astype(np.float32)
-            pred_xy_hard_nms = np.stack([x_keep, y_keep], axis=1)
-
+        xy = torch.cat(per_image_points_xy[img_key], dim=0).float()   # [M,2] cpu
+        sc = torch.cat(per_image_points_prob[img_key], dim=0).float() # [M]   cpu
+        key = np.round(xy, 1)  # 0.1 pixel 粗略
+        unique = np.unique(key, axis=0).shape[0]
+        print("N=", xy.shape[0], "unique~", unique)
+        # VAL-style full-image greedy NMS count
         # --- NMS: get kept indices & kept points (for both count and visualization) ---
         keep = radius_nms_xy(xy, sc, r=nms_r)  # [K] cpu long
         xy_keep = xy[keep]  # [K,2] cpu float
@@ -461,43 +464,35 @@ if __name__ == "__main__":
             })
 
     # ----------------------------
-    # Per-image MAE/RMSE
+    # Per-image MAE/RMSE (HARD only, VAL-style)
     # ----------------------------
-    img_keys = sorted(per_image_gt_sum.keys())
-    abs_soft, sq_soft = [], []
+    img_keys = sorted(per_image_gt_cnt.keys())
     abs_hard, sq_hard = [], []
 
-    print("\n[Per-Image Results]")
+    print("\n[Per-Image Results | VAL-style HARD]")
     for k in img_keys:
-        pred_soft = float(per_image_pred_soft_sum.get(k, 0.0))
         pred_hard = float(per_image_pred_hard_sum.get(k, 0.0))
-        gt = float(per_image_gt_sum[k])
+        gt = float(per_image_gt_cnt.get(k, 0.0))
 
-        err_soft = abs(pred_soft - gt)
         err_hard = abs(pred_hard - gt)
+        abs_hard.append(err_hard)
+        sq_hard.append((pred_hard - gt) ** 2)
 
-        abs_soft.append(err_soft); sq_soft.append((pred_soft - gt) ** 2)
-        abs_hard.append(err_hard); sq_hard.append((pred_hard - gt) ** 2)
-
-        per_image_error_soft[k] = err_soft
         per_image_error_hard[k] = err_hard
+        print(f"- {k}: hard={pred_hard:.2f}, gt={gt:.2f}, |err_hard|={err_hard:.2f}")
 
-        print(f"- {k}: soft={pred_soft:.2f}, hard={pred_hard:.2f}, gt={gt:.2f}, "
-              f"|err_soft|={err_soft:.2f}, |err_hard|={err_hard:.2f}")
-
-    MAE_soft = float(np.mean(abs_soft)) if abs_soft else 0.0
-    RMSE_soft = float(np.sqrt(np.mean(sq_soft))) if sq_soft else 0.0
     MAE_hard = float(np.mean(abs_hard)) if abs_hard else 0.0
     RMSE_hard = float(np.sqrt(np.mean(sq_hard))) if sq_hard else 0.0
 
-    print(f"\n[SOFT] Per-image MAE={MAE_soft:.2f}, RMSE={RMSE_soft:.2f}")
-    print(f"[HARD] Per-image MAE={MAE_hard:.2f}, RMSE={RMSE_hard:.2f}")
+    print(f"\n[VAL-style HARD] Per-image MAE={MAE_hard:.2f}, RMSE={RMSE_hard:.2f}")
+    per_image_pred_soft_sum = {}
+    per_image_error_soft = {}
 
-    # ----------------------------
+# ----------------------------
     # Save Top-K visualizations
     # ----------------------------
-    metric = "hard"  # "hard" or "soft"
-    error_dict = per_image_error_hard if metric == "hard" else per_image_error_soft
+    metric = "hard"
+    error_dict = per_image_error_hard
 
     top_k = int(args.top_k_vis)
     pick_worst = bool(args.pick_worst)
@@ -536,8 +531,8 @@ if __name__ == "__main__":
             cv2.circle(img_np, (x_i, y_i), 3, (255, 0, 0), -1)  # blue
 
         out_name = vis["out_name"]
-        pred_total = per_image_pred_hard_sum[k] if metric == "hard" else per_image_pred_soft_sum[k]
-        gt_total = per_image_gt_sum[k]
+        pred_total = per_image_pred_hard_sum[k]
+        gt_total = per_image_gt_cnt[k]
 
         img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
         out_path = os.path.join(
@@ -552,16 +547,16 @@ if __name__ == "__main__":
         xs_all = np.asarray(vis.get("xs_all", np.zeros((0,), np.float32)))
         ys_all = np.asarray(vis.get("ys_all", np.zeros((0,), np.float32)))
 
-        for x, y in zip(xs_all, ys_all):
-            x_i = int(np.clip(round(float(x)), 0, W_img - 1))
-            y_i = int(np.clip(round(float(y)), 0, H_img - 1))
-            cv2.circle(img_all, (x_i, y_i), 2, (0, 0, 255), -1)  # red
-
         # draw GT on ALL image too
         for gx, gy in zip(gt_xs, gt_ys):
             gx = int(np.clip(gx, 0, W_img - 1))
             gy = int(np.clip(gy, 0, H_img - 1))
             cv2.circle(img_all, (gx, gy), 3, (0, 255, 0), -1)
+
+        for x, y in zip(xs_all, ys_all):
+            x_i = int(np.clip(round(float(x)), 0, W_img - 1))
+            y_i = int(np.clip(round(float(y)), 0, H_img - 1))
+            cv2.circle(img_all, (x_i, y_i), 5, (0, 0, 255), -1)  # red
 
         img_all_bgr = cv2.cvtColor(img_all, cv2.COLOR_RGB2BGR)
         out_path_all = os.path.join(

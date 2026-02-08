@@ -743,7 +743,9 @@ class ModelBuilder(nn.Module):
                 token_count=token_count
             ) for _ in range(self.num_refine)
         ])
-        self.conf_head = ConfidenceHead(in_dim=cond_c*6, hidden=256, p_prior=0.07)
+        #self.conf_head = ConfidenceHead(in_dim=cond_c*6, hidden=256, p_prior=0.07)
+        # ModelBuilder.__init__()
+        self.conf_from_pro = ConfidenceHead(in_dim=cond_c, hidden=256, p_prior=0.07)
 
     def encode(self, images):
         # images: [B,in_ch,H,W]
@@ -828,26 +830,30 @@ class ModelBuilder(nn.Module):
         # exist head: 用最後的 x0_hat 取特徵
         exist_logit = None
         if need_exist:
-            ref_for_exist = x0_hat_last.detach() if x0_hat_last is not None else p_ref.detach()
-
-            # 1) pf_hat: [B,N,4C]
-            pf_hat = self.cond.forward_cached(cache, ref_for_exist)
-
-            # 2) local tokens at ref_for_exist: [S, B*N, C]
-            tok4 = sample_point_tokens(cache["q4"], ref_for_exist, patch=self.cond.patch)
-            tok8 = sample_point_tokens(cache["q8"], ref_for_exist, patch=self.cond.patch)
-            tok16 = sample_point_tokens(cache["q16"], ref_for_exist, patch=self.cond.patch)
-            local_tokens_exist = torch.cat([tok4, tok8, tok16], dim=0)  # [S, BN, C]
-
-            # 3) pool tokens -> [B,N,2C]
-            B, N, _ = ref_for_exist.shape
-            pooled = pool_local_tokens(local_tokens_exist, B, N, use_max=True)  # mean+max
-
-            # 4) concat -> [B,N,6C]
-            conf_in = torch.cat([pf_hat, pooled], dim=-1)
+            # ref_for_exist = x0_hat_last.detach() if x0_hat_last is not None else p_ref.detach()
+            #
+            # # 1) pf_hat: [B,N,4C]
+            # pf_hat = self.cond.forward_cached(cache, ref_for_exist)
+            #
+            # # 2) local tokens at ref_for_exist: [S, B*N, C]
+            # tok4 = sample_point_tokens(cache["q4"], ref_for_exist, patch=self.cond.patch)
+            # tok8 = sample_point_tokens(cache["q8"], ref_for_exist, patch=self.cond.patch)
+            # tok16 = sample_point_tokens(cache["q16"], ref_for_exist, patch=self.cond.patch)
+            # local_tokens_exist = torch.cat([tok4, tok8, tok16], dim=0)  # [S, BN, C]
+            #
+            # # 3) pool tokens -> [B,N,2C]
+            # B, N, _ = ref_for_exist.shape
+            # pooled = pool_local_tokens(local_tokens_exist, B, N, use_max=True)  # mean+max
+            #
+            # # 4) concat -> [B,N,6C]
+            # conf_in = torch.cat([pf_hat, pooled], dim=-1)
 
             # 5) score
-            exist_logit = self.conf_head(conf_in)
+            #exist_logit = self.conf_head(conf_in)
+            if not torch.isfinite(pro).all():
+                print("[WARN] pro not finite:", pro.abs().max().item())
+            exist_logit = self.conf_from_pro(pro.detach())
+            exist_logit = exist_logit.clamp(-20, 20)
 
         return eps_pred, exist_logit
 

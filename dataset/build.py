@@ -7,7 +7,7 @@ def loading_data(cfg):
         root=cfg.data_root,
         mode='points',  # 你的標註是點
         tile_size=(256, 256),
-        stride=(128, 128),
+        stride=(256, 256),
         pad_if_needed=True,
         image_exts=('.jpg', '.png'),
         gray=cfg.gray,

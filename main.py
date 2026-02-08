@@ -88,12 +88,12 @@ def main():
         collate_fn=collate_points_padded
     )
 
-    val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=True,
+    val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False,
                               collate_fn=collate_points_padded)
     # for a,b,c in train_data:
     #     visualization(a,b,c)
-    # _ = dataset_pos_neg_stats(train_loader)
-    # _ = dataset_pos_neg_stats(val_loader)
+    _ = dataset_pos_neg_stats(train_loader)
+    _ = dataset_pos_neg_stats(val_loader)
     for imgs, pts, mask, metas in train_loader:
         logging.info(f'images.shape: {imgs.shape}')  # (B, C, H, W)
         logging.info(f'points.shape: {pts.shape}')  # (B, max_len, 2)
@@ -116,7 +116,7 @@ def main():
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"D:\output\PointRCNN_refine_ConfidenceHead_with_token_LEX\last_epoch0066.pth", map_location="cuda:0")
+    checkpoint = torch.load(r"D:\output\PointRCNN_refine_ConfidenceHead_with_token_ConfidenceHeadWITHOUT6\last_epoch0215.pth", map_location="cuda:0")
     #
     # # 載入模型與優化器參數
     model.load_state_dict(checkpoint['model_state'])
@@ -130,7 +130,7 @@ def main():
         t0 = time.time()
         tr_loss = train_one_epoch(model, train_loader, device, optim, criterion, scaler, sched, args.diffusion_T, args.K,args.log_every,args.max_norm,)
         t1 = time.time()
-        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, criterion, args.diffusion_T)
+        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, criterion, args.diffusion_T, args.seed)
         t2 = time.time()
         logging.info(f"[Epoch {epoch:04d}] train={tr_loss:.4f}  val={val_loss:.4f} val_MAE={val_MAE:.4f}")
         last_path = os.path.join(args.out_dir, f"last_epoch{epoch:04d}.pth")

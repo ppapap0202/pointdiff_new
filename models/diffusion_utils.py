@@ -184,33 +184,26 @@ class setCriterion(nn.Module):
         self.alpha = alpha
 
     # ---------------- Focal loss (跟你原本一樣) ----------------
-    def focal_loss_with_logits(self, logits, targets, reduction="mean"):
-        """
-        logits : [B,N]
-        targets: [B,N] in {0,1}
-        """
+    def focal_loss_with_logits(self, logits, targets):
         x = logits
         y = targets
 
-        # binary cross entropy with logits：ce = - [y log p + (1-y) log(1-p)]
         ce = torch.clamp(x, min=0) - x * y + torch.log1p(torch.exp(-x.abs()))
-
-        # p = sigmoid(x)
         p = torch.sigmoid(x)
-        pt = torch.where(y == 1, p, 1 - p).clamp_(1e-6, 1 - 1e-6)
+        pt = torch.where(y == 1, p, 1 - p).clamp(1e-6, 1 - 1e-6)
 
-        # α_t
-        alpha_t = torch.where(y == 1, x.new_tensor(self.alpha), x.new_tensor(1 - self.alpha))
+        alpha = x.new_tensor(self.alpha)
+        alpha_t = torch.where(y == 1, alpha, 1 - alpha)
+        fl = alpha_t * (1 - pt).pow(self.gamma) * ce  # [B,N]
 
-        # focal loss
-        loss = alpha_t * (1 - pt).pow(self.gamma) * ce
+        pos = (y == 1)
+        neg = (y == 0)
 
-        if reduction == "mean":
-            return loss.mean()
-        elif reduction == "sum":
-            return loss.sum()
-        else:
-            return loss
+        fl_pos = fl[pos].mean() if pos.any() else fl.sum() * 0.0
+        fl_neg = fl[neg].mean() if neg.any() else fl.sum() * 0.0
+
+        neg_w = 1  # 可調 0.25~1.0
+        return fl_pos + neg_w * fl_neg
 
     # ---------------- Hybrid loss 主體 ----------------
     def forward(
@@ -383,19 +376,44 @@ class setCriterion(nn.Module):
         # ---- 6. L_cnt (soft count) ----
         prob_v = torch.sigmoid(exist_logit)    # [B,N]
         pos_mask_pred = (target_classes > 0.5).float()  # [B,N] 1= matched prediction
-        pred_cnt = (prob_v * pos_mask_pred).sum(dim=1)  # [B]
-        gt_cnt   = mask.sum(dim=1).float()              # [B]
-        L_cnt = F.l1_loss(pred_cnt, gt_cnt)
+        pred_cnt = prob_v.sum(dim=1)
+        gt_cnt = mask.sum(dim=1).float()
+        L_cnt = (pred_cnt - gt_cnt).abs() / (gt_cnt + 1.0)
+        L_cnt = L_cnt.mean()
 
-        # ---- 7. 背景損失 L_bg ----
-        pos_mask_bool = (target_classes > 0.5)  # [B,N] True = matched preds
-        bgmask = (~pos_mask_bool).float()       # [B,N] True = 背景預測點
+        # # ---- 7. 背景損失 L_bg ----
+        # pos_mask_bool = (target_classes > 0.5)  # [B,N] True = matched preds
+        # bgmask = (~pos_mask_bool).float()       # [B,N] True = 背景預測點
+        #
+        # bg_ratio = bgmask.sum(1) / (bgmask.size(1) + eps)        # [B]
+        # bg_mean  = (prob_v * bgmask).sum(1) / (bgmask.sum(1) + eps)  # [B]
+        # bg_loss_per_img = bg_mean * bg_ratio
+        # L_bg = bg_loss_per_img.mean()
+        pos_mask_bool = (target_classes > 0.5)  # matched preds
 
-        bg_ratio = bgmask.sum(1) / (bgmask.size(1) + eps)        # [B]
-        bg_mean  = (prob_v * bgmask).sum(1) / (bgmask.sum(1) + eps)  # [B]
-        bg_loss_per_img = bg_mean * bg_ratio
-        L_bg = bg_loss_per_img.mean()
+        # 取每張圖有效 GT
+        B, N, _ = x0_hat.shape
+        bg_losses = []
+        r_pix = 6.0  # 先從 4~8 像素試
+        for b in range(B):
+            tgt_idx = mask[b].nonzero(as_tuple=False).squeeze(1)
+            if tgt_idx.numel() == 0:
+                # 沒 GT：全部非 matched 都是背景
+                bgmask_b = (~pos_mask_bool[b])
+            else:
+                pred_pix = m11_to_pixels(x0_hat[b], 256, 256)  # [N,2]
+                gt_pix = m11_to_pixels(p0[b, tgt_idx], 256, 256)  # [Mb,2]
+                dist = torch.cdist(pred_pix, gt_pix, p=2)  # [N,Mb]
+                dmin = dist.min(dim=1).values  # [N]
+                ignore = (dmin < r_pix)  # [N]  # GT附近不當背景
+                bgmask_b = (~pos_mask_bool[b]) & (~ignore)  # [N]
 
+            if bgmask_b.any():
+                bg_losses.append(prob_v[b][bgmask_b].mean())
+            else:
+                bg_losses.append(prob_v[b].new_tensor(0.0))
+
+        L_bg = torch.stack(bg_losses).mean()
         # ---- 8. Hybrid Loss：λ_t * L_eps + 其他項 ----
         if lambda_t is None:
             # 沒有給 λ_t 就退化成原本多項 loss
