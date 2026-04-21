@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 import os
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 import argparse
 import yaml
 from dataset import build_dataset, dataset_pos_neg_stats
@@ -92,8 +93,8 @@ def main():
                               collate_fn=collate_points_padded)
     # for a,b,c in train_data:
     #     visualization(a,b,c)
-    _ = dataset_pos_neg_stats(train_loader)
-    _ = dataset_pos_neg_stats(val_loader)
+    # _ = dataset_pos_neg_stats(train_loader)
+    # _ = dataset_pos_neg_stats(val_loader)
     for imgs, pts, mask, metas in train_loader:
         logging.info(f'images.shape: {imgs.shape}')  # (B, C, H, W)
         logging.info(f'points.shape: {pts.shape}')  # (B, max_len, 2)
@@ -104,19 +105,24 @@ def main():
     #print(model)
     optim = build_optimizers(model, lr=args.lr, lr_backbone=args.lr_backbone, weight_decay=1e-4)
     scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
-    matcher = HungarianMatcher(cost_class=0.0, cost_coord=1.0)  # 權重需要調參
+    matcher = HungarianMatcher(cost_class=0.1, cost_coord=1.0)  # 權重需要調參
     criterion = SetCriterion(matcher=matcher,
                              lambda_exist=args.lambda_exist,
                              lambda_x0=args.lambda_x0,
                              lambda_cnt=args.lambda_cnt,
-                             lambda_bg=args.lambda_bg)
+                             lambda_bg=args.lambda_bg,
+                             lambda_eps=args.lambda_eps,
+                             lambda_cov=args.lambda_cov,
+                             lambda_dup=args.lambda_dup,
+                             region_radius=args.region_radius,
+                             region_topk=args.region_topk).to(device)
     T=args.diffusion_T
     sched, signal_scale = Diffusion_schedule(T, device=device, signal_scale=args.signal_scale)
 
     best_val = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"D:\output\PointRCNN_refine_ConfidenceHead_with_token_ConfidenceHeadWITHOUT6\last_epoch0215.pth", map_location="cuda:0")
+    checkpoint = torch.load(r"D:\output\randomt_to_x0_COVLOSS\last_epoch0245.pth", map_location="cuda:0")
     #
     # # 載入模型與優化器參數
     model.load_state_dict(checkpoint['model_state'])

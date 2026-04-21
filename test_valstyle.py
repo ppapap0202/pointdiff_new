@@ -325,9 +325,31 @@ if __name__ == "__main__":
                 if need_exist:
                     if exist_logit is None:
                         raise RuntimeError("need_exist=True but denoise returned None exist_logit")
+
+                    # --- Case A: BCE 1-logit: [B,N] or [B,N,1] ---
                     if exist_logit.dim() == 3 and exist_logit.size(-1) == 1:
-                        exist_logit = exist_logit.squeeze(-1)
-                    exist_prob_last = torch.sigmoid(exist_logit)  # [B,N]
+                        exist_logit = exist_logit.squeeze(-1)  # [B,N]
+                        exist_prob_last = torch.sigmoid(exist_logit)  # [B,N]
+                        pos_mask_last = (exist_prob_last > float(args.hard_thresh))  # or None if you don't need mask
+
+                    elif exist_logit.dim() == 2:
+                        exist_prob_last = torch.sigmoid(exist_logit)  # [B,N]
+                        pos_mask_last = (exist_prob_last > float(args.hard_thresh))
+
+                    # --- Case B: CE 2-class logits: [B,N,2] ---
+                    elif exist_logit.dim() == 3 and exist_logit.size(-1) == 2:
+                        # prob 用來排序 / merge / nms
+                        prob_pos = torch.softmax(exist_logit, dim=-1)[..., 1]  # [B,N]
+                        exist_prob_last = prob_pos
+
+                        # ✅ 你要的 ARGMAX gate（最快）
+                        #pos_mask_last = (exist_logit.argmax(dim=-1) == 1)  # [B,N] bool
+
+                        # 如果你想要「argmax + 低門檻」也可以混用：
+                        pos_mask_last = (exist_logit.argmax(-1) == 1) | (prob_pos > float(args.hard_thresh))
+
+                    else:
+                        raise RuntimeError(f"Unexpected exist_logit shape: {tuple(exist_logit.shape)}")
 
                 if i + 1 < len(t_seq):
                     abar_prev = abar[int(t_seq[i + 1].item())].view(1, 1, 1).expand(B, 1, 1)
@@ -417,7 +439,7 @@ if __name__ == "__main__":
     per_image_pred_hard_sum = {}
     per_image_error_hard = {}
 
-    thr = 0.45
+    thr = args.hard_thresh
     nms_r = 3.0
 
     # compute per-image GT count from deduplicated global GT points
@@ -521,14 +543,14 @@ if __name__ == "__main__":
         for gx, gy in zip(gt_xs, gt_ys):
             gx = int(np.clip(gx, 0, W_img - 1))
             gy = int(np.clip(gy, 0, H_img - 1))
-            cv2.circle(img_np, (gx, gy), 3, (0, 255, 0), -1)  # green
+            cv2.circle(img_np, (gx, gy), 2, (0, 255, 0), -1)  # green
 
         # hard nms predictions
         pred_xy = np.asarray(vis.get("pred_xy_hard_nms", np.zeros((0, 2), np.float32)), dtype=np.float32)
         for x, y in pred_xy:
             x_i = int(np.clip(round(float(x)), 0, W_img - 1))
             y_i = int(np.clip(round(float(y)), 0, H_img - 1))
-            cv2.circle(img_np, (x_i, y_i), 3, (255, 0, 0), -1)  # blue
+            cv2.circle(img_np, (x_i, y_i), 2, (255, 0, 0), -1)  # blue
 
         out_name = vis["out_name"]
         pred_total = per_image_pred_hard_sum[k]
@@ -551,12 +573,12 @@ if __name__ == "__main__":
         for gx, gy in zip(gt_xs, gt_ys):
             gx = int(np.clip(gx, 0, W_img - 1))
             gy = int(np.clip(gy, 0, H_img - 1))
-            cv2.circle(img_all, (gx, gy), 3, (0, 255, 0), -1)
+            cv2.circle(img_all, (gx, gy), 2, (0, 255, 0), -1)
 
         for x, y in zip(xs_all, ys_all):
             x_i = int(np.clip(round(float(x)), 0, W_img - 1))
             y_i = int(np.clip(round(float(y)), 0, H_img - 1))
-            cv2.circle(img_all, (x_i, y_i), 5, (0, 0, 255), -1)  # red
+            cv2.circle(img_all, (x_i, y_i), 2, (0, 0, 255), -1)  # red
 
         img_all_bgr = cv2.cvtColor(img_all, cv2.COLOR_RGB2BGR)
         out_path_all = os.path.join(

@@ -33,6 +33,28 @@ def Diffusion_schedule(T,device,signal_scale):
 def HungarianMatcher(cost_class=2.0, cost_coord=5.0):
     return hungarianMatcher(cost_class=cost_class, cost_coord=cost_coord)
 
-def SetCriterion(matcher, lambda_exist=2.0,  lambda_x0=5.0, lambda_cnt=1.0, lambda_bg=2):
-    return setCriterion(matcher, lambda_exist, lambda_x0, lambda_cnt)
+def SetCriterion(
+    matcher,
+    lambda_exist=2.0,
+    lambda_x0=5.0,
+    lambda_cnt=1.0,
+    lambda_bg=2,
+    lambda_eps=0.1,
+    lambda_cov=0.2,
+    lambda_dup=0.2,
+    region_radius=5.0,
+    region_topk=5,
+):
+    return setCriterion(
+        matcher,
+        lambda_exist=lambda_exist,
+        lambda_x0=lambda_x0,
+        lambda_cnt=lambda_cnt,
+        lambda_bg=lambda_bg,
+        lambda_eps=lambda_eps,
+        lambda_cov=lambda_cov,
+        lambda_dup=lambda_dup,
+        region_radius=region_radius,
+        region_topk=region_topk,
+    )
 

@@ -6,6 +6,10 @@ from math import pi
 from scipy.optimize import linear_sum_assignment
 import numpy as np
 # --- Cosine schedule (Nichol & Dhariwal), 生成 ᾱ[t] 由 1 -> 近 0，t 越大越「更嘈雜」 ---
+import torch
+import torch.nn.functional as F
+
+
 class CosineAbarSchedule:
     def __init__(self, T:int, s:float=0.008, device="cuda"):
         self.T = T
@@ -38,7 +42,7 @@ class hungarianMatcher(nn.Module):
     @torch.no_grad()
     def forward(self, pred_logits, pred_points, gt_points, gt_mask):
         """
-        pred_logits: [B, N]   (未經 sigmoid)
+        pred_logits: [B, N] or [B, N, 2]   (未經 sigmoid/softmax)
         pred_points: [B, N, 2]
         gt_points:   [B, N, 2]  # 與 mask 對齊，僅 mask=True 的位置有效
         gt_mask:     [B, N]     # True 表示該槽位有 GT
@@ -64,12 +68,17 @@ class hungarianMatcher(nn.Module):
                 continue
 
             tgt_pts = gt_points[b, tgt_idx_full]  # [Mb,2]
-
-            # ---------- 分類成本（只用正類 focal，logits 版，數值穩定） ----------
-            # BCE_pos(x) = softplus(-x),  p = sigmoid(x)
-            p = x.sigmoid()  # [N]
-            pos_cost = self.alpha * ((1.0 - p).pow(self.gamma)) * F.softplus(-x)  # [N]
-            cost_class = pos_cost[:, None]  # [N,1]，對每個 GT 一樣 -> broadcast 成 [N,Mb]
+            # ---------- 分類成本 ----------
+            # 支援兩種模式：
+            #   (A) BCE/Focal：pred_logits = [N]（舊版）
+            #   (B) CE/Softmax：pred_logits = [N,2]，class0=no-object, class1=object（新版）
+            if x.dim() == 2 and x.size(-1) == 2:
+                p_obj = x.softmax(-1)[:, 1]  # [N]
+                cost_class = (-p_obj.clamp_min(1e-8).log())[:, None].expand(-1, Mb)  # [N,Mb]
+            else:
+                p = x.sigmoid()  # [N]
+                pos_cost = self.alpha * ((1.0 - p).pow(self.gamma)) * F.softplus(-x)  # [N]
+                cost_class = pos_cost[:, None].expand(-1, Mb)  # [N,Mb]
 
             # ---------- 幾何成本（L1 距離；可改成 L2 或 Huber） ----------
             # L1
@@ -95,11 +104,28 @@ class hungarianMatcher(nn.Module):
                 continue
 
             row, col = linear_sum_assignment(C_np)  # row: N side index, col: Mb side index
+            row_t = torch.as_tensor(row, dtype=torch.long, device=device)
+            col_t = torch.as_tensor(col, dtype=torch.long, device=device)
+            matched_cost_class = cost_class[row_t, col_t]
+            matched_cost_coord = cost_coord[row_t, col_t]
+            matched_C = C[row_t, col_t]
 
+            class_term = self.cost_class * matched_cost_class.mean().item()
+            coord_term = self.cost_coord * matched_cost_coord.mean().item()
+            total_term = matched_C.mean().item()
+
+            # print(
+            #     f"[Matcher][img {b}] "
+            #     f"pairs={len(row)} | "
+            #     f"class_mean={matched_cost_class.mean().item():.6f} "
+            #     f"coord_mean={matched_cost_coord.mean().item():.6f} | "
+            #     f"class_term={class_term:.6f} "
+            #     f"coord_term={coord_term:.6f} "
+            #     f"total_mean={total_term:.6f}"
+            # )
             # 轉回全域 N 級索引（pred 直接用 row，gt 需要映射回原始槽位索引）
-            pred_idx = torch.as_tensor(row, dtype=torch.long, device=device)
-            gt_idx   = tgt_idx_full[torch.as_tensor(col, dtype=torch.long, device=device)]
-
+            pred_idx = row_t
+            gt_idx = tgt_idx_full[col_t]   # map local Mb-index -> global N-slot index
             indices.append((pred_idx, gt_idx))
 
         return indices
@@ -154,6 +180,124 @@ def eps_loss(eps_pred: torch.Tensor, eps_true: torch.Tensor, mask: torch.Tensor,
     #     l2 = l2[mask]
     # return l2.mean() if l2.numel() > 0 else torch.tensor(0.0, device=eps_pred.device)
 
+def coverage_loss_bag(
+    pred_points_m11: torch.Tensor,   # [B,N,2]
+    prob_obj: torch.Tensor,          # [B,N]
+    gt_points_m11: torch.Tensor,     # [B,N,2]
+    gt_mask: torch.Tensor,           # [B,N]
+    pred_valid_mask: torch.Tensor = None,  # [B,N] or None
+    H: int = 256,
+    W: int = 256,
+    topk: int = 5,
+    sigma: float = 4.0,
+    eps: float = 1e-6,
+):
+    """
+    對每個 GT，看最近 top-k 個 prediction；
+    只要其中至少一個是「高分且夠近」，這個 GT 的 coverage 就高。
+    """
+    B, N, _ = pred_points_m11.shape
+    pred_pix = m11_to_pixels(pred_points_m11, H, W)   # [B,N,2]
+    gt_pix   = m11_to_pixels(gt_points_m11, H, W)     # [B,N,2]
+
+    losses = []
+
+    for b in range(B):
+        gmask = gt_mask[b].bool()
+        if not gmask.any():
+            continue
+
+        G = gt_pix[b, gmask]   # [Ng,2]
+
+        if pred_valid_mask is not None:
+            pmask = pred_valid_mask[b].bool()
+            P = pred_pix[b, pmask]     # [Np,2]
+            q = prob_obj[b, pmask]     # [Np]
+        else:
+            P = pred_pix[b]            # [N,2]
+            q = prob_obj[b]            # [N]
+
+        if P.numel() == 0:
+            # 沒 prediction 可覆蓋，直接給大 loss
+            losses.append(G.new_tensor(10.0))
+            continue
+
+        # [Ng, Np]
+        dist = torch.cdist(G, P, p=2)
+
+        k = min(int(topk), P.size(0))
+        dist_topk, idx_topk = torch.topk(dist, k=k, dim=1, largest=False)   # [Ng,k]
+        q_topk = q[idx_topk]                                                # [Ng,k]
+
+        # spatial closeness
+        a = torch.exp(-(dist_topk ** 2) / (2.0 * sigma * sigma))            # [Ng,k]
+
+        # effective cover score
+        eff = (q_topk * a).clamp(min=0.0, max=1.0 - 1e-6)
+
+        # bag probability: 至少一個成功覆蓋
+        p_bag = 1.0 - torch.prod(1.0 - eff, dim=1)                          # [Ng]
+
+        # GT-wise coverage loss
+        Lb = -(p_bag + eps).log().mean()
+        losses.append(Lb)
+
+    if len(losses) == 0:
+        return prob_obj.new_tensor(0.0)
+
+    return torch.stack(losses).mean()
+
+def region_duplicate_loss(
+    pred_points_m11: torch.Tensor,
+    prob_obj: torch.Tensor,
+    gt_points_m11: torch.Tensor,
+    gt_mask: torch.Tensor,
+    pred_valid_mask: torch.Tensor = None,
+    H: int = 256,
+    W: int = 256,
+    region_radius: float = 5.0,
+    region_topk: int = 5,
+):
+    pred_pix = m11_to_pixels(pred_points_m11, H, W)
+    gt_pix = m11_to_pixels(gt_points_m11, H, W)
+    losses = []
+
+    for b in range(pred_pix.size(0)):
+        gmask = gt_mask[b].bool()
+        if not gmask.any():
+            continue
+
+        if pred_valid_mask is not None:
+            pmask = pred_valid_mask[b].bool()
+            P = pred_pix[b, pmask]
+            q = prob_obj[b, pmask]
+        else:
+            P = pred_pix[b]
+            q = prob_obj[b]
+
+        if P.numel() == 0:
+            continue
+
+        G = gt_pix[b, gmask]
+        dist = torch.cdist(G, P, p=2)
+
+        for gi in range(G.size(0)):
+            near_idx = (dist[gi] <= float(region_radius)).nonzero(as_tuple=False).squeeze(1)
+            if near_idx.numel() <= 1:
+                continue
+
+            if region_topk is not None and int(region_topk) > 0 and near_idx.numel() > int(region_topk):
+                _, order = torch.topk(dist[gi, near_idx], k=int(region_topk), largest=False)
+                near_idx = near_idx[order]
+
+            q_sorted = torch.sort(q[near_idx], descending=True).values
+            if q_sorted.numel() > 1:
+                losses.append((q_sorted[1:] ** 2).mean())
+
+    if len(losses) == 0:
+        return prob_obj.new_tensor(0.0)
+
+    return torch.stack(losses).mean()
 
 class setCriterion(nn.Module):
     def __init__(
@@ -162,26 +306,39 @@ class setCriterion(nn.Module):
         lambda_exist: float = 1.0,
         lambda_x0: float = 1.0,
         lambda_cnt: float = 0.1,
+        lambda_eps: float = 0.1,  # 新增
         lambda_bg: float = 2.0,
+        lambda_cov: float = 0.2,
+        lambda_dup: float = 0.2,
+        cov_topk: int = 3,
+        cov_sigma: float = 4.0,
+        region_radius: float = 5.0,
+        region_topk: int = 5,
         gamma: float = 2.0,
         alpha: float = 0.6,
+        eos_coef: float = 0.3,
     ):
-        """
-        matcher      : 匈牙利匹配模組
-        lambda_exist : L_exist 權重
-        lambda_x0    : L_x0    權重
-        lambda_cnt   : L_cnt   權重
-        lambda_bg    : L_bg    權重
-        gamma, alpha : focal loss 超參數
-        """
         super().__init__()
         self.matcher = matcher
         self.lambda_exist = lambda_exist
         self.lambda_x0 = lambda_x0
         self.lambda_cnt = lambda_cnt
         self.lambda_bg = lambda_bg
+        self.lambda_eps = lambda_eps
+        self.lambda_cov = lambda_cov
+        self.lambda_dup = lambda_dup
+        self.cov_topk = cov_topk
+        self.cov_sigma = cov_sigma
+        self.region_radius = region_radius
+        self.region_topk = region_topk
         self.gamma = gamma
         self.alpha = alpha
+
+
+        # CE/softmax 版：兩類 (0=no-object, 1=object)，降低 no-object 權重
+        empty_weight = torch.ones(2)
+        empty_weight[0] = float(eos_coef)
+        self.register_buffer('empty_weight', empty_weight)
 
     # ---------------- Focal loss (跟你原本一樣) ----------------
     def focal_loss_with_logits(self, logits, targets):
@@ -211,11 +368,14 @@ class setCriterion(nn.Module):
         p_t: torch.Tensor,        # [B,N,2] 当前 noisy points
         p0: torch.Tensor,         # [B,N,2] GT points (在 [-1,1] 座標)
         mask: torch.Tensor,       # [B,N]   True/1 = 前景 GT
+        pro: torch.Tensor,
         abar_t: torch.Tensor,     # [B,1,1] or [B,1] \bar{α}_t
         eps_pred: torch.Tensor,   # [B,N,2] 模型預測的 ε_t
         exist_logit: torch.Tensor,# [B,N]   存在度 logits
+        pred_points_for_cls=None,
+        pred_valid_mask=None,
         lambda_t: torch.Tensor = None,  # scalar 或 [B,1,1]，論文 SNR-based 權重
-            aux_weight: float = 1.0,
+        aux_weight: float = 1.0,
     ):
         """
         回傳:
@@ -254,16 +414,7 @@ class setCriterion(nn.Module):
         else:
             L_eps = eps_pred.new_tensor(0.0)
 
-        # ---- early return if aux_weight==0 ----
-        if (aux_weight is not None) and (float(aux_weight) == 0.0):
-            if lambda_t is None:
-                loss = L_eps
-            else:
-                lambda_t_scalar = lambda_t.mean() if isinstance(lambda_t, torch.Tensor) else float(lambda_t)
-                loss = lambda_t_scalar * L_eps
 
-            zero = eps_pred.new_tensor(0.0)
-            return loss, zero, zero, zero, zero, L_eps
         # =========================================================
         # ---- 3. 反推出 x0_hat（給 x0 loss / 匹配用）----
         x0_hat = (p_t - sqrt_om * eps_pred) / (sqrt_ab + eps)
@@ -364,32 +515,184 @@ class setCriterion(nn.Module):
         else:
             L_x0 = torch.tensor(0.0, device=x0_hat.device)
 
-        # ---- 5. L_exist (focal loss on all N) ----
-        target_classes = torch.zeros_like(exist_logit)  # [B,N], 默認背景 0
-        target_classes[idx] = 1.0                      # 被匹配到 GT 的預測 → 正類 1
+        
+        # ---- 5. L_exist ----
+        # target_classes: 0=no-object, 1=object (matched)
+        if exist_logit.dim() == 3 and exist_logit.size(-1) == 2:
+            #print("cross entropy")
+            target_classes = torch.zeros((exist_logit.size(0), exist_logit.size(1)),
+                                         dtype=torch.long, device=exist_logit.device)  # [B,N]
+            target_classes[idx] = 1
 
-        if not torch.isfinite(exist_logit).all():
-            print("[WARN] logits not finite before focal_loss")
+            if not torch.isfinite(exist_logit).all():
+                print("[WARN] cls logits not finite before CE")
 
-        L_exist = self.focal_loss_with_logits(exist_logit, target_classes)
+            # CrossEntropy expects [B,C,N]
+            logits_ce = exist_logit.transpose(1, 2)  # [B,2,N]
+            # 先算每個 token 的 CE（不做 reduction）
+            per_tok_ce = F.cross_entropy(
+                logits_ce,  # [B,2,N]
+                target_classes,  # [B,N]
+                weight=self.empty_weight,  # [2]
+                reduction='none'  # -> [B,N]
+            )  # [B,N]
+
+            # 正/負 mask（注意：這裡的 pos 是 matched predictions，不是 GT slot）
+            pos_mask = (target_classes == 1)  # [B,N]
+            neg_mask = ~pos_mask  # [B,N]
+
+            # 計數
+            N_pos = pos_mask.sum().item()
+            N_neg = neg_mask.sum().item()
+
+            # 平均 loss（避免除 0）
+            pos_loss_mean = (per_tok_ce[pos_mask].mean().item() if N_pos > 0 else 0.0)
+            neg_loss_mean = (per_tok_ce[neg_mask].mean().item() if N_neg > 0 else 0.0)
+
+            # 你要看的「總量對比」
+            # 注意：per_tok_ce 已經把 class weight 套進去了（背景 * eos_coef、人頭 * w_pos）
+            # 所以這裡其實 total = mean * count 就已經反映權重了。
+            pos_total = pos_loss_mean * N_pos
+            neg_total = neg_loss_mean * N_neg
+
+            # 若你堅持要用你指定的公式形式「再乘 eos_coef」，
+            # 那要先用未加權的 neg_loss_mean_raw 來算，不然會重複乘權重。
+            # 這裡我也一起算給你看（比較清楚）
+            per_tok_ce_raw = F.cross_entropy(
+                logits_ce,
+                target_classes,
+                reduction='none'
+            )  # [B,N] 未加權版
+
+            pos_loss_mean_raw = (per_tok_ce_raw[pos_mask].mean().item() if N_pos > 0 else 0.0)
+            neg_loss_mean_raw = (per_tok_ce_raw[neg_mask].mean().item() if N_neg > 0 else 0.0)
+
+            eos = float(self.empty_weight[0].item())
+            wpos = float(self.empty_weight[1].item())
+
+            pos_total_formula = pos_loss_mean_raw * N_pos * wpos
+            neg_total_formula = neg_loss_mean_raw * N_neg * eos
+
+            ratio = (neg_total_formula / (pos_total_formula + 1e-12))
+            with torch.no_grad():
+                probs = exist_logit.softmax(dim=-1)  # [B,N,2]
+                p_neg = probs[..., 0]  # [B,N]
+                p_pos = probs[..., 1]  # [B,N]
+
+                # 注意避免空集合
+                def safe_mean(x):
+                    return x.mean().item() if x.numel() else 0.0
+
+                def safe_q(x, q):
+                    if x.numel() == 0:
+                        return 0.0
+                    x = x.reshape(-1).float()
+                    return x.quantile(q).item()
+
+
+                pos_p_pos_mean = safe_mean(p_pos[pos_mask])  # 正樣本上，P(pos) 平均
+                pos_p_pos_p05 = safe_q(p_pos[pos_mask], 0.05)
+                pos_p_pos_p50 = safe_q(p_pos[pos_mask], 0.50)
+
+                neg_p_pos_mean = safe_mean(p_pos[neg_mask])  # 負樣本上，P(pos) 平均（越低越好）
+                neg_p_pos_p95 = safe_q(p_pos[neg_mask], 0.95)
+
+                neg_p_neg_mean = safe_mean(p_neg[neg_mask])  # 負樣本上，P(neg) 平均（越高越好）
+
+                logit_neg = exist_logit[..., 0]  # [B,N]
+                logit_pos = exist_logit[..., 1]  # [B,N]
+                margin = logit_pos - logit_neg  # [B,N]
+
+                pos_margin_mean = safe_mean(margin[pos_mask])
+                pos_margin_p05 = safe_q(margin[pos_mask], 0.05)
+                pos_margin_p50 = safe_q(margin[pos_mask], 0.50)
+
+                neg_margin_mean = safe_mean(margin[neg_mask])
+                neg_margin_p95 = safe_q(margin[neg_mask], 0.95)
+
+
+            # ======= 控制印出頻率（建議每 50 steps 印一次）=======
+            # 你可以在 criterion 外面傳 step 進來，或用全域計數器。
+            # 這裡提供一個簡單方案：在 module 裡放 self._dbg_step 計數
+            if not hasattr(self, "_dbg_step"):
+                self._dbg_step = 0
+            self._dbg_step += 1
+
+            if (self._dbg_step % 100) == 0:
+                print(
+                    f"[CE dbg] step={self._dbg_step} "
+                    f"N_pos={N_pos} N_neg={N_neg} "
+                    f"pos_mean={pos_loss_mean:.4f} neg_mean={neg_loss_mean:.4f} "
+                    f"pos_total={pos_total:.2f} neg_total={neg_total:.2f} | "
+                    f"(raw) pos_mean={pos_loss_mean_raw:.4f} neg_mean={neg_loss_mean_raw:.4f} "
+                    f"w=[bg:{eos:.3g}, pos:{wpos:.3g}] "
+                    f"pos_totalF={pos_total_formula:.2f} neg_totalF={neg_total_formula:.2f} "
+                    f"ratio(neg/pos)={ratio:.2f}"
+                )
+                # print(
+                #     f"[P dbg] POS tokens: P(pos) mean={pos_p_pos_mean:.4f} p05={pos_p_pos_p05:.4f} p50={pos_p_pos_p50:.4f} | "
+                #     f"NEG tokens: P(pos) mean={neg_p_pos_mean:.4f} p95={neg_p_pos_p95:.4f}  P(neg) mean={neg_p_neg_mean:.4f}"
+                # )
+                print(
+                    f"[M dbg] POS margin(pos-neg): mean={pos_margin_mean:.4f} p05={pos_margin_p05:.4f} p50={pos_margin_p50:.4f} | "
+                    f"NEG margin(pos-neg): mean={neg_margin_mean:.4f} p95={neg_margin_p95:.4f}"
+                )
+            # 最後再用原本的方式算 L_exist（或直接 per_tok_ce.mean）
+            L_exist = per_tok_ce.mean()
+        else:
+            # fallback: 舊版 focal（二分類 sigmoid）
+            print("not cross entropy")
+            target_classes = torch.zeros_like(exist_logit)  # [B,N], 默認背景 0
+            target_classes[idx] = 1.0
+            if not torch.isfinite(exist_logit).all():
+                print("[WARN] logits not finite before focal_loss")
+            L_exist = self.focal_loss_with_logits(exist_logit, target_classes)
 
         # ---- 6. L_cnt (soft count) ----
-        prob_v = torch.sigmoid(exist_logit)    # [B,N]
-        pos_mask_pred = (target_classes > 0.5).float()  # [B,N] 1= matched prediction
+        if exist_logit.dim() == 3 and exist_logit.size(-1) == 2:
+            prob_v = exist_logit.softmax(-1)[..., 1]  # [B,N] object prob
+            pos_mask_pred = (target_classes == 1).float()
+        else:
+            prob_v = torch.sigmoid(exist_logit)       # [B,N]
+            pos_mask_pred = (target_classes > 0.5).float()
+
         pred_cnt = prob_v.sum(dim=1)
         gt_cnt = mask.sum(dim=1).float()
         L_cnt = (pred_cnt - gt_cnt).abs() / (gt_cnt + 1.0)
         L_cnt = L_cnt.mean()
 
-        # # ---- 7. 背景損失 L_bg ----
-        # pos_mask_bool = (target_classes > 0.5)  # [B,N] True = matched preds
-        # bgmask = (~pos_mask_bool).float()       # [B,N] True = 背景預測點
-        #
-        # bg_ratio = bgmask.sum(1) / (bgmask.size(1) + eps)        # [B]
-        # bg_mean  = (prob_v * bgmask).sum(1) / (bgmask.sum(1) + eps)  # [B]
-        # bg_loss_per_img = bg_mean * bg_ratio
-        # L_bg = bg_loss_per_img.mean()
-        pos_mask_bool = (target_classes > 0.5)  # matched preds
+        # ---- 6.5. Coverage loss ----
+        if pred_points_for_cls is None:
+            # fallback：若沒傳，就退回目前的 x0_hat
+            # 但這不是最推薦，因為可能和 exist_logit 不對齊
+            pred_points_for_cls = x0_hat
+
+        L_cov = coverage_loss_bag(
+            pred_points_m11=pred_points_for_cls,
+            prob_obj=prob_v,
+            gt_points_m11=p0,
+            gt_mask=mask,
+            pred_valid_mask=pred_valid_mask,
+            H=256,
+            W=256,
+            topk=self.cov_topk,
+            sigma=self.cov_sigma,
+        )
+
+        L_dup = region_duplicate_loss(
+            pred_points_m11=pred_points_for_cls,
+            prob_obj=prob_v,
+            gt_points_m11=p0,
+            gt_mask=mask,
+            pred_valid_mask=pred_valid_mask,
+            H=256,
+            W=256,
+            region_radius=self.region_radius,
+            region_topk=self.region_topk,
+        )
+
+        # ---- 7. 背景損失 L_bg ----
+        pos_mask_bool = (target_classes == 1) if (target_classes.dtype == torch.long) else (target_classes > 0.5)
 
         # 取每張圖有效 GT
         B, N, _ = x0_hat.shape
@@ -402,69 +705,135 @@ class setCriterion(nn.Module):
                 bgmask_b = (~pos_mask_bool[b])
             else:
                 pred_pix = m11_to_pixels(x0_hat[b], 256, 256)  # [N,2]
+                # dup_dist = torch.cdist(pred_pix, pred_pix, p=2)  # [N,N]
+                # eye = torch.eye(dup_dist.size(0), device=dup_dist.device, dtype=torch.bool)
+                # dup_dist.masked_fill_(eye, 1e9)
+                #
+                # dup_thr = 2.0  # 可改 1.0 / 2.0 / 3.0 pixels 試試
+                # dup_mask = dup_dist < dup_thr
+                #
+                # dup_pairs = torch.triu(dup_mask, diagonal=1).sum().item()
+                # dup_points = dup_mask.any(dim=1).sum().item()
+                # min_nn_dist = dup_dist.min(dim=1).values.min().item()
+                # mean_nn_dist = dup_dist.min(dim=1).values.mean().item()
                 gt_pix = m11_to_pixels(p0[b, tgt_idx], 256, 256)  # [Mb,2]
                 dist = torch.cdist(pred_pix, gt_pix, p=2)  # [N,Mb]
                 dmin = dist.min(dim=1).values  # [N]
                 ignore = (dmin < r_pix)  # [N]  # GT附近不當背景
                 bgmask_b = (~pos_mask_bool[b]) & (~ignore)  # [N]
-
+                # near_gt_unmatched = (~pos_mask_bool[b]) & ignore
+                # if (self._dbg_step % 100) == 0:
+                #     st = analyze_pro_similarity(
+                #         pred_pix=pred_pix,
+                #         pro_feat=pro[b].detach(),  # [N,C]
+                #         pos_mask=pos_mask_bool[b],
+                #         ignore_mask=ignore,
+                #         dup_thr=2.0,
+                #         far_thr=8.0,
+                #         max_pairs=2000,
+                #     )
+                #
+                #     print(f"[ProSim][img {b}] N={st['N']} near_gt_unmatched={st['near_gt_unmatched_count']}")
+                #
+                #     if st["near_dup"] is not None:
+                #         x = st["near_dup"]
+                #         print(
+                #             f"  [near_dup] pairs={x['num_pairs']} "
+                #             f"pix_mean={x['pix_dist_mean']:.3f} "
+                #             f"cos_mean={x['cos_mean']:.4f} cos_p50={x['cos_p50']:.4f} "
+                #             f"l2_mean={x['l2_mean']:.4f} l2_p50={x['l2_p50']:.4f}"
+                #         )
+                #
+                #     if st["far_pair"] is not None:
+                #         x = st["far_pair"]
+                #         print(
+                #             f"  [far_pair] pairs={x['num_pairs']} "
+                #             f"pix_mean={x['pix_dist_mean']:.3f} "
+                #             f"cos_mean={x['cos_mean']:.4f} cos_p50={x['cos_p50']:.4f} "
+                #             f"l2_mean={x['l2_mean']:.4f} l2_p50={x['l2_p50']:.4f}"
+                #         )
+                #
+                #     if st["near_gt_unmatched_dup"] is not None:
+                #         x = st["near_gt_unmatched_dup"]
+                #         print(
+                #             f"  [nearGT_unmatched_dup] pairs={x['num_pairs']} "
+                #             f"pix_mean={x['pix_dist_mean']:.3f} "
+                #             f"cos_mean={x['cos_mean']:.4f} cos_p50={x['cos_p50']:.4f} "
+                #             f"l2_mean={x['l2_mean']:.4f} l2_p50={x['l2_p50']:.4f}"
+                #         )
+                #     print(
+                #         f"[DupCheck][img {b}] "
+                #         f"dup_pairs={dup_pairs} "
+                #         f"dup_points={dup_points}/{pred_pix.size(0)} "
+                #         f"min_nn_dist={min_nn_dist:.4f} "
+                #         f"mean_nn_dist={mean_nn_dist:.4f}"
+                #     )
+                #
+                #     print(
+                #         f"[NearGT-Unmatched][img {b}] "
+                #         f"count={near_gt_unmatched.sum().item()} / {pred_pix.size(0)}"
+                #     )
             if bgmask_b.any():
                 bg_losses.append(prob_v[b][bgmask_b].mean())
             else:
                 bg_losses.append(prob_v[b].new_tensor(0.0))
 
         L_bg = torch.stack(bg_losses).mean()
-        # ---- 8. Hybrid Loss：λ_t * L_eps + 其他項 ----
-        if lambda_t is None:
-            # 沒有給 λ_t 就退化成原本多項 loss
-            loss = (
+
+        # ---- 8. Hybrid Loss：x0-style 單步訓練版 ----
+        if isinstance(lambda_t, torch.Tensor):
+            lambda_t_scalar = lambda_t.mean()
+        elif lambda_t is None:
+            lambda_t_scalar = L_eps.new_tensor(1.0)
+        else:
+            lambda_t_scalar = L_eps.new_tensor(float(lambda_t))
+
+        if aux_weight is None:
+            aux_weight_scalar = L_eps.new_tensor(1.0)
+        else:
+            aux_weight_scalar = L_eps.new_tensor(float(aux_weight))
+
+        eps_term = self.lambda_eps * lambda_t_scalar * L_eps
+        aux_term = aux_weight_scalar * (
                 self.lambda_x0 * L_x0
                 + self.lambda_exist * L_exist
                 + self.lambda_cnt * L_cnt
                 + self.lambda_bg * L_bg
+                + self.lambda_cov * L_cov
+                + self.lambda_dup * L_dup
+        )
+
+        loss = eps_term + aux_term
+
+        # if hasattr(self, "_dbg_step") and (self._dbg_step % 100) == 0:
+        #     print(
+        #         f"[LossBalance] "
+        #         f"lambda_t={float(lambda_t_scalar):.6f} "
+        #         f"aux_weight={float(aux_weight_scalar):.6f} | "
+        #         f"Leps={L_eps.item():.6f} "
+        #         f"Lx0={L_x0.item():.6f} "
+        #         f"Lex={L_exist.item():.6f} | "
+        #         f"eps_term={eps_term.item():.6f} "
+        #         f"aux_term={aux_term.item():.6f} "
+        #         f"ratio_aux/eps={(aux_term.item() / (eps_term.item() + 1e-12)):.3f}"
+        #     )
+
+        if not torch.isfinite(loss):
+            print(
+                "[ERROR] Non-finite loss detected:",
+                "Leps=", float(L_eps),
+                "Lex=", float(L_exist),
+                "Lx0=", float(L_x0),
+                "Lcnt=", float(L_cnt),
+                "Lbg=", float(L_bg),
+                "Ldup=", float(L_dup),
             )
-            if not torch.isfinite(loss):
-                print("[ERROR] Non-finite loss detected:",
-                      "Lex=", float(L_exist),
-                      "Lx0=", float(L_x0),
-                      "Lcnt=", float(L_cnt),
-                      "Lbg=", float(L_bg),
-                      )
-                raise RuntimeError("Loss became NaN/inf, stop and inspect.")
-            return loss, L_exist, L_x0, L_cnt, L_bg
-        else:
-            # lambda_t 可能是 scalar，也可能是 [B,1,1] → 取平均
-            if isinstance(lambda_t, torch.Tensor):
-                lambda_t_scalar = lambda_t.mean()
-            else:
-                lambda_t_scalar = float(lambda_t)
+            raise RuntimeError("Loss became NaN/inf, stop and inspect.")
 
-            if lambda_t is None:
-                # 這是舊的 fallback，也可以乘上 aux_weight
-                loss = aux_weight * (
-                        self.lambda_x0 * L_x0
-                        + self.lambda_exist * L_exist
-                        + self.lambda_cnt * L_cnt
-                        + self.lambda_bg * L_bg
-                )
-            else:
-                # lambda_t 處理 L_eps (已經算好了)
-                if isinstance(lambda_t, torch.Tensor):
-                    lambda_t_scalar = lambda_t.mean()
-                else:
-                    lambda_t_scalar = float(lambda_t)
+        return loss, L_exist, L_x0, L_cnt, L_bg, L_eps, L_cov, L_dup
 
-                # [MOD] 這裡加上 aux_weight
-                loss = (
-                        lambda_t_scalar * L_eps
-                        + aux_weight * (  # <--- 讓所有輔助 Loss 隨 t 衰減
-                                self.lambda_x0 * L_x0
-                                + self.lambda_exist * L_exist
-                                + self.lambda_cnt * L_cnt
-                                + self.lambda_bg * L_bg
-                        )
-                )
-            return loss, L_exist, L_x0, L_cnt, L_bg, L_eps
+
+
 
 
 
@@ -484,4 +853,3 @@ class setCriterion(nn.Module):
         batch_idx = torch.cat([torch.full_like(tgt, i) for i, (_, tgt) in enumerate(indices)])
         tgt_idx = torch.cat([tgt for (_, tgt) in indices])
         return batch_idx, tgt_idx
-

@@ -1,5 +1,5 @@
 seed: 7113064165
-batch_size: 8
+batch_size: 16
 num_workers: 16
 epochs: 1500
 dataset_file: SHHA
@@ -11,7 +11,7 @@ crop_size:  [256, 256]
 crop_type: 'center'
 gray: False
 device: cuda
-out_dir: 'D:\output\PointRCNN_refine_ConfidenceHead_with_token_ConfidenceHeadWITHOUT6'
+out_dir: 'D:\output\randomt_to_x0_COVLOSS'
 #---------------------------MODEL-----------------------------------------------------
 in_ch: 3  # 1=灰階, 3=RGB
 fpn_c: 128
@@ -23,16 +23,21 @@ lr_backbone: 1e-5
 diffusion_T: 1000
 K: 5
 signal_scale: 2.0
-lambda_exist: 300.
-lambda_x0: 0.1
-lambda_cnt: 0.01
-lambda_bg: 10
+lambda_exist: 200.
+lambda_x0: 10.0
+lambda_eps: 0.1
+lambda_cnt: 0.1
+lambda_bg: 0
+lambda_cov: 100
+lambda_dup: 5
+region_radius: 5.0
+region_topk: 5
 log_every:  50
 max_norm:  10.0
 #---------------------------realization-----------------------------------------------------
-ckpt_path: 'D:\output\PointRCNN_refine_ConfidenceHead_with_token_ConfidenceHeadWITHOUT6\last_epoch0174.pth'
-save_dir: 'C:\pycharm\pointdiff_new\vis_results\all_patch\Dynamic_adjustment_neg_w_0174'
-hard_thresh: 0.01
+ckpt_path: 'D:\output\randomt_to_x0_COVLOSS\last_epoch0245.pth'
+save_dir: 'C:\pycharm\pointdiff_new\vis_results\all_patch\COVLOSS_0245'
+hard_thresh: 0.0
 metric: 'hard'
 pick_worst: False
 num_realizations: 1
@@ -41,3 +46,7 @@ eps_clip: 1e-3
 inner_margin_ratio: 0.001
 nms_r_ratio: 0.001
 top_k_vis: 10
+ddim_eta: 0
+diag_prob_hi: 0.45
+diag_prob_lo: 0.15
+test_gate_mode: prob_only

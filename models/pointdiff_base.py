@@ -123,99 +123,8 @@ from torchvision.ops import misc as misc_ops  # LayerNorm2d 在這裡
 import torch
 import torch.nn.functional as F
 import math
+import torch
 import torch.nn as nn
-import time
-
-
-
-@torch.no_grad()
-def merge_slots_same_pixel(
-    x0_hat: torch.Tensor,   # [B,N,2] in [-1,1]
-    pro: torch.Tensor,      # [B,N,C]
-    H: int,
-    W: int,
-    max_slots: int = None,
-):
-    device = x0_hat.device
-    B, N, _ = x0_hat.shape
-    C = pro.size(-1)
-    if max_slots is None:
-        max_slots = N
-
-    def m11_to_pixels_batch(p_m11, H, W):
-        x = (p_m11[..., 0] + 1.0) * 0.5 * (W - 1)
-        y = (p_m11[..., 1] + 1.0) * 0.5 * (H - 1)
-        return torch.stack([x, y], dim=-1)
-
-    def pixels_to_m11_batch(p_pix, H, W):
-        x = p_pix[..., 0] / max(W - 1, 1) * 2.0 - 1.0
-        y = p_pix[..., 1] / max(H - 1, 1) * 2.0 - 1.0
-        return torch.stack([x, y], dim=-1)
-
-    x0_pix = m11_to_pixels_batch(x0_hat.detach(), H, W)  # [B,N,2]
-
-    merged_xy_list = []
-    merged_feat_list = []
-    merged_mask_list = []
-
-    for b in range(B):
-        pts = x0_pix[b]          # [N,2]
-        feat = pro[b]            # [N,C]
-
-        # round 到整數 pixel
-        pts_int = torch.round(pts).long()
-        pts_int[:, 0].clamp_(0, W - 1)
-        pts_int[:, 1].clamp_(0, H - 1)
-
-        # 用 unique 做分群
-        uniq_xy, inverse = torch.unique(pts_int, dim=0, return_inverse=True)  # uniq_xy:[M,2], inverse:[N]
-        M = uniq_xy.size(0)
-
-        # 群內平均原始浮點位置，得到 cluster center
-        merged_xy_pix = torch.zeros((M, 2), device=device, dtype=pts.dtype)
-        counts = torch.zeros((M,), device=device, dtype=pts.dtype)
-
-        merged_xy_pix.index_add_(0, inverse, pts)
-        counts.index_add_(0, inverse, torch.ones_like(inverse, dtype=pts.dtype))
-        merged_xy_pix = merged_xy_pix / counts[:, None].clamp_min(1.0)
-
-        # 代表 feature：選群內最接近中心的點
-        merged_feat = torch.zeros((M, C), device=device, dtype=feat.dtype)
-        merged_feat.index_add_(0, inverse, feat)
-        merged_feat = merged_feat / counts[:, None].clamp_min(1.0)
-
-        merged_xy = pixels_to_m11_batch(merged_xy_pix, H, W)  # [M,2]
-
-        pad_M = max_slots - M
-        if pad_M > 0:
-            merged_xy = torch.cat(
-                [merged_xy, torch.zeros((pad_M, 2), device=device, dtype=x0_hat.dtype)],
-                dim=0
-            )
-            merged_feat = torch.cat(
-                [merged_feat, torch.zeros((pad_M, C), device=device, dtype=pro.dtype)],
-                dim=0
-            )
-            merged_mask = torch.cat(
-                [
-                    torch.ones(M, device=device, dtype=torch.bool),
-                    torch.zeros(pad_M, device=device, dtype=torch.bool),
-                ],
-                dim=0
-            )
-        else:
-            merged_xy = merged_xy[:max_slots]
-            merged_feat = merged_feat[:max_slots]
-            merged_mask = torch.ones(max_slots, device=device, dtype=torch.bool)
-
-        merged_xy_list.append(merged_xy)
-        merged_feat_list.append(merged_feat)
-        merged_mask_list.append(merged_mask)
-
-    merged_xy = torch.stack(merged_xy_list, dim=0)      # [B,N,2]
-    merged_feat = torch.stack(merged_feat_list, dim=0)  # [B,N,C]
-    merged_mask = torch.stack(merged_mask_list, dim=0)  # [B,N]
-    return merged_xy, merged_feat, merged_mask
 
 class EncoderFPN(nn.Module):
     """
@@ -788,29 +697,23 @@ def pool_local_tokens(local_tokens, B, N, use_max=True):
 
 
 class ConfidenceHead(nn.Module):
-    """2-class confidence head for DETR/P2PNet-style softmax classification.
-
-    Output:
-      logits: [B, N, 2] where class 0 = no-object, class 1 = object
-    """
     def __init__(self, in_dim, hidden=256, p_prior=0.07):
         super().__init__()
         self.norm = nn.LayerNorm(in_dim)
         self.mlp = nn.Sequential(
             nn.Linear(in_dim, hidden), nn.SiLU(),
             nn.Linear(hidden, hidden), nn.SiLU(),
-            nn.Linear(hidden, 2)
+            nn.Linear(hidden, 1)
         )
 
-        # prior-bias init: softmax(logits) gives p(object)=p_prior when logit0=0, logit1=log(p/(1-p))
+        # prior-bias init: sigmoid(bias) = p_prior
         prior_logit = math.log(p_prior / (1.0 - p_prior))
         with torch.no_grad():
-            self.mlp[-1].bias.zero_()
-            self.mlp[-1].bias[1].fill_(prior_logit)
+            self.mlp[-1].bias.fill_(prior_logit)
 
     def forward(self, f):  # f: [B,N,in_dim]
         f = self.norm(f)
-        return self.mlp(f)  # [B,N,2]
+        return self.mlp(f).squeeze(-1)  # [B,N]
 
 
 class ModelBuilder(nn.Module):
@@ -850,24 +753,25 @@ class ModelBuilder(nn.Module):
 
     def denoise(self, feats, p_t, t, abar_t=None, clamp_eps=1e-6, cond_cache=None, need_exist=True):
         P4, P8, P16 = feats
+
+        # # pf at p_t
+        # if cond_cache is None:
+        #     pf = self.cond(P4, P8, P16, p_t)
+        # else:
+        #     pf = self.cond.forward_cached(cond_cache, p_t)
+        #
+        # te = self.temb(t)
+        # if te.dim() == 3 and te.size(1) == 1:
+        #     te = te.expand(pf.size(0), pf.size(1), te.size(-1))
+        #
+        # x = torch.cat([pf, te, p_t], dim=-1)
+        # # eps_pred = self.head_eps(pf, te, p_t)
+        # eps_pred = self.head_eps(x)
         cache = cond_cache
         if cache is None:
             cache = self.cond.precompute(P4, P8, P16)
 
-        def check_finite(name, x):
-            if x is None:
-                return
-            if not torch.isfinite(x).all():
-                x_det = x.detach()
-                nan_count = torch.isnan(x_det).sum().item()
-                inf_count = torch.isinf(x_det).sum().item()
-                safe_abs = torch.nan_to_num(
-                    x_det.abs(), nan=0.0, posinf=0.0, neginf=0.0
-                )
-                print(f"[BAD] {name} not finite | nan={nan_count} inf={inf_count} max_abs={safe_abs.max().item():.6f}")
-                raise RuntimeError(f"{name} became non-finite")
-
-        # time embedding
+        # time embedding (per-image)
         te = self.temb(t)
         if te.dim() == 3 and te.size(1) == 1:
             te_img = te.squeeze(1)
@@ -876,129 +780,82 @@ class ModelBuilder(nn.Module):
         else:
             te_img = te
 
-        check_finite("p_t", p_t)
-        check_finite("te_img", te_img)
-
-        # DiffusionDet-style refine
-        p_noisy = p_t
-        p_ref = p_t
-
+        # --- DiffusionDet-style refine ---
+        p_noisy = p_t  # ✅ noisy input 固定
+        p_ref = p_t  # ✅ reference 會被更新（用來抽 tokens）
         pf = self.cond.forward_cached(cache, p_ref)  # [B,N,4C]
-        check_finite("pf", pf)
-
-        check_finite("pf_proj.weight", self.pf_proj.weight)
-        if self.pf_proj.bias is not None:
-            check_finite("pf_proj.bias", self.pf_proj.bias)
-
-        # Run the projection in FP32 to avoid half-precision overflow right
-        # after conditioning, which is where training has been blowing up.
-        with torch.autocast(device_type="cuda", enabled=False):
-            pro = self.pf_proj(pf.float())  # [B,N,C]
-        pro = torch.nan_to_num(pro, nan=0.0, posinf=1e4, neginf=-1e4)
-        check_finite("pro_after_proj", pro)
+        pro = self.pf_proj(pf)  # [B,N,C]
 
         eps_pred = None
         x0_hat_last = None
 
-        # prepare abar
+        # prepare abar expanded (for stable x0_hat computation)
         if abar_t is not None:
             abar = abar_t
             if abar.dim() == 3 and abar.size(1) == 1:
-                abar = abar.expand(p_noisy.size(0), p_noisy.size(1), 1)
+                abar = abar.expand(p_noisy.size(0), p_noisy.size(1), 1)  # [B,N,1]
             elif abar.dim() == 1:
                 B = p_noisy.size(0)
                 abar = abar.view(B, 1, 1).expand(B, p_noisy.size(1), 1)
-            elif abar.dim() == 2:
+            elif abar.dim() == 2:  # [B,1]
                 B = p_noisy.size(0)
                 abar = abar.view(B, 1, 1).expand(B, p_noisy.size(1), 1)
 
             sqrt_abar = (abar + clamp_eps).sqrt()
             sqrt_onem = (1.0 - abar).clamp_min(0).sqrt()
 
-            check_finite("abar", abar)
-            check_finite("sqrt_abar", sqrt_abar)
-            check_finite("sqrt_onem", sqrt_onem)
-
-        for i, head in enumerate(self.head_eps):
+        for head in self.head_eps:
+            # ✅ 每一個 stage 都用 p_ref 重新抽 local tokens
             tok4 = sample_point_tokens(cache["q4"], p_ref, patch=self.cond.patch)
             tok8 = sample_point_tokens(cache["q8"], p_ref, patch=self.cond.patch)
             tok16 = sample_point_tokens(cache["q16"], p_ref, patch=self.cond.patch)
-            local_tokens = torch.cat([tok4, tok8, tok16], dim=0)
+            local_tokens = torch.cat([tok4, tok8, tok16], dim=0)  # [3*patch^2, B*N, C]
 
-            check_finite(f"tok4_{i}", tok4)
-            check_finite(f"tok8_{i}", tok8)
-            check_finite(f"tok16_{i}", tok16)
-            check_finite(f"local_tokens_{i}", local_tokens)
-
-            with torch.autocast(device_type="cuda", enabled=False):
-                eps_i, pro = head(
-                    local_tokens.float(),
-                    pro.float(),
-                    te_img.float()
-                )
-
-            # 暫時止血用；如果你想先定位根因，也可以先註解掉這兩行
-            eps_i = torch.nan_to_num(eps_i, nan=0.0, posinf=1e4, neginf=-1e4)
-            pro = torch.nan_to_num(pro, nan=0.0, posinf=1e4, neginf=-1e4)
-
-            check_finite(f"eps_i_{i}", eps_i)
-            check_finite(f"pro_after_head_{i}", pro)
-
+            # stage forward
+            eps_i, pro = head(local_tokens, pro, te_img)
             eps_pred = eps_i
 
+            # ✅ 用「固定的 noisy input p_noisy」算 x0_hat（讓 eps 對同一個 noisy 狀態）
             if abar_t is not None:
-                # 這段也先強制 FP32
-                with torch.autocast(device_type="cuda", enabled=False):
-                    x0_hat = (p_noisy.float() - sqrt_onem.float() * eps_i.float()) / (sqrt_abar.float() + 1e-12)
-                    x0_hat = x0_hat.clamp(-1.0 + 1e-3, 1.0 - 1e-3)
-
-                x0_hat = torch.nan_to_num(x0_hat, nan=0.0, posinf=1.0 - 1e-3, neginf=-1.0 + 1e-3)
-                check_finite(f"x0_hat_{i}", x0_hat)
-
+                x0_hat = (p_noisy - sqrt_onem * eps_i) / (sqrt_abar + 1e-12)
+                x0_hat = x0_hat.clamp(-1.0 + 1e-3, 1.0 - 1e-3)
                 x0_hat_last = x0_hat
+
+                # ✅ 下一 stage 用 x0_hat 當作新的 reference 來抽 tokens（像 DiffusionDet 更新 reference box）
                 p_ref = x0_hat.detach()
             else:
+                # 沒有 abar_t 的話就退化：reference 不更新（或你也可以做 p_ref = (p_ref - eps_i).clamp(...)）
                 p_ref = p_ref
 
-        cls_logits = None
-        pro_out = pro
-        pred_points_for_cls = x0_hat_last
-        pred_valid_mask = torch.ones(
-            (pro.size(0), pro.size(1)),
-            dtype=torch.bool,
-            device=pro.device
-        )
+        # exist head: 用最後的 x0_hat 取特徵
+        exist_logit = None
         if need_exist:
-            if x0_hat_last is None:
-                raise RuntimeError("need_exist=True but x0_hat_last is None")
+            # ref_for_exist = x0_hat_last.detach() if x0_hat_last is not None else p_ref.detach()
+            #
+            # # 1) pf_hat: [B,N,4C]
+            # pf_hat = self.cond.forward_cached(cache, ref_for_exist)
+            #
+            # # 2) local tokens at ref_for_exist: [S, B*N, C]
+            # tok4 = sample_point_tokens(cache["q4"], ref_for_exist, patch=self.cond.patch)
+            # tok8 = sample_point_tokens(cache["q8"], ref_for_exist, patch=self.cond.patch)
+            # tok16 = sample_point_tokens(cache["q16"], ref_for_exist, patch=self.cond.patch)
+            # local_tokens_exist = torch.cat([tok4, tok8, tok16], dim=0)  # [S, BN, C]
+            #
+            # # 3) pool tokens -> [B,N,2C]
+            # B, N, _ = ref_for_exist.shape
+            # pooled = pool_local_tokens(local_tokens_exist, B, N, use_max=True)  # mean+max
+            #
+            # # 4) concat -> [B,N,6C]
+            # conf_in = torch.cat([pf_hat, pooled], dim=-1)
 
-            # merge 也很可能是 NaN 源頭，先強制 FP32
-            with torch.autocast(device_type="cuda", enabled=False):
-                merged_x0_hat, merged_pro, merged_valid_mask = merge_slots_same_pixel(
-                    x0_hat=x0_hat_last.detach().float(),
-                    pro=pro.detach().float(),
-                    H=256,
-                    W=256,
-                    max_slots=pro.size(1),
-                )
+            # 5) score
+            #exist_logit = self.conf_head(conf_in)
+            if not torch.isfinite(pro).all():
+                print("[WARN] pro not finite:", pro.abs().max().item())
+            exist_logit = self.conf_from_pro(pro.detach())
+            exist_logit = exist_logit.clamp(-20, 20)
 
-            merged_pro = torch.nan_to_num(merged_pro, nan=0.0, posinf=1e4, neginf=-1e4)
-            check_finite("merged_pro", merged_pro)
-
-            with torch.autocast(device_type="cuda", enabled=False):
-                cls_logits = self.conf_from_pro(merged_pro.float())
-
-            cls_logits = torch.nan_to_num(cls_logits, nan=0.0, posinf=20.0, neginf=-20.0)
-            cls_logits = cls_logits.clamp(-20, 20)
-            check_finite("cls_logits", cls_logits)
-
-            pro_out = merged_pro
-            pred_points_for_cls = merged_x0_hat.to(pro.device)
-            pred_valid_mask = merged_valid_mask
-
-        return eps_pred, cls_logits, pro_out, pred_points_for_cls, pred_valid_mask
-
-
+        return eps_pred, exist_logit
 
 
 
