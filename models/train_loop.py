@@ -1,10 +1,47 @@
 # train_loop.py
 import logging
 import torch
-from models.diffusion_utils import pixels_to_m11, forward_noisy
+from models.diffusion_utils import pixels_to_m11, forward_noisy, coverage_radius_hinge_loss
 from models.pointdiff import sample_point_tokens, pool_local_tokens
 import numpy as np
 from collections import defaultdict
+
+
+@torch.no_grad()
+def batch_proposal_region_stats(pred_points_m11: torch.Tensor,
+                                gt_points_m11: torch.Tensor,
+                                gt_mask: torch.Tensor,
+                                radius: float = 6.0,
+                                H: int = 256,
+                                W: int = 256):
+    """
+    Lightweight batch-level diagnostics:
+    - prop_cov@r: fraction of GT that has at least one nearby proposal
+    - multi@r: fraction of GT that has more than one nearby proposal
+    """
+    pred_pix = m11_to_pixels_batch(pred_points_m11, H, W)
+    gt_pix = m11_to_pixels_batch(gt_points_m11, H, W)
+
+    cover_rows = []
+    multi_rows = []
+    r2 = float(radius) * float(radius)
+
+    for b in range(pred_pix.size(0)):
+        gmask = gt_mask[b].bool()
+        if not gmask.any():
+            continue
+        G = gt_pix[b, gmask]  # [Ng,2]
+        P = pred_pix[b]       # [N,2]
+        dist2 = ((G[:, None, :] - P[None, :, :]) ** 2).sum(dim=-1)  # [Ng,N]
+        hit_counts = (dist2 <= r2).sum(dim=1).float()               # [Ng]
+        cover_rows.append((hit_counts > 0).float().mean())
+        multi_rows.append((hit_counts > 1).float().mean())
+
+    if len(cover_rows) == 0:
+        zero = pred_points_m11.new_tensor(0.0)
+        return zero, zero
+
+    return torch.stack(cover_rows).mean(), torch.stack(multi_rows).mean()
 def m11_to_pixels_batch(p_m11: torch.Tensor, H: int, W: int) -> torch.Tensor:
     """
     p_m11: [B,N,2] in [-1,1]
@@ -42,14 +79,27 @@ def point_nms_count(xy_pix: torch.Tensor, score: torch.Tensor, r: float) -> int:
     return len(keep)
 
 @torch.no_grad()
-def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 1000, seed: int = 7113064165):
+def validate_one_epoch(
+        model,
+        data_loader,
+        device,
+        sched,
+        criterion,
+        T: int = 1000,
+        seed: int = 7113064165,
+        hard_thresh: float = 0.0,
+        ddim_steps: int = 50,
+        nms_radius: float = 3.0,
+        ddim_eta: float = 0.0,
+        test_gate_mode: str = "prob_only",
+):
     model.eval()
     torch.manual_seed(seed)
 
     # ---- supervised loss 統計 ----
     total_loss = 0.0
     n_steps = 0
-    run_Lcnt = run_Lexist = run_Lx0 = run_Lbg = run_Leps = run_Lcov = run_Ldup = 0.0
+    run_Lcnt = run_Lexist = run_Lx0 = run_Lbg = run_Leps = run_Lcov = run_Lcover = run_Ldup = 0.0
 
     # ---- 全圖聚合容器（overlap stride 專用）----
     pred_xy_full = defaultdict(list)   # img_idx -> [tensor(M,2), ...]  pixel coords in full image
@@ -57,9 +107,11 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
     gt_xy_full   = defaultdict(list)   # img_idx -> [tensor(K,2), ...]  pixel coords in full image
 
     # 固定 sampler 設定
-    steps = 50
-    thr   = 0.2
-    nms_r = 3.0
+    steps = int(ddim_steps)
+    thr = float(hard_thresh)
+    nms_r = float(nms_radius)
+    eta = float(ddim_eta)
+    gate_mode = str(test_gate_mode)
     clamp_eps = 1e-3
 
     abar_all = sched.abar.to(device=device)
@@ -116,7 +168,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
             if exist_logit.dim() == 3 and exist_logit.size(-1) == 1:
                 exist_logit = exist_logit.squeeze(-1)
 
-            loss, L_exist, L_x0, L_cnt, L_bg, L_eps, L_cov, L_dup = criterion(
+            loss, L_exist, L_x0, L_cnt, L_bg, L_eps, L_cov, L_cover, L_dup = criterion(
                 p_t=p_t,
                 p0=p0,
                 mask=mask,
@@ -124,6 +176,8 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
                 abar_t=abar_t,
                 eps_pred=eps_pred,
                 exist_logit=exist_logit,
+                pred_points_for_cls=pred_points_for_cls,
+                pred_valid_mask=pred_valid_mask,
                 lambda_t=None,
                 aux_weight=1.0,
             )
@@ -136,6 +190,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
             run_Leps   += float(L_eps)
             run_Lbg += float(L_bg)
             run_Lcov += float(L_cov)
+            run_Lcover += float(L_cover)
             run_Ldup += float(L_dup)
             # ---------- (2) 多步 DDIM sampling：收集全圖候選點 ----------
             t_seq = torch.linspace(T - 1, 0, steps, device=device).round().long()
@@ -144,7 +199,6 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
             p_t_gen = torch.empty((B, N, 2), device=device).uniform_(-1.0 + clamp_eps, 1.0 - clamp_eps)
 
             exist_logit_x0 = None
-            eta = 0.5
             eps = 1e-12
 
             for si, ti in enumerate(t_seq.tolist()):
@@ -161,32 +215,29 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
                 )
                 if need_exist:
                     exist_logit_x0 = exist_logit_t
-                # x0_hat
-                sqrt_ab_t = abar_ti.clamp(1e-6, 1.0).sqrt()
-                sqrt_om_t = (1.0 - abar_ti).clamp_min(0).sqrt()
-                x0_hat = (p_t_gen - sqrt_om_t * eps_hat) / (sqrt_ab_t + 1e-12)
+                if si + 1 < len(t_seq):
+                    ti_prev = int(t_seq[si + 1].item())
+                    abar_prev = abar_all[ti_prev].view(1, 1, 1).expand(B, 1, 1)
+                    eta_step = eta
+                else:
+                    abar_prev = torch.ones((B, 1, 1), device=device)
+                    eta_step = 0.0
 
-                # 如果已經是最後一步，直接用 x0_hat 當結果，不再往前推
-                if si + 1 >= len(t_seq):
-                    p_t_gen = x0_hat
-                    break
+                sqrt_ab_t = abar_ti.clamp(0.0, 1.0).add(eps).sqrt()
+                sqrt_om_t = (1.0 - abar_ti).clamp_min(0.0).sqrt()
+                x0_hat = (p_t_gen - sqrt_om_t * eps_hat) / sqrt_ab_t
 
-                # next abar
-                ti_prev = int(t_seq[si + 1].item())
-                abar_prev = abar_all[ti_prev].view(1, 1, 1).expand(B, 1, 1)
-
-                # --- DDIM (eta > 0) update ---
-                alpha_t = (abar_ti / (abar_prev + eps)).clamp(0.0, 1.0)
-                beta_t = 1.0 - alpha_t
-
-                sigma_t = eta * torch.sqrt(
-                    ((1.0 - abar_prev) / (1.0 - abar_ti + eps)).clamp_min(0.0) * beta_t.clamp_min(0.0)
+                alpha_t = (abar_ti / (abar_prev + eps)).clamp_min(eps)
+                sigma2 = (eta_step ** 2) * (
+                    ((1.0 - abar_prev).clamp_min(0.0) / (1.0 - abar_ti).clamp_min(eps))
+                    * (1.0 - alpha_t).clamp_min(0.0)
                 )
+                sigma = sigma2.clamp_min(0.0).sqrt()
+                c_eps = (1.0 - abar_prev - sigma2).clamp_min(0.0).sqrt()
 
-                c = torch.sqrt((1.0 - abar_prev - sigma_t ** 2).clamp_min(0.0))
-
-                z = torch.randn_like(p_t_gen)
-                p_t_gen = (torch.sqrt(abar_prev) * x0_hat) + (c * eps_hat) + (sigma_t * z)
+                p_t_gen = (abar_prev + eps).sqrt() * x0_hat + c_eps * eps_hat
+                if eta_step > 0.0:
+                    p_t_gen = p_t_gen + sigma * torch.randn_like(p_t_gen)
                 p_t_gen = p_t_gen.clamp(min=-1.0 + clamp_eps, max=1.0 - clamp_eps)
 
             if exist_logit_x0 is None:
@@ -197,8 +248,15 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
 
             if exist_logit_x0.dim() == 3 and exist_logit_x0.size(-1) == 2:
                 exist_prob_sample = exist_logit_x0.softmax(-1)[..., 1]  # [B,N] object prob
+                if gate_mode == "argmax_only":
+                    pos_mask_sample = exist_logit_x0.argmax(-1) == 1
+                elif gate_mode == "argmax_or_prob":
+                    pos_mask_sample = (exist_logit_x0.argmax(-1) == 1) | (exist_prob_sample > thr)
+                else:
+                    pos_mask_sample = exist_prob_sample > thr
             else:
                 exist_prob_sample = torch.sigmoid(exist_logit_x0)  # [B,N]
+                pos_mask_sample = exist_prob_sample > thr
                 print("not cross entropy")
             x0_hat = p_t_gen.detach()                          # [B,N,2]
             x0_pix = m11_to_pixels_batch(x0_hat, H, W)         # tile pixel coords
@@ -220,7 +278,7 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
 
                 # Pred candidates: tile pixel -> full pixel
                 prob_b = exist_prob_sample[b]
-                cand = prob_b > thr
+                cand = pos_mask_sample[b]
                 if cand.any():
                     xy_tile = x0_pix[b, cand]      # [M,2]
                     sc      = prob_b[cand]         # [M]
@@ -266,14 +324,15 @@ def validate_one_epoch(model, data_loader, device, sched, criterion, T: int = 10
         avg_Leps   = run_Leps / n_steps
         avg_Lbg = run_Lbg / n_steps
         avg_Lcov = run_Lcov / n_steps
+        avg_Lcover = run_Lcover / n_steps
         avg_Ldup = run_Ldup / n_steps
     else:
-        avg_loss = avg_Lexist = avg_Lx0 = avg_Lcnt = avg_Leps = avg_Lbg = avg_Lcov = avg_Ldup = 0.0
+        avg_loss = avg_Lexist = avg_Lx0 = avg_Lcnt = avg_Leps = avg_Lbg = avg_Lcov = avg_Lcover = avg_Ldup = 0.0
 
     logging.info(
         f"[val] loss={avg_loss:.4f} Lex={avg_Lexist:.4f} Lx0={avg_Lx0:.4f} "
         f"Lcnt={avg_Lcnt:.4f} Leps={avg_Leps:.4f} Lbg={avg_Lbg:.4f} "
-        f"Lcov={avg_Lcov:.4f} Ldup={avg_Ldup:.4f} | "
+        f"Lcov={avg_Lcov:.4f} Lcover={avg_Lcover:.4f} Ldup={avg_Ldup:.4f} | "
         f"FULL-IMG hard: MAE={mae_hard_img:.2f} RMSE={rmse_hard_img:.2f} (N={len(img_ids)})"
     )
 
@@ -297,6 +356,10 @@ def train_one_epoch(
         log_every: int = 10,
         max_norm: float = 1.0,
         lambda_cnt_val: float = 0.00,
+        lambda_rand_cover: float = 0.0,
+        rand_cover_t_min: int = 700,
+        rand_cover_t_max: int = 999,
+        rand_cover_radius: float = 6.0,
 ):
     """
     單步 x0 訓練：
@@ -322,6 +385,8 @@ def train_one_epoch(
     bucket_Lbg      = torch.zeros((), device=device)
     bucket_Leps     = torch.zeros((), device=device)
     bucket_Lcov = torch.zeros((), device=device)
+    bucket_Lcover = torch.zeros((), device=device)
+    bucket_Lrandcover = torch.zeros((), device=device)
     bucket_Ldup = torch.zeros((), device=device)
     bucket_k = 0
 
@@ -353,6 +418,8 @@ def train_one_epoch(
         optimizer.zero_grad(set_to_none=True)
 
         with autocast():
+            L_rand_cover = torch.zeros((), device=device)
+            rand_points_for_stats = None
             abar_cur = sched.get(t_cur).unsqueeze(-1)   # [B,1,1]
 
             eps_pred, exist_logit, pro, pred_points_for_cls, pred_valid_mask = model.denoise(
@@ -370,7 +437,7 @@ def train_one_epoch(
 
 
 
-            loss, L_exist, L_x0, L_cnt, L_bg, Leps, Lcov, Ldup = criterion(
+            loss, L_exist, L_x0, L_cnt, L_bg, Leps, Lcov, Lcover, Ldup = criterion(
                 p_t=p_t,
                 p0=p0,
                 mask=mask,
@@ -400,6 +467,43 @@ def train_one_epoch(
 
             loss = loss + lambda_cnt_val * L_cnt_val
 
+            if lambda_rand_cover > 0:
+                t_low = max(0, min(int(rand_cover_t_min), T_int - 1))
+                t_high = max(t_low, min(int(rand_cover_t_max), T_int - 1))
+                t_rand = torch.randint(
+                    low=t_low,
+                    high=t_high + 1,
+                    size=(B, 1),
+                    device=device,
+                    dtype=torch.long,
+                )
+                p_rand = torch.empty_like(p0).uniform_(-1.0 + 1e-3, 1.0 - 1e-3)
+                abar_rand = sched.get(t_rand).unsqueeze(-1)
+
+                _, _, _, rand_x0_hat, _ = model.denoise(
+                    feats,
+                    p_rand,
+                    t_rand,
+                    abar_t=abar_rand,
+                    clamp_eps=1e-6,
+                    cond_cache=cond_cache,
+                    need_exist=False,
+                )
+                if rand_x0_hat is None:
+                    raise RuntimeError("random-start auxiliary branch did not return x0_hat")
+
+                L_rand_cover = coverage_radius_hinge_loss(
+                    pred_points_m11=rand_x0_hat,
+                    gt_points_m11=p0,
+                    gt_mask=mask,
+                    pred_valid_mask=None,
+                    H=H,
+                    W=W,
+                    cover_radius=float(rand_cover_radius),
+                )
+                loss = loss + float(lambda_rand_cover) * L_rand_cover
+                rand_points_for_stats = rand_x0_hat
+
         scaler.scale(loss).backward()
         if max_norm is not None and max_norm > 0:
             scaler.unscale_(optimizer)
@@ -418,10 +522,32 @@ def train_one_epoch(
         bucket_Lbg      += L_bg.detach()
         bucket_Leps     += Leps.detach()
         bucket_Lcov     += Lcov.detach()
+        bucket_Lcover   += Lcover.detach()
+        bucket_Lrandcover += L_rand_cover.detach()
         bucket_Ldup     += Ldup.detach()
         bucket_k += 1
 
         if step % log_every == 0:
+            prop_cov, multi_ratio = batch_proposal_region_stats(
+                pred_points_m11=pred_points_for_cls.detach() if pred_points_for_cls is not None else p_t.detach(),
+                gt_points_m11=p0.detach(),
+                gt_mask=mask.detach(),
+                radius=6.0,
+                H=H,
+                W=W,
+            )
+            if lambda_rand_cover > 0 and rand_points_for_stats is not None:
+                rand_prop_cov, rand_multi_ratio = batch_proposal_region_stats(
+                    pred_points_m11=rand_points_for_stats.detach(),
+                    gt_points_m11=p0.detach(),
+                    gt_mask=mask.detach(),
+                    radius=float(rand_cover_radius),
+                    H=H,
+                    W=W,
+                )
+            else:
+                rand_prop_cov = torch.zeros((), device=device)
+                rand_multi_ratio = torch.zeros((), device=device)
             inv_k = 1.0 / max(1, bucket_k)
             msg = (
                 f"[train-x0] it={step:05d} "
@@ -433,9 +559,16 @@ def train_one_epoch(
                 f"Lbg={(bucket_Lbg * inv_k).item():.4f} "
                 f"Leps={(bucket_Leps * inv_k).item():.4f} "
                 f"Lcov={(bucket_Lcov * inv_k).item():.4f} "
+                f"Lcover={(bucket_Lcover * inv_k).item():.4f} "
+                f"Lrandcover={(bucket_Lrandcover * inv_k).item():.4f} "
                 f"Ldup={(bucket_Ldup * inv_k).item():.4f} "
+                f"prop_cov@6={prop_cov.item():.4f} "
+                f"multi@6={multi_ratio.item():.4f} "
+                f"rand_prop_cov@6={rand_prop_cov.item():.4f} "
+                f"rand_multi@6={rand_multi_ratio.item():.4f} "
             )
             print(msg)
+            logging.info(msg)
 
             bucket_loss.zero_()
             bucket_Lex.zero_()
@@ -445,6 +578,8 @@ def train_one_epoch(
             bucket_Lbg.zero_()
             bucket_Leps.zero_()
             bucket_Lcov.zero_()
+            bucket_Lcover.zero_()
+            bucket_Lrandcover.zero_()
             bucket_Ldup.zero_()
             bucket_k = 0
 

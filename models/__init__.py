@@ -41,7 +41,11 @@ def SetCriterion(
     lambda_bg=2,
     lambda_eps=0.1,
     lambda_cov=0.2,
+    lambda_cov_hinge=0.0,
     lambda_dup=0.2,
+    cov_topk=3,
+    cov_sigma=4.0,
+    cov_radius=6.0,
     region_radius=5.0,
     region_topk=5,
 ):
@@ -53,7 +57,11 @@ def SetCriterion(
         lambda_bg=lambda_bg,
         lambda_eps=lambda_eps,
         lambda_cov=lambda_cov,
+        lambda_cov_hinge=lambda_cov_hinge,
         lambda_dup=lambda_dup,
+        cov_topk=cov_topk,
+        cov_sigma=cov_sigma,
+        cov_radius=cov_radius,
         region_radius=region_radius,
         region_topk=region_topk,
     )

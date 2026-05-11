@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument("--dataset_root", type=str, default="")
     parser.add_argument("--cover_radius", type=float, default=6.0)
     parser.add_argument("--dup_radius", type=float, default=6.0)
-    parser.add_argument("--nms_radius", type=float, default=3.0)
+    parser.add_argument("--nms_radius", type=float, default=5.0)
     parser.add_argument("--top_k_worst", type=int, default=20)
     parser.add_argument("--max_n", type=int, default=900)
     return parser.parse_args()
@@ -266,53 +266,63 @@ def main():
         N = points_pad.shape[1]
         feats = model.encode(images)
 
-        p_t = torch.empty((B, N, 2), device=device).uniform_(-1.0 + eps_clip, 1.0 - eps_clip)
-        exist_prob_last = None
-        pos_mask_last = None
+        p0_list = []
+        prob_list = []
+        posmask_list = []
+        R = int(getattr(args, "num_realizations", 1))
 
-        for i, t_int in enumerate(t_seq.tolist()):
-            t_tensor = torch.full((B, 1), int(t_int), device=device, dtype=torch.long)
-            abar_t = abar[int(t_int)].view(1, 1, 1).expand(B, 1, 1)
-            need_exist = (i == len(t_seq) - 1)
+        for _ in range(R):
+            p_t = torch.empty((B, N, 2), device=device).uniform_(-1.0 + eps_clip, 1.0 - eps_clip)
+            exist_prob_last = None
+            pos_mask_last = None
 
-            eps_pred, exist_logit, _, _, _ = model.denoise(
-                feats, p_t, t_tensor,
-                abar_t=abar_t,
-                clamp_eps=1e-6,
-                need_exist=need_exist,
-            )
+            for i, t_int in enumerate(t_seq.tolist()):
+                t_tensor = torch.full((B, 1), int(t_int), device=device, dtype=torch.long)
+                abar_t = abar[int(t_int)].view(1, 1, 1).expand(B, 1, 1)
+                need_exist = (i == len(t_seq) - 1)
 
-            if need_exist:
-                if exist_logit is None:
-                    raise RuntimeError("need_exist=True but denoise returned None exist_logit")
-                if exist_logit.dim() == 3 and exist_logit.size(-1) == 2:
-                    exist_prob_last = torch.softmax(exist_logit, dim=-1)[..., 1]
-                    gate_mode = getattr(args, "test_gate_mode", "argmax_or_prob")
-                    if gate_mode == "prob_only":
+                eps_pred, exist_logit, _, _, _ = model.denoise(
+                    feats, p_t, t_tensor,
+                    abar_t=abar_t,
+                    clamp_eps=1e-6,
+                    need_exist=need_exist,
+                )
+
+                if need_exist:
+                    if exist_logit is None:
+                        raise RuntimeError("need_exist=True but denoise returned None exist_logit")
+                    if exist_logit.dim() == 3 and exist_logit.size(-1) == 2:
+                        exist_prob_last = torch.softmax(exist_logit, dim=-1)[..., 1]
+                        gate_mode = getattr(args, "test_gate_mode", "argmax_or_prob")
+                        if gate_mode == "prob_only":
+                            pos_mask_last = exist_prob_last > hard_thresh
+                        elif gate_mode == "argmax_only":
+                            pos_mask_last = exist_logit.argmax(-1) == 1
+                        else:
+                            pos_mask_last = (exist_logit.argmax(-1) == 1) | (exist_prob_last > hard_thresh)
+                    elif exist_logit.dim() == 3 and exist_logit.size(-1) == 1:
+                        exist_prob_last = torch.sigmoid(exist_logit.squeeze(-1))
                         pos_mask_last = exist_prob_last > hard_thresh
-                    elif gate_mode == "argmax_only":
-                        pos_mask_last = exist_logit.argmax(-1) == 1
                     else:
-                        pos_mask_last = (exist_logit.argmax(-1) == 1) | (exist_prob_last > hard_thresh)
-                elif exist_logit.dim() == 3 and exist_logit.size(-1) == 1:
-                    exist_prob_last = torch.sigmoid(exist_logit.squeeze(-1))
-                    pos_mask_last = exist_prob_last > hard_thresh
+                        exist_prob_last = torch.sigmoid(exist_logit)
+                        pos_mask_last = exist_prob_last > hard_thresh
+
+                if i + 1 < len(t_seq):
+                    abar_prev = abar[int(t_seq[i + 1].item())].view(1, 1, 1).expand(B, 1, 1)
+                    eta_step = ddim_eta
                 else:
-                    exist_prob_last = torch.sigmoid(exist_logit)
-                    pos_mask_last = exist_prob_last > hard_thresh
+                    abar_prev = torch.ones((B, 1, 1), device=device)
+                    eta_step = 0.0
 
-            if i + 1 < len(t_seq):
-                abar_prev = abar[int(t_seq[i + 1].item())].view(1, 1, 1).expand(B, 1, 1)
-                eta_step = ddim_eta
-            else:
-                abar_prev = torch.ones((B, 1, 1), device=device)
-                eta_step = 0.0
+                p_t = ddim_reverse_step_eta(p_t, eps_pred, abar_t, abar_prev, eta=eta_step)
+                p_t = p_t.clamp(-1.0 + eps_clip, 1.0 - eps_clip)
 
-            p_t = ddim_reverse_step_eta(p_t, eps_pred, abar_t, abar_prev, eta=eta_step)
-            p_t = p_t.clamp(-1.0 + eps_clip, 1.0 - eps_clip)
+            if exist_prob_last is None or pos_mask_last is None:
+                raise RuntimeError("DDIM loop finished without final probabilities.")
 
-        if exist_prob_last is None or pos_mask_last is None:
-            raise RuntimeError("DDIM loop finished without final probabilities.")
+            p0_list.append(p_t.detach())
+            prob_list.append(exist_prob_last.detach())
+            posmask_list.append(pos_mask_last.detach())
 
         for b in range(B):
             meta = metas[b]
@@ -329,29 +339,30 @@ def main():
                 gt_y = (gt_local[:, 1] + y0).round().long().clamp(0, H_full - 1)
                 per_image_gt_points_xy[img_key].append(torch.stack([gt_x, gt_y], dim=1))
 
-            pts_norm_all = p_t[b]
-            sc_all = exist_prob_last[b]
-            pm = pos_mask_last[b]
+            for r in range(R):
+                pts_norm_all = p0_list[r][b]
+                sc_all = prob_list[r][b]
+                pm = posmask_list[r][b]
 
-            xs_prop = (pts_norm_all[:, 0] + 1) * 0.5 * (W - 1)
-            ys_prop = (pts_norm_all[:, 1] + 1) * 0.5 * (H - 1)
-            xs_prop_g = (xs_prop + x0).clamp(0, W_full - 1)
-            ys_prop_g = (ys_prop + y0).clamp(0, H_full - 1)
+                xs_prop = (pts_norm_all[:, 0] + 1) * 0.5 * (W - 1)
+                ys_prop = (pts_norm_all[:, 1] + 1) * 0.5 * (H - 1)
+                xs_prop_g = (xs_prop + x0).clamp(0, W_full - 1)
+                ys_prop_g = (ys_prop + y0).clamp(0, H_full - 1)
 
-            per_image_proposals_xy[img_key].append(torch.stack([xs_prop_g, ys_prop_g], dim=1).detach().cpu())
-            per_image_proposals_prob[img_key].append(sc_all.detach().cpu())
+                per_image_proposals_xy[img_key].append(torch.stack([xs_prop_g, ys_prop_g], dim=1).detach().cpu())
+                per_image_proposals_prob[img_key].append(sc_all.detach().cpu())
 
-            pts_norm = pts_norm_all[pm]
-            sc = sc_all[pm]
-            if sc.numel() == 0:
-                continue
+                pts_norm = pts_norm_all[pm]
+                sc = sc_all[pm]
+                if sc.numel() == 0:
+                    continue
 
-            xs = (pts_norm[:, 0] + 1) * 0.5 * (W - 1)
-            ys = (pts_norm[:, 1] + 1) * 0.5 * (H - 1)
-            xs_g = (xs + x0).clamp(0, W_full - 1)
-            ys_g = (ys + y0).clamp(0, H_full - 1)
-            per_image_candidates_xy[img_key].append(torch.stack([xs_g, ys_g], dim=1).detach().cpu())
-            per_image_candidates_prob[img_key].append(sc.detach().cpu())
+                xs = (pts_norm[:, 0] + 1) * 0.5 * (W - 1)
+                ys = (pts_norm[:, 1] + 1) * 0.5 * (H - 1)
+                xs_g = (xs + x0).clamp(0, W_full - 1)
+                ys_g = (ys + y0).clamp(0, H_full - 1)
+                per_image_candidates_xy[img_key].append(torch.stack([xs_g, ys_g], dim=1).detach().cpu())
+                per_image_candidates_prob[img_key].append(sc.detach().cpu())
 
     rows = []
     for img_key in sorted(per_image_size.keys()):
@@ -428,6 +439,7 @@ def main():
         "nms_radius": float(args.nms_radius),
         "hard_thresh": hard_thresh,
         "ddim_steps": steps,
+        "num_realizations": int(getattr(args, "num_realizations", 1)),
         "ckpt_path": args.ckpt_path,
         "eval_split": resolved_split,
         "dataset_root": dataset_root,

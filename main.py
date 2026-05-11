@@ -113,30 +113,69 @@ def main():
                              lambda_bg=args.lambda_bg,
                              lambda_eps=args.lambda_eps,
                              lambda_cov=args.lambda_cov,
+                             lambda_cov_hinge=args.lambda_cov_hinge,
                              lambda_dup=args.lambda_dup,
+                             cov_topk=args.cov_topk,
+                             cov_sigma=args.cov_sigma,
+                             cov_radius=args.cov_radius,
                              region_radius=args.region_radius,
                              region_topk=args.region_topk).to(device)
     T=args.diffusion_T
     sched, signal_scale = Diffusion_schedule(T, device=device, signal_scale=args.signal_scale)
 
     best_val = 1e9
+    best_mae = 1e9
     os.makedirs(args.out_dir, exist_ok=True)
 
-    checkpoint = torch.load(r"D:\output\randomt_to_x0_COVLOSS\last_epoch0245.pth", map_location="cuda:0")
+    ckpt_path = str(getattr(args, "ckpt_path", "") or "")
+    if ckpt_path:
+        checkpoint = torch.load(ckpt_path, map_location=device)
     #
     # # 載入模型與優化器參數
-    model.load_state_dict(checkpoint['model_state'])
+        state_dict = checkpoint["model_state"] if isinstance(checkpoint, dict) and "model_state" in checkpoint else checkpoint
+        model.load_state_dict(state_dict)
     #optim.load_state_dict(checkpoint['optim_state'])
-    scaler.load_state_dict(checkpoint['scaler_state'])
+        if isinstance(checkpoint, dict) and "scaler_state" in checkpoint:
+            scaler.load_state_dict(checkpoint["scaler_state"])
+        print("loaded checkpoint", ckpt_path)
 
     print('start training')
 
     for epoch in range(1, args.epochs+1):
 
         t0 = time.time()
-        tr_loss = train_one_epoch(model, train_loader, device, optim, criterion, scaler, sched, args.diffusion_T, args.K,args.log_every,args.max_norm,)
+        tr_loss = train_one_epoch(
+            model,
+            train_loader,
+            device,
+            optim,
+            criterion,
+            scaler,
+            sched,
+            args.diffusion_T,
+            args.K,
+            args.log_every,
+            args.max_norm,
+            lambda_rand_cover=float(getattr(args, "lambda_rand_cover", 0.0)),
+            rand_cover_t_min=int(getattr(args, "rand_cover_t_min", 700)),
+            rand_cover_t_max=int(getattr(args, "rand_cover_t_max", args.diffusion_T - 1)),
+            rand_cover_radius=float(getattr(args, "rand_cover_radius", 6.0)),
+        )
         t1 = time.time()
-        val_loss, val_MAE = validate_one_epoch(model, val_loader, device, sched, criterion, args.diffusion_T, args.seed)
+        val_loss, val_MAE = validate_one_epoch(
+            model,
+            val_loader,
+            device,
+            sched,
+            criterion,
+            args.diffusion_T,
+            args.seed,
+            hard_thresh=args.hard_thresh,
+            ddim_steps=args.ddim_steps,
+            nms_radius=float(getattr(args, "nms_radius", 3.0)),
+            ddim_eta=float(getattr(args, "ddim_eta", 0.0)),
+            test_gate_mode=str(getattr(args, "test_gate_mode", "prob_only")),
+        )
         t2 = time.time()
         logging.info(f"[Epoch {epoch:04d}] train={tr_loss:.4f}  val={val_loss:.4f} val_MAE={val_MAE:.4f}")
         last_path = os.path.join(args.out_dir, f"last_epoch{epoch:04d}.pth")
@@ -146,12 +185,18 @@ def main():
             "optim_state": optim.state_dict(),
             "scaler_state": scaler.state_dict(),
             "best_val": best_val,
+            "best_mae": best_mae,
         }, last_path)
         if val_loss < best_val:
             best_val = val_loss
             best_path = os.path.join(args.out_dir, f"best_epoch{epoch:04d}_val{val_loss:.2f}.pth")
             print('save model',best_path)
             torch.save(model.state_dict(), best_path)
+        if val_MAE < best_mae:
+            best_mae = val_MAE
+            best_mae_path = os.path.join(args.out_dir, f"best_mae_epoch{epoch:04d}_mae{val_MAE:.2f}.pth")
+            print('save best mae model', best_mae_path)
+            torch.save(model.state_dict(), best_mae_path)
         t4 = time.time()
         print("train_sec", t1 - t0, "val_sec", t2 - t1, "one epoch", (t4 - t0) )
 
