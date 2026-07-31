@@ -13,6 +13,8 @@ def build_model(cfg, training: bool):
       conf_pos_bands=int(getattr(cfg, "conf_pos_bands", 8)),
       selector_local_features=bool(getattr(cfg, "selector_local_features", False)),
       selector_prior_features=bool(getattr(cfg, "selector_prior_features", False)),
+      selector_relative_geometry=bool(getattr(cfg, "selector_relative_geometry", False)),
+      selector_relgeom_k=int(getattr(cfg, "selector_relgeom_k", 8)),
       num_refine=int(getattr(cfg, "num_refine", 3)),
       use_proposal_prior=bool(getattr(cfg, "use_proposal_prior", False)),
       proposal_prior_hidden=int(getattr(cfg, "proposal_prior_hidden", 64)),

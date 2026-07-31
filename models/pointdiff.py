@@ -1230,6 +1230,102 @@ def selector_local_features(
     return torch.stack(feats, dim=-1)
 
 
+# Feature layout of selector_relative_geometry_features, kept as a module
+# constant so ModelBuilder can size its projection without a dry run.
+SELECTOR_RELGEOM_TOPM = 4
+SELECTOR_RELGEOM_DIM = 2 + 1 + (SELECTOR_RELGEOM_TOPM * 3) + 1 + 1 + 1  # = 18
+
+
+def selector_relative_geometry_features(
+        points_m11: torch.Tensor,
+        valid_mask: torch.Tensor,
+        k: int = 8,
+        H: int = 256,
+        W: int = 256,
+) -> torch.Tensor:
+    """Direction-aware local geometry for selector tie-breaking.
+
+    selector_local_features only returns rotation-invariant scalars (neighbour
+    counts, nearest distance), which are near-identical for candidates a few
+    pixels apart. This adds the missing directional terms, all normalized by an
+    adaptive scale (the k-th neighbour distance) so no fixed radius is involved.
+
+    Layout (18 dims):
+      0:2   offset to local centroid, scale-normalized
+      2     |offset to centroid|, scale-normalized
+      3:15  top-4 neighbour offsets (dx, dy, dist), scale-normalized
+      15    log adaptive scale, so absolute density is still visible
+      16    rank of own centroid distance among the local group, in [0, 1]
+      17    valid flag
+    """
+    big = 1.0e6
+    points = points_m11.detach().float()
+    valid = valid_mask.bool() if valid_mask is not None else torch.ones(
+        points.shape[:2], dtype=torch.bool, device=points.device
+    )
+    x = (points[..., 0] + 1.0) * 0.5 * float(W - 1)
+    y = (points[..., 1] + 1.0) * 0.5 * float(H - 1)
+    pix = torch.stack([x, y], dim=-1)  # [B,N,2]
+    B, N, _ = pix.shape
+
+    k = max(int(k), SELECTOR_RELGEOM_TOPM)
+    k_eff = min(k, max(N - 1, 1))
+
+    dist = torch.cdist(pix, pix, p=2)
+    eye = torch.eye(N, dtype=torch.bool, device=pix.device).unsqueeze(0)
+    pair_valid = valid[:, :, None] & valid[:, None, :] & (~eye)
+    dist = dist.masked_fill(~pair_valid, big)
+
+    nb_dist, nb_idx = torch.topk(dist, k=k_eff, dim=-1, largest=False)  # [B,N,k]
+    nb_valid = nb_dist < (big * 0.5)
+    nb_count = nb_valid.sum(dim=-1)  # [B,N]
+
+    # Adaptive scale: farthest usable neighbour, falling back to 1px when a slot
+    # has no neighbour at all. This replaces the fixed 3/6px radii.
+    safe_dist = torch.where(nb_valid, nb_dist, torch.zeros_like(nb_dist))
+    scale = safe_dist.max(dim=-1).values.clamp_min(1.0)  # [B,N]
+
+    nb_pix = torch.gather(
+        pix.unsqueeze(1).expand(B, N, N, 2),
+        2,
+        nb_idx.unsqueeze(-1).expand(B, N, k_eff, 2),
+    )  # [B,N,k,2]
+    nb_w = nb_valid.to(dtype=pix.dtype).unsqueeze(-1)  # [B,N,k,1]
+
+    # Centroid over self + valid neighbours.
+    centroid = (nb_pix * nb_w).sum(dim=2) + pix
+    centroid = centroid / (nb_w.sum(dim=2) + 1.0).clamp_min(1.0)
+    cent_off = (centroid - pix) / scale.unsqueeze(-1)
+    cent_dist = torch.linalg.vector_norm(centroid - pix, dim=-1) / scale
+
+    # Top-m neighbour offsets, zeroed where the neighbour slot is padding.
+    m = min(SELECTOR_RELGEOM_TOPM, k_eff)
+    rel = (nb_pix[:, :, :m, :] - pix.unsqueeze(2)) / scale[..., None, None]
+    rel = rel * nb_w[:, :, :m, :]
+    rel_d = (nb_dist[:, :, :m] / scale.unsqueeze(-1)) * nb_valid[:, :, :m].to(pix.dtype)
+    top_feat = torch.cat([rel.flatten(start_dim=2), rel_d], dim=-1)
+    if m < SELECTOR_RELGEOM_TOPM:
+        pad = points.new_zeros((B, N, (SELECTOR_RELGEOM_TOPM - m) * 3))
+        top_feat = torch.cat([top_feat, pad], dim=-1)
+
+    # Is this slot more central than its neighbours? Rank 0 = most central.
+    nb_cent_d = torch.linalg.vector_norm(nb_pix - centroid.unsqueeze(2), dim=-1)
+    own_cent_d = torch.linalg.vector_norm(pix - centroid, dim=-1).unsqueeze(-1)
+    closer = ((nb_cent_d < own_cent_d) & nb_valid).sum(dim=-1).to(pix.dtype)
+    cent_rank = closer / nb_count.clamp_min(1).to(pix.dtype)
+
+    feats = torch.cat([
+        cent_off,
+        cent_dist.unsqueeze(-1),
+        top_feat,
+        torch.log1p(scale).unsqueeze(-1) / math.log1p(64.0),
+        cent_rank.unsqueeze(-1),
+        valid.to(dtype=pix.dtype).unsqueeze(-1),
+    ], dim=-1)
+    feats = feats * valid.to(dtype=pix.dtype).unsqueeze(-1)
+    return torch.nan_to_num(feats, nan=0.0, posinf=0.0, neginf=0.0)
+
+
 def sample_selector_prior_features(
         prior_maps,
         points_m11: torch.Tensor,
@@ -1268,6 +1364,8 @@ class ModelBuilder(nn.Module):
             conf_pos_bands=8,
             selector_local_features=False,
             selector_prior_features=False,
+            selector_relative_geometry=False,
+            selector_relgeom_k=8,
             num_refine=3,
             use_proposal_prior=False,
             proposal_prior_hidden=64,
@@ -1347,6 +1445,20 @@ class ModelBuilder(nn.Module):
         else:
             self.selector_local_proj = None
 
+        self.selector_relative_geometry = bool(selector_relative_geometry)
+        self.selector_relgeom_k = max(int(selector_relgeom_k), SELECTOR_RELGEOM_TOPM)
+        if self.selector_relative_geometry:
+            self.selector_relgeom_proj = nn.Sequential(
+                nn.Linear(SELECTOR_RELGEOM_DIM, cond_c),
+                nn.SiLU(),
+                nn.Linear(cond_c, cond_c),
+            )
+            with torch.no_grad():
+                self.selector_relgeom_proj[-1].weight.zero_()
+                self.selector_relgeom_proj[-1].bias.zero_()
+        else:
+            self.selector_relgeom_proj = None
+
         self.selector_prior_features = bool(selector_prior_features)
         if self.selector_prior_features:
             self.selector_prior_proj = nn.Sequential(
@@ -1371,6 +1483,8 @@ class ModelBuilder(nn.Module):
             if self.conf_pos_proj is not None:
                 fusion_in_dim += cond_c
             if self.selector_local_proj is not None:
+                fusion_in_dim += cond_c
+            if self.selector_relgeom_proj is not None:
                 fusion_in_dim += cond_c
             if self.selector_prior_proj is not None:
                 fusion_in_dim += cond_c
@@ -1495,6 +1609,25 @@ class ModelBuilder(nn.Module):
                 if check_finite is not None:
                     check_finite(f"{name_prefix}_local_ctx", local_ctx)
             elif self.selector_feature_fusion == "concat_proj" and self.selector_local_proj is not None:
+                concat_parts.append(torch.zeros_like(base_feat))
+            if use_local_features and self.selector_relgeom_proj is not None:
+                relgeom_feat = selector_relative_geometry_features(
+                    points_f,
+                    valid_mask,
+                    k=self.selector_relgeom_k,
+                    H=256,
+                    W=256,
+                )
+                relgeom_feat = relgeom_feat.to(device=pro.device, dtype=torch.float32)
+                relgeom_ctx = self.selector_relgeom_proj(relgeom_feat)
+                relgeom_ctx = relgeom_ctx * valid_f
+                if self.selector_feature_fusion == "concat_proj":
+                    concat_parts.append(relgeom_ctx)
+                else:
+                    conf_feat = conf_feat + relgeom_ctx
+                if check_finite is not None:
+                    check_finite(f"{name_prefix}_relgeom_ctx", relgeom_ctx)
+            elif self.selector_feature_fusion == "concat_proj" and self.selector_relgeom_proj is not None:
                 concat_parts.append(torch.zeros_like(base_feat))
             if self.selector_prior_proj is not None:
                 prior_feat = sample_selector_prior_features(

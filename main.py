@@ -124,6 +124,9 @@ def configure_trainable_params(model, args):
         if selector_fusion != "add" or selector_dim != int(getattr(args, "cond_c", selector_dim)):
             trainable_prefixes.append("selector_fuse_proj.")
             module_names.append("selector_fuse_proj")
+        if bool(getattr(args, "selector_relative_geometry", False)):
+            trainable_prefixes.append("selector_relgeom_proj.")
+            module_names.append("selector_relgeom_proj")
         if bool(getattr(args, "train_selector_prior_proj", True)):
             trainable_prefixes.append("selector_prior_proj.")
             module_names.append("selector_prior_proj")
