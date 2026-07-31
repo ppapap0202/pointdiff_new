@@ -8,11 +8,21 @@ from collections import defaultdict
 import numpy as np
 import torch
 import yaml
+from scipy.spatial import cKDTree
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import maximum_bipartite_matching
 from torch.utils.data import DataLoader
 
 from dataset.dataset import ImageDataset
 from models import build_model
-from models.diffusion_utils import CosineAbarSchedule
+from models.diffusion_utils import CosineAbarSchedule, forward_noisy
+from models.proposal_prior import build_mixed_x0_prior, build_proposal_prior_targets
+
+try:
+    from tqdm.auto import tqdm
+except ImportError:
+    def tqdm(iterable, **kwargs):
+        return iterable
 
 
 def set_seed(seed: int = 7113064165):
@@ -42,9 +52,19 @@ def parse_args():
     parser.add_argument("--dataset_root", type=str, default="")
     parser.add_argument("--cover_radius", type=float, default=6.0)
     parser.add_argument("--dup_radius", type=float, default=6.0)
-    parser.add_argument("--nms_radius", type=float, default=5.0)
+#    parser.add_argument("--nms_radius", type=float, default=5.0)
     parser.add_argument("--top_k_worst", type=int, default=20)
     parser.add_argument("--max_n", type=int, default=900)
+    parser.add_argument(
+        "--proposal_prior_oracle",
+        type=str,
+        default="none",
+        choices=["none", "target_density", "target_density_occupancy", "target_occupancy"],
+        help=(
+            "Diagnostic-only oracle prior. target_density replaces predicted density "
+            "with GT-rasterized target density for DDIM initialization."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -74,13 +94,18 @@ def load_checkpoint_into_model(model, ckpt_path, device):
     state = torch.load(ckpt_path, map_location=device)
     if isinstance(state, dict):
         if "model_state" in state:
-            model.load_state_dict(state["model_state"])
+            incompatible = model.load_state_dict(state["model_state"], strict=False)
         elif "state_dict" in state:
-            model.load_state_dict(state["state_dict"])
+            incompatible = model.load_state_dict(state["state_dict"], strict=False)
         else:
-            model.load_state_dict(state)
+            incompatible = model.load_state_dict(state, strict=False)
     else:
-        model.load_state_dict(state)
+        incompatible = model.load_state_dict(state, strict=False)
+    if incompatible.missing_keys or incompatible.unexpected_keys:
+        print(
+            "[WARN] checkpoint loaded with non-strict keys | "
+            f"missing={incompatible.missing_keys} unexpected={incompatible.unexpected_keys}"
+        )
     return model
 
 
@@ -99,8 +124,11 @@ def dedup_points_xy(xy_np: np.ndarray, decimals: int = 3) -> np.ndarray:
     return xy_np[np.sort(idx)]
 
 
-def make_ddim_steps(T=1000, steps=20, device="cpu"):
-    return torch.linspace(T - 1, 0, steps, device=device).round().long()
+def make_ddim_steps(T=1000, steps=20, device="cpu", start_t=None):
+    if start_t is None:
+        start_t = T - 1
+    start_t = max(0, min(int(start_t), int(T) - 1))
+    return torch.linspace(start_t, 0, steps, device=device).round().long()
 
 
 @torch.no_grad()
@@ -184,6 +212,151 @@ def coverage_and_duplicates(gt_xy: np.ndarray, pred_xy: np.ndarray, radius: floa
     }
 
 
+def matching_cover_stats(gt_xy: np.ndarray, pred_xy: np.ndarray, radius: float):
+    """One-to-one maximum bipartite matching between GT and predicted points inside radius."""
+    gt_xy = np.asarray(gt_xy, dtype=np.float32).reshape(-1, 2)
+    pred_xy = np.asarray(pred_xy, dtype=np.float32).reshape(-1, 2)
+    n_gt = int(gt_xy.shape[0])
+    n_pred = int(pred_xy.shape[0])
+
+    if n_gt == 0:
+        return {
+            "matched_count": 0,
+            "matched_cover_ratio": 0.0,
+            "matched_precision_ratio": 0.0,
+            "unmatched_gt": 0,
+        }
+    if n_pred == 0:
+        return {
+            "matched_count": 0,
+            "matched_cover_ratio": 0.0,
+            "matched_precision_ratio": 0.0,
+            "unmatched_gt": n_gt,
+        }
+
+    tree = cKDTree(pred_xy)
+    indptr = [0]
+    indices = []
+    for gt in gt_xy:
+        cols = tree.query_ball_point(gt, float(radius))
+        if cols:
+            indices.extend(cols)
+        indptr.append(len(indices))
+
+    if not indices:
+        matched_count = 0
+    else:
+        graph = csr_matrix(
+            (
+                np.ones(len(indices), dtype=np.bool_),
+                np.asarray(indices, dtype=np.int32),
+                np.asarray(indptr, dtype=np.int32),
+            ),
+            shape=(n_gt, n_pred),
+        )
+        match = maximum_bipartite_matching(graph, perm_type="column")
+        matched_count = int(np.sum(match >= 0))
+
+    return {
+        "matched_count": matched_count,
+        "matched_cover_ratio": float(matched_count / max(n_gt, 1)),
+        "matched_precision_ratio": float(matched_count / max(n_pred, 1)),
+        "unmatched_gt": int(n_gt - matched_count),
+    }
+
+
+def score_label_masks(gt_xy: np.ndarray, pred_xy: np.ndarray, scores: np.ndarray, radius: float):
+    gt_xy = np.asarray(gt_xy, dtype=np.float32).reshape(-1, 2)
+    pred_xy = np.asarray(pred_xy, dtype=np.float32).reshape(-1, 2)
+    scores = np.asarray(scores, dtype=np.float32).reshape(-1)
+    n_gt = int(gt_xy.shape[0])
+    n_pred = int(pred_xy.shape[0])
+    near_mask = np.zeros((n_pred,), dtype=bool)
+    greedy_match_mask = np.zeros((n_pred,), dtype=bool)
+
+    if n_gt == 0 or n_pred == 0:
+        return near_mask, greedy_match_mask
+
+    gt_tree = cKDTree(gt_xy)
+    neighbor_lists = gt_tree.query_ball_point(pred_xy, float(radius))
+    for idx, cols in enumerate(neighbor_lists):
+        near_mask[idx] = len(cols) > 0
+
+    assigned_gt = np.zeros((n_gt,), dtype=bool)
+    order = np.argsort(-scores, kind="mergesort")
+    for pred_idx in order:
+        cols = neighbor_lists[int(pred_idx)]
+        if not cols:
+            continue
+        available = [int(c) for c in cols if not assigned_gt[int(c)]]
+        if not available:
+            continue
+        d2 = np.sum((gt_xy[np.asarray(available)] - pred_xy[int(pred_idx)]) ** 2, axis=1)
+        gt_idx = available[int(np.argmin(d2))]
+        assigned_gt[gt_idx] = True
+        greedy_match_mask[int(pred_idx)] = True
+
+    return near_mask, greedy_match_mask
+
+
+def append_score_groups(store, prefix: str, scores: np.ndarray, positive_mask: np.ndarray):
+    scores = np.asarray(scores, dtype=np.float32).reshape(-1)
+    positive_mask = np.asarray(positive_mask, dtype=bool).reshape(-1)
+    if scores.size == 0:
+        return
+    store[prefix]["pos"].append(scores[positive_mask])
+    store[prefix]["neg"].append(scores[~positive_mask])
+
+
+def score_auc(pos: np.ndarray, neg: np.ndarray):
+    pos = np.asarray(pos, dtype=np.float64).reshape(-1)
+    neg = np.asarray(neg, dtype=np.float64).reshape(-1)
+    n_pos = int(pos.size)
+    n_neg = int(neg.size)
+    if n_pos == 0 or n_neg == 0:
+        return 0.0
+
+    scores = np.concatenate([pos, neg])
+    labels = np.concatenate([
+        np.ones((n_pos,), dtype=bool),
+        np.zeros((n_neg,), dtype=bool),
+    ])
+    order = np.argsort(scores, kind="mergesort")
+    ranks = np.empty((scores.size,), dtype=np.float64)
+    start = 0
+    while start < scores.size:
+        end = start + 1
+        while end < scores.size and scores[order[end]] == scores[order[start]]:
+            end += 1
+        avg_rank = 0.5 * (start + 1 + end)
+        ranks[order[start:end]] = avg_rank
+        start = end
+
+    rank_sum_pos = float(ranks[labels].sum())
+    return float((rank_sum_pos - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
+
+
+def add_score_summary(summary: dict, store):
+    def concat(parts):
+        valid = [np.asarray(p, dtype=np.float32).reshape(-1) for p in parts if np.asarray(p).size > 0]
+        return np.concatenate(valid) if valid else np.zeros((0,), dtype=np.float32)
+
+    def put(prefix, pos, neg):
+        all_scores = np.concatenate([pos, neg]) if pos.size or neg.size else np.zeros((0,), dtype=np.float32)
+        summary[f"{prefix}_positive_count"] = int(pos.size)
+        summary[f"{prefix}_negative_count"] = int(neg.size)
+        summary[f"{prefix}_positive_fraction"] = float(pos.size / max(pos.size + neg.size, 1))
+        summary[f"{prefix}_score_auc"] = score_auc(pos, neg)
+        for label, arr in [("positive", pos), ("negative", neg), ("all", all_scores)]:
+            summary[f"{prefix}_{label}_score_mean"] = float(arr.mean()) if arr.size else 0.0
+            summary[f"{prefix}_{label}_score_p10"] = float(np.percentile(arr, 10)) if arr.size else 0.0
+            summary[f"{prefix}_{label}_score_p50"] = float(np.percentile(arr, 50)) if arr.size else 0.0
+            summary[f"{prefix}_{label}_score_p90"] = float(np.percentile(arr, 90)) if arr.size else 0.0
+
+    for prefix, groups in store.items():
+        put(prefix, concat(groups["pos"]), concat(groups["neg"]))
+
+
 def aggregate_metric(rows, key):
     if not rows:
         return 0.0
@@ -242,7 +415,15 @@ def main():
     steps = int(args.ddim_steps)
     sched = CosineAbarSchedule(T=T)
     abar = sched.abar.to(device=device)
-    t_seq = torch.unique_consecutive(make_ddim_steps(T=T, steps=steps, device=device))
+    use_proposal_prior = bool(getattr(args, "use_proposal_prior", False))
+    proposal_prior_start_t = int(getattr(args, "proposal_prior_start_t", T - 1))
+    proposal_prior_mode = str(getattr(args, "proposal_prior_mode", "occupancy"))
+    proposal_prior_cell_capacity = int(getattr(args, "proposal_prior_cell_capacity", 2))
+    proposal_prior_oracle = str(getattr(args, "proposal_prior_oracle", "none")).strip().lower()
+    start_t = proposal_prior_start_t if use_proposal_prior else T - 1
+    t_seq = torch.unique_consecutive(
+        make_ddim_steps(T=T, steps=steps, device=device, start_t=start_t)
+    )
     eps_clip = float(getattr(args, "eps_clip", 1e-3))
     hard_thresh = float(getattr(args, "hard_thresh", 0.0))
     ddim_eta = float(getattr(args, "ddim_eta", 0.0))
@@ -259,38 +440,97 @@ def main():
     print(f"[INFO] Dataset root: {dataset_root}")
     print(f"[INFO] Dataset tiles: {len(dataset)}")
     print(f"[INFO] Save dir: {args.save_dir}")
+    print(
+        f"[INFO] use_proposal_prior={int(use_proposal_prior)} "
+        f"mode={proposal_prior_mode} capacity={proposal_prior_cell_capacity} "
+        f"oracle={proposal_prior_oracle} start_t={int(t_seq[0].item())}"
+    )
 
-    for images, points_pad, mask, metas in loader:
+    for images, points_pad, mask, metas in tqdm(loader, total=len(loader), desc="diagnostics tiles", unit="batch"):
         images = images.to(device)
         B, _, H, W = images.shape
         N = points_pad.shape[1]
+        points_device = points_pad.to(device, non_blocking=True)
+        mask_device = mask.to(device, non_blocking=True)
         feats = model.encode(images)
+        cond_cache = model.cond.precompute(*feats)
+        prior_occupancy_logits = None
+        prior_density = None
+        if use_proposal_prior:
+            prior_occupancy_logits, prior_density = model.predict_proposal_prior(feats)
+            if proposal_prior_oracle != "none":
+                occ_target, density_target, _ = build_proposal_prior_targets(
+                    points_device,
+                    mask_device,
+                    image_h=H,
+                    image_w=W,
+                    map_h=prior_density.size(-2),
+                    map_w=prior_density.size(-1),
+                    sigma=float(getattr(args, "proposal_prior_sigma", 1.25)),
+                )
+                if proposal_prior_oracle in {"target_density", "target_density_occupancy"}:
+                    prior_density = density_target
+                if proposal_prior_oracle in {"target_occupancy", "target_density_occupancy"}:
+                    prior_occupancy_logits = torch.logit(
+                        occ_target.clamp(1e-4, 1.0 - 1e-4)
+                    )
 
         p0_list = []
         prob_list = []
         posmask_list = []
+        validmask_list = []
         R = int(getattr(args, "num_realizations", 1))
 
         for _ in range(R):
-            p_t = torch.empty((B, N, 2), device=device).uniform_(-1.0 + eps_clip, 1.0 - eps_clip)
+            if use_proposal_prior:
+                x0_prior, _ = build_mixed_x0_prior(
+                    prior_occupancy_logits,
+                    prior_density,
+                    num_slots=N,
+                    clamp_eps=eps_clip,
+                    mode=proposal_prior_mode,
+                    density_cell_capacity=proposal_prior_cell_capacity,
+                )
+                t_init = torch.full(
+                    (B, 1),
+                    int(t_seq[0].item()),
+                    device=device,
+                    dtype=torch.long,
+                )
+                p_t, _, _ = forward_noisy(x0_prior, t_init, sched)
+            else:
+                p_t = torch.empty((B, N, 2), device=device).uniform_(-1.0 + eps_clip, 1.0 - eps_clip)
             exist_prob_last = None
             pos_mask_last = None
+            pred_points_last = None
+            pred_valid_last = None
 
             for i, t_int in enumerate(t_seq.tolist()):
                 t_tensor = torch.full((B, 1), int(t_int), device=device, dtype=torch.long)
                 abar_t = abar[int(t_int)].view(1, 1, 1).expand(B, 1, 1)
                 need_exist = (i == len(t_seq) - 1)
 
-                eps_pred, exist_logit, _, _, _ = model.denoise(
+                eps_pred, exist_logit, _, pred_points_for_cls, pred_valid_mask = model.denoise(
                     feats, p_t, t_tensor,
                     abar_t=abar_t,
                     clamp_eps=1e-6,
+                    cond_cache=cond_cache,
                     need_exist=need_exist,
+                    selector_prior_maps=(
+                        (prior_occupancy_logits, prior_density)
+                        if prior_density is not None
+                        else None
+                    ),
                 )
 
                 if need_exist:
                     if exist_logit is None:
                         raise RuntimeError("need_exist=True but denoise returned None exist_logit")
+                    if pred_points_for_cls is None:
+                        raise RuntimeError("need_exist=True but denoise returned no merged points")
+                    pred_points_last = pred_points_for_cls
+                    pred_valid_last = pred_valid_mask
+
                     if exist_logit.dim() == 3 and exist_logit.size(-1) == 2:
                         exist_prob_last = torch.softmax(exist_logit, dim=-1)[..., 1]
                         gate_mode = getattr(args, "test_gate_mode", "argmax_or_prob")
@@ -307,6 +547,9 @@ def main():
                         exist_prob_last = torch.sigmoid(exist_logit)
                         pos_mask_last = exist_prob_last > hard_thresh
 
+                    if pred_valid_last is not None:
+                        pos_mask_last = pos_mask_last & pred_valid_last.bool()
+
                 if i + 1 < len(t_seq):
                     abar_prev = abar[int(t_seq[i + 1].item())].view(1, 1, 1).expand(B, 1, 1)
                     eta_step = ddim_eta
@@ -319,10 +562,16 @@ def main():
 
             if exist_prob_last is None or pos_mask_last is None:
                 raise RuntimeError("DDIM loop finished without final probabilities.")
+            if pred_points_last is None:
+                raise RuntimeError("DDIM loop finished without merged prediction points.")
 
-            p0_list.append(p_t.detach())
+            p0_list.append(pred_points_last.detach())
             prob_list.append(exist_prob_last.detach())
             posmask_list.append(pos_mask_last.detach())
+            if pred_valid_last is None:
+                validmask_list.append(torch.ones_like(pos_mask_last, dtype=torch.bool).detach())
+            else:
+                validmask_list.append(pred_valid_last.bool().detach())
 
         for b in range(B):
             meta = metas[b]
@@ -343,14 +592,17 @@ def main():
                 pts_norm_all = p0_list[r][b]
                 sc_all = prob_list[r][b]
                 pm = posmask_list[r][b]
+                vm = validmask_list[r][b]
 
-                xs_prop = (pts_norm_all[:, 0] + 1) * 0.5 * (W - 1)
-                ys_prop = (pts_norm_all[:, 1] + 1) * 0.5 * (H - 1)
+                pts_prop = pts_norm_all[vm]
+                sc_prop = sc_all[vm]
+                xs_prop = (pts_prop[:, 0] + 1) * 0.5 * (W - 1)
+                ys_prop = (pts_prop[:, 1] + 1) * 0.5 * (H - 1)
                 xs_prop_g = (xs_prop + x0).clamp(0, W_full - 1)
                 ys_prop_g = (ys_prop + y0).clamp(0, H_full - 1)
 
                 per_image_proposals_xy[img_key].append(torch.stack([xs_prop_g, ys_prop_g], dim=1).detach().cpu())
-                per_image_proposals_prob[img_key].append(sc_all.detach().cpu())
+                per_image_proposals_prob[img_key].append(sc_prop.detach().cpu())
 
                 pts_norm = pts_norm_all[pm]
                 sc = sc_all[pm]
@@ -364,8 +616,17 @@ def main():
                 per_image_candidates_xy[img_key].append(torch.stack([xs_g, ys_g], dim=1).detach().cpu())
                 per_image_candidates_prob[img_key].append(sc.detach().cpu())
 
+    score_groups = {
+        "proposal_near": {"pos": [], "neg": []},
+        "proposal_score_greedy_match": {"pos": [], "neg": []},
+        "candidate_near": {"pos": [], "neg": []},
+        "candidate_score_greedy_match": {"pos": [], "neg": []},
+        "final_near": {"pos": [], "neg": []},
+        "final_score_greedy_match": {"pos": [], "neg": []},
+    }
+
     rows = []
-    for img_key in sorted(per_image_size.keys()):
+    for img_key in tqdm(sorted(per_image_size.keys()), desc="aggregate images", unit="image"):
         gt_all = np.zeros((0, 2), dtype=np.float32)
         if img_key in per_image_gt_points_xy and len(per_image_gt_points_xy[img_key]) > 0:
             gt_all = torch.cat(per_image_gt_points_xy[img_key], dim=0).detach().cpu().numpy().astype(np.float32)
@@ -392,7 +653,26 @@ def main():
             final_sc = np.zeros((0,), dtype=np.float32)
 
         proposal_stats = coverage_and_duplicates(gt_all, prop_xy, radius=float(args.cover_radius))
+        candidate_stats = coverage_and_duplicates(gt_all, cand_xy, radius=float(args.cover_radius))
         final_stats = coverage_and_duplicates(gt_all, final_xy, radius=float(args.cover_radius))
+        proposal_match = matching_cover_stats(gt_all, prop_xy, radius=float(args.cover_radius))
+        candidate_match = matching_cover_stats(gt_all, cand_xy, radius=float(args.cover_radius))
+        final_match = matching_cover_stats(gt_all, final_xy, radius=float(args.cover_radius))
+        proposal_near_mask, proposal_greedy_mask = score_label_masks(
+            gt_all, prop_xy, prop_sc, radius=float(args.cover_radius)
+        )
+        candidate_near_mask, candidate_greedy_mask = score_label_masks(
+            gt_all, cand_xy, cand_sc, radius=float(args.cover_radius)
+        )
+        final_near_mask, final_greedy_mask = score_label_masks(
+            gt_all, final_xy, final_sc, radius=float(args.cover_radius)
+        )
+        append_score_groups(score_groups, "proposal_near", prop_sc, proposal_near_mask)
+        append_score_groups(score_groups, "proposal_score_greedy_match", prop_sc, proposal_greedy_mask)
+        append_score_groups(score_groups, "candidate_near", cand_sc, candidate_near_mask)
+        append_score_groups(score_groups, "candidate_score_greedy_match", cand_sc, candidate_greedy_mask)
+        append_score_groups(score_groups, "final_near", final_sc, final_near_mask)
+        append_score_groups(score_groups, "final_score_greedy_match", final_sc, final_greedy_mask)
 
         gt_count = float(gt_all.shape[0])
         pred_count = float(final_xy.shape[0])
@@ -410,10 +690,23 @@ def main():
             "proposal_dup_per_gt_mean": proposal_stats["dup_per_gt_mean"],
             "proposal_dup_per_covered_gt_mean": proposal_stats["dup_per_covered_gt_mean"],
             "proposal_gt_with_multi_ratio": proposal_stats["gt_with_multi_ratio"],
+            "proposal_matched_count": proposal_match["matched_count"],
+            "proposal_matched_cover_ratio": proposal_match["matched_cover_ratio"],
+            "proposal_matched_precision_ratio": proposal_match["matched_precision_ratio"],
+            "candidate_cover_ratio": candidate_stats["coverage_ratio"],
+            "candidate_dup_per_gt_mean": candidate_stats["dup_per_gt_mean"],
+            "candidate_dup_per_covered_gt_mean": candidate_stats["dup_per_covered_gt_mean"],
+            "candidate_gt_with_multi_ratio": candidate_stats["gt_with_multi_ratio"],
+            "candidate_matched_count": candidate_match["matched_count"],
+            "candidate_matched_cover_ratio": candidate_match["matched_cover_ratio"],
+            "candidate_matched_precision_ratio": candidate_match["matched_precision_ratio"],
             "final_cover_ratio": final_stats["coverage_ratio"],
             "final_dup_per_gt_mean": final_stats["dup_per_gt_mean"],
             "final_dup_per_covered_gt_mean": final_stats["dup_per_covered_gt_mean"],
             "final_gt_with_multi_ratio": final_stats["gt_with_multi_ratio"],
+            "final_matched_count": final_match["matched_count"],
+            "final_matched_cover_ratio": final_match["matched_cover_ratio"],
+            "final_matched_precision_ratio": final_match["matched_precision_ratio"],
         })
 
     mae = aggregate_metric(rows, "abs_error")
@@ -427,18 +720,34 @@ def main():
         "mean_proposal_count": aggregate_metric(rows, "proposal_count"),
         "mean_candidate_count_pre_nms": aggregate_metric(rows, "candidate_count_pre_nms"),
         "proposal_cover_ratio_mean": aggregate_metric(rows, "proposal_cover_ratio"),
+        "candidate_cover_ratio_mean": aggregate_metric(rows, "candidate_cover_ratio"),
         "final_cover_ratio_mean": aggregate_metric(rows, "final_cover_ratio"),
+        "proposal_matched_cover_ratio_mean": aggregate_metric(rows, "proposal_matched_cover_ratio"),
+        "candidate_matched_cover_ratio_mean": aggregate_metric(rows, "candidate_matched_cover_ratio"),
+        "final_matched_cover_ratio_mean": aggregate_metric(rows, "final_matched_cover_ratio"),
+        "proposal_matched_precision_ratio_mean": aggregate_metric(rows, "proposal_matched_precision_ratio"),
+        "candidate_matched_precision_ratio_mean": aggregate_metric(rows, "candidate_matched_precision_ratio"),
+        "final_matched_precision_ratio_mean": aggregate_metric(rows, "final_matched_precision_ratio"),
         "proposal_dup_per_gt_mean": aggregate_metric(rows, "proposal_dup_per_gt_mean"),
+        "candidate_dup_per_gt_mean": aggregate_metric(rows, "candidate_dup_per_gt_mean"),
         "final_dup_per_gt_mean": aggregate_metric(rows, "final_dup_per_gt_mean"),
         "proposal_dup_per_covered_gt_mean": aggregate_metric(rows, "proposal_dup_per_covered_gt_mean"),
+        "candidate_dup_per_covered_gt_mean": aggregate_metric(rows, "candidate_dup_per_covered_gt_mean"),
         "final_dup_per_covered_gt_mean": aggregate_metric(rows, "final_dup_per_covered_gt_mean"),
         "proposal_gt_with_multi_ratio_mean": aggregate_metric(rows, "proposal_gt_with_multi_ratio"),
+        "candidate_gt_with_multi_ratio_mean": aggregate_metric(rows, "candidate_gt_with_multi_ratio"),
         "final_gt_with_multi_ratio_mean": aggregate_metric(rows, "final_gt_with_multi_ratio"),
         "cover_radius": float(args.cover_radius),
         "dup_radius_note": "duplicate metrics are counted inside the same cover radius window around each GT",
         "nms_radius": float(args.nms_radius),
         "hard_thresh": hard_thresh,
         "ddim_steps": steps,
+        "use_proposal_prior": use_proposal_prior,
+        "proposal_prior_start_t": proposal_prior_start_t if use_proposal_prior else None,
+        "proposal_prior_mode": proposal_prior_mode if use_proposal_prior else None,
+        "proposal_prior_cell_capacity": proposal_prior_cell_capacity if use_proposal_prior else None,
+        "proposal_prior_oracle": proposal_prior_oracle if use_proposal_prior else None,
+        "ddim_start_t": int(t_seq[0].item()),
         "num_realizations": int(getattr(args, "num_realizations", 1)),
         "ckpt_path": args.ckpt_path,
         "eval_split": resolved_split,
@@ -446,6 +755,7 @@ def main():
         "config_data_root": args.data_root,
         "config_test_root": args.test_root,
     }
+    add_score_summary(summary, score_groups)
 
     rows_sorted = sorted(rows, key=lambda x: x["abs_error"], reverse=True)
     worst_rows = rows_sorted[: int(args.top_k_worst)]
@@ -458,8 +768,12 @@ def main():
         print(
             f"{os.path.basename(str(row['image_path']))} | "
             f"gt={row['gt_count']:.0f} pred={row['pred_count']:.0f} abs_err={row['abs_error']:.0f} | "
-            f"prop_cover={row['proposal_cover_ratio']:.3f} final_cover={row['final_cover_ratio']:.3f} | "
-            f"prop_dup={row['proposal_dup_per_gt_mean']:.2f} final_dup={row['final_dup_per_gt_mean']:.2f}"
+            f"prop_cover={row['proposal_cover_ratio']:.3f} cand_cover={row['candidate_cover_ratio']:.3f} "
+            f"final_cover={row['final_cover_ratio']:.3f} | "
+            f"prop_match={row['proposal_matched_cover_ratio']:.3f} cand_match={row['candidate_matched_cover_ratio']:.3f} "
+            f"final_match={row['final_matched_cover_ratio']:.3f} | "
+            f"prop_dup={row['proposal_dup_per_gt_mean']:.2f} cand_dup={row['candidate_dup_per_gt_mean']:.2f} "
+            f"final_dup={row['final_dup_per_gt_mean']:.2f}"
         )
 
     csv_path = os.path.join(args.save_dir, "per_image_diagnostics.csv")

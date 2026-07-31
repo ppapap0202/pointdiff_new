@@ -31,7 +31,9 @@ class ImageDataset(Dataset):
         pad_if_needed: bool = True,
         image_exts=('.jpg', '.jpeg', '.png'),
         density_exts=('.npy', '.png'),
-        gray=True
+        gray=True,
+        augment: bool = False,
+        hflip_prob: float = 0.0,
     ):
         assert mode in ('points', 'density', 'class')
         self.root = root
@@ -43,6 +45,8 @@ class ImageDataset(Dataset):
         self.label_dir = os.path.join(root, 'ground_truth')
         self.image_exts = image_exts
         self.gray = gray
+        self.augment = bool(augment)
+        self.hflip_prob = float(hflip_prob)
         self.density_exts = density_exts
         #print(self.image_dir,self.label_dir)
         # 收集影像
@@ -164,7 +168,12 @@ class ImageDataset(Dataset):
         label_path = self._match_label_path(img_path)
         if self.mode == 'points':
             if label_path is None or not os.path.exists(label_path):
-                print(f"[LABEL MISSING] {img_path}  ->  expected at: {self.label_dir}")
+                raise FileNotFoundError(
+                    "[LABEL MISSING] point annotation missing; stop training to avoid "
+                    "silently treating this image tile as zero-count. "
+                    f"image={img_path} expected_dir={self.label_dir} "
+                    "expected_exts=(.txt, .csv)"
+                )
         # 影像
         if self.gray:
             img = Image.open(img_path).convert('L')  # 灰階
@@ -214,10 +223,18 @@ class ImageDataset(Dataset):
                 pts_in[:, 0] -= left
                 pts_in[:, 1] -= top
             label_out = torch.from_numpy(pts_in.astype(np.float32))  # (N,2)
+            if self.augment and self.hflip_prob > 0 and torch.rand(()).item() < self.hflip_prob:
+                img_tile = TF.hflip(img_tile)
+                if label_out.numel() > 0:
+                    label_out = label_out.clone()
+                    label_out[:, 0] = (tw - 1) - label_out[:, 0]
 
         elif self.mode == 'density':
             den_tile = den_t[:, top:top+th, left:left+tw]
             label_out = den_tile
+            if self.augment and self.hflip_prob > 0 and torch.rand(()).item() < self.hflip_prob:
+                img_tile = TF.hflip(img_tile)
+                label_out = TF.hflip(label_out)
 
         else:  # class
             label_out = torch.tensor(cls, dtype=torch.long)

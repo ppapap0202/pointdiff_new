@@ -182,7 +182,7 @@ def eps_loss(eps_pred: torch.Tensor, eps_true: torch.Tensor, mask: torch.Tensor,
 
 def coverage_loss_bag(
     pred_points_m11: torch.Tensor,   # [B,N,2]
-    prob_obj: torch.Tensor,          # [B,N] (unused in geometry-only mode)
+    prob_obj: torch.Tensor,          # [B,N]
     gt_points_m11: torch.Tensor,     # [B,N,2]
     gt_mask: torch.Tensor,           # [B,N]
     pred_valid_mask: torch.Tensor = None,  # [B,N] or None
@@ -212,8 +212,10 @@ def coverage_loss_bag(
         if pred_valid_mask is not None:
             pmask = pred_valid_mask[b].bool()
             P = pred_pix[b, pmask]     # [Np,2]
+            q = prob_obj[b, pmask]      # [Np]
         else:
             P = pred_pix[b]            # [N,2]
+            q = prob_obj[b]             # [N]
 
         if P.numel() == 0:
             # 沒 prediction 可覆蓋，直接給大 loss
@@ -224,10 +226,12 @@ def coverage_loss_bag(
         dist = torch.cdist(G, P, p=2)
 
         k = min(int(topk), P.size(0))
-        dist_topk, _ = torch.topk(dist, k=k, dim=1, largest=False)   # [Ng,k]
+        dist_topk, topk_idx = torch.topk(dist, k=k, dim=1, largest=False)   # [Ng,k]
+        q_topk = q[topk_idx].clamp(min=0.0, max=1.0 - 1e-6)                 # [Ng,k]
 
-        # Geometry-only closeness term
-        a = torch.exp(-(dist_topk ** 2) / (2.0 * sigma * sigma))            # [Ng,k]
+        # A GT is covered only by a proposal that is both close and confident.
+        geo = torch.exp(-(dist_topk ** 2) / (2.0 * sigma * sigma))          # [Ng,k]
+        a = q_topk * geo
 
         # Clamp closeness into a valid bag-probability term
         a = a.clamp(min=0.0, max=1.0 - 1e-6)
@@ -253,14 +257,30 @@ def coverage_radius_hinge_loss(
     H: int = 256,
     W: int = 256,
     cover_radius: float = 6.0,
+    hard_weight: float = 0.0,
+    hard_cap: float = 1.0,
+    dense_weight: float = 0.0,
+    dense_radius: float = 16.0,
+    dense_norm: float = 4.0,
+    weight_cap: float = 6.0,
 ):
     """
     Directly optimizes the proposal-cover metric: a GT pays no penalty once its
     nearest proposal is inside cover_radius pixels.
+
+    Optional hard/dense weighting focuses the gradient on GTs that are still
+    uncovered, especially in dense regions where missed coverage causes severe
+    under-counting.
     """
     pred_pix = m11_to_pixels(pred_points_m11, H, W)
     gt_pix = m11_to_pixels(gt_points_m11, H, W)
     radius = max(float(cover_radius), 1e-6)
+    hard_weight = max(float(hard_weight), 0.0)
+    hard_cap = max(float(hard_cap), 0.0)
+    dense_weight = max(float(dense_weight), 0.0)
+    dense_radius = max(float(dense_radius), 1e-6)
+    dense_norm = max(float(dense_norm), 1e-6)
+    weight_cap = max(float(weight_cap), 1.0)
     losses = []
 
     for b in range(pred_pix.size(0)):
@@ -280,7 +300,24 @@ def coverage_radius_hinge_loss(
             continue
 
         dmin = torch.cdist(G, P, p=2).min(dim=1).values
-        losses.append(F.relu(dmin - radius).div(radius).mean())
+        per_gt_loss = F.relu(dmin - radius).div(radius)
+        weight = torch.ones_like(per_gt_loss)
+
+        if hard_weight > 0:
+            # Upweight GTs whose nearest proposal is still outside the cover
+            # radius. Detach the factor so the loss gradient stays simple.
+            hard_factor = per_gt_loss.detach().clamp(max=hard_cap)
+            weight = weight * (1.0 + hard_weight * hard_factor)
+
+        if dense_weight > 0 and G.size(0) > 1:
+            gt_dist = torch.cdist(G, G, p=2)
+            eye = torch.eye(G.size(0), dtype=torch.bool, device=G.device)
+            dense_count = ((gt_dist <= dense_radius) & (~eye)).float().sum(dim=1)
+            dense_factor = dense_count.div(dense_norm).clamp(max=1.0)
+            weight = weight * (1.0 + dense_weight * dense_factor)
+
+        weight = weight.clamp(max=weight_cap)
+        losses.append((per_gt_loss * weight).sum() / weight.sum().clamp_min(1e-6))
 
     if len(losses) == 0:
         return pred_points_m11.new_tensor(0.0)
@@ -297,6 +334,9 @@ def region_duplicate_loss(
     W: int = 256,
     region_radius: float = 5.0,
     region_topk: int = 5,
+    dense_aware: bool = False,
+    neighbor_radius: float = None,
+    allow_extra: int = 0,
 ):
     pred_pix = m11_to_pixels(pred_points_m11, H, W)
     gt_pix = m11_to_pixels(gt_points_m11, H, W)
@@ -320,6 +360,18 @@ def region_duplicate_loss(
 
         G = gt_pix[b, gmask]
         dist = torch.cdist(G, P, p=2)
+        keep_counts = None
+        base_keep = max(1, 1 + int(allow_extra))
+
+        if dense_aware:
+            dense_r = float(region_radius if neighbor_radius is None else neighbor_radius)
+            if G.size(0) > 1:
+                gt_dist = torch.cdist(G, G, p=2)
+                eye = torch.eye(G.size(0), dtype=torch.bool, device=G.device)
+                neighbor_count = ((gt_dist <= dense_r) & (~eye)).long().sum(dim=1)
+                keep_counts = (neighbor_count + base_keep).clamp_min(1)
+            else:
+                keep_counts = torch.ones((G.size(0),), dtype=torch.long, device=G.device) * base_keep
 
         for gi in range(G.size(0)):
             near_idx = (dist[gi] <= float(region_radius)).nonzero(as_tuple=False).squeeze(1)
@@ -331,11 +383,101 @@ def region_duplicate_loss(
                 near_idx = near_idx[order]
 
             q_sorted = torch.sort(q[near_idx], descending=True).values
-            if q_sorted.numel() > 1:
-                losses.append((q_sorted[1:] ** 2).mean())
+            keep_n = base_keep
+            if keep_counts is not None:
+                keep_n = int(keep_counts[gi].item())
+            keep_n = max(1, min(keep_n, q_sorted.numel()))
+
+            if q_sorted.numel() > keep_n:
+                losses.append((q_sorted[keep_n:] ** 2).mean())
 
     if len(losses) == 0:
         return prob_obj.new_tensor(0.0)
+
+    return torch.stack(losses).mean()
+
+
+def duplicate_collapse_loss(
+    pred_points_m11: torch.Tensor,
+    gt_points_m11: torch.Tensor,
+    gt_mask: torch.Tensor,
+    matched_indices,
+    H: int = 256,
+    W: int = 256,
+    inner_radius: float = 2.0,
+    outer_radius: float = 4.0,
+    far_weight: float = 4.0,
+):
+    """
+    Pull near-GT unmatched proposals into the Hungarian matched representative.
+
+    This intentionally encourages duplicates near the same GT to collapse into a
+    tight mode, making small-radius NMS/DBSCAN easier. Only unmatched non-GT
+    slots near a GT are affected, so far background proposals are left alone.
+    """
+    pred_pix = m11_to_pixels(pred_points_m11, H, W)
+    gt_pix = m11_to_pixels(gt_points_m11, H, W)
+    inner = max(float(inner_radius), 1e-6)
+    outer = max(float(outer_radius), inner)
+    far_weight = max(float(far_weight), 0.0)
+    losses = []
+
+    for b, (src_idx, tgt_idx) in enumerate(matched_indices):
+        gmask = gt_mask[b].bool()
+        if src_idx.numel() == 0 or not gmask.any():
+            continue
+
+        matched_mask = torch.zeros(
+            (pred_points_m11.size(1),),
+            dtype=torch.bool,
+            device=pred_points_m11.device,
+        )
+        matched_mask[src_idx] = True
+
+        # Only regular proposal slots are collapsed. GT teacher slots are kept
+        # available as representatives but are not themselves pulled.
+        cand_mask = (~matched_mask) & (~gmask)
+        cand_idx = cand_mask.nonzero(as_tuple=False).squeeze(1)
+        if cand_idx.numel() == 0:
+            continue
+
+        reps = pred_pix[b, src_idx]          # [M,2]
+        gt_for_reps = gt_pix[b, tgt_idx]     # [M,2]
+        cand = pred_pix[b, cand_idx]         # [C,2]
+
+        dist_to_gt = torch.cdist(cand, gt_for_reps, p=2)
+        nearest_dist, nearest_rep = dist_to_gt.min(dim=1)
+        in_region = nearest_dist <= outer
+        if not in_region.any():
+            continue
+
+        cand_region = cand[in_region]
+        target = reps[nearest_rep[in_region]].detach()
+        dist_to_rep = torch.norm(cand_region - target, dim=1)
+        dist_to_gt_region = nearest_dist[in_region]
+
+        # Inside the tight duplicate radius, directly attract to the matched
+        # representative. Scaling by inner keeps the loss magnitude stable.
+        near = dist_to_gt_region <= inner
+        parts = []
+        if near.any():
+            parts.append(F.smooth_l1_loss(
+                cand_region[near] / inner,
+                target[near] / inner,
+                reduction="mean",
+            ))
+
+        # Anything still farther than inner from its representative, but within
+        # the duplicate neighborhood, receives a stronger squared hinge penalty.
+        spread = F.relu(dist_to_rep - inner).div(inner)
+        if spread.numel() > 0:
+            parts.append(far_weight * spread.pow(2).mean())
+
+        if parts:
+            losses.append(torch.stack(parts).sum())
+
+    if len(losses) == 0:
+        return pred_points_m11.new_tensor(0.0)
 
     return torch.stack(losses).mean()
 
@@ -348,13 +490,17 @@ def build_region_representative_targets(
     H: int = 256,
     W: int = 256,
     region_radius: float = 5.0,
+    return_roles: bool = False,
 ):
     """
-    P2R-style target building:
-    1. many predictions can be assigned to one GT if they fall inside that GT region
-    2. only one representative prediction per GT is marked positive
-    3. all other predictions in the same region are explicitly supervised as 0
-    4. predictions outside any GT region are also 0
+    Nearest-GT group target building:
+    1. each prediction is assigned to its nearest GT
+    2. predictions within region_radius join that GT group
+    3. the closest prediction in each GT group is the binary positive
+    4. other same-group predictions are duplicate negatives
+    5. predictions outside region_radius are background negatives
+
+    When return_roles=True, roles are 0=background, 1=positive, 2=duplicate.
     """
     B, N, _ = pred_points_m11.shape
     pred_pix = m11_to_pixels(pred_points_m11, H, W)
@@ -362,6 +508,14 @@ def build_region_representative_targets(
     device = pred_points_m11.device
 
     target_classes = torch.zeros((B, N), dtype=torch.long, device=device)
+    target_roles = torch.zeros((B, N), dtype=torch.long, device=device)
+    assigned_gt = torch.full((B, N), -1, dtype=torch.long, device=device)
+    nearest_dist = torch.full(
+        (B, N),
+        float("inf"),
+        dtype=pred_points_m11.dtype,
+        device=device,
+    )
     matched_pred = []
     matched_gt = []
 
@@ -385,12 +539,17 @@ def build_region_representative_targets(
 
         dist = torch.cdist(P, G, p=2)  # [Np,Ng]
         min_dist, nearest_gt_local = dist.min(dim=1)
+        nearest_dist[b, valid_idx] = min_dist
         in_region = min_dist <= float(region_radius)
         if not in_region.any():
             continue
 
         assigned_pred_local = in_region.nonzero(as_tuple=False).squeeze(1)
         assigned_gt_local = nearest_gt_local[assigned_pred_local]
+        assigned_pred_global = valid_idx[assigned_pred_local]
+        assigned_gt_global = gt_idx_full[assigned_gt_local]
+        target_roles[b, assigned_pred_global] = 2
+        assigned_gt[b, assigned_pred_global] = assigned_gt_global
 
         for gi in range(G.size(0)):
             members = assigned_pred_local[assigned_gt_local == gi]
@@ -403,6 +562,7 @@ def build_region_representative_targets(
             gt_global = gt_idx_full[gi]
 
             target_classes[b, rep_global] = 1
+            target_roles[b, rep_global] = 1
             matched_pred.append(torch.tensor([b, rep_global.item()], device=device, dtype=torch.long))
             matched_gt.append(torch.tensor([b, gt_global.item()], device=device, dtype=torch.long))
 
@@ -415,6 +575,24 @@ def build_region_representative_targets(
         empty = torch.empty((0,), dtype=torch.long, device=device)
         idx = (empty, empty)
         tgt_idx = (empty, empty)
+
+    if return_roles:
+        valid_mask = (
+            pred_valid_mask.bool()
+            if pred_valid_mask is not None
+            else torch.ones((B, N), dtype=torch.bool, device=device)
+        )
+        target_info = {
+            "roles": target_roles,
+            "role_labels_available": True,
+            "positive_mask": (target_roles == 1) & valid_mask,
+            "duplicate_mask": (target_roles == 2) & valid_mask,
+            "background_mask": (target_roles == 0) & valid_mask,
+            "assigned_gt": assigned_gt,
+            "nearest_dist_px": nearest_dist,
+            "pos_radius": float(region_radius),
+        }
+        return target_classes, idx, tgt_idx, target_info
 
     return target_classes, idx, tgt_idx
 
@@ -430,11 +608,26 @@ class setCriterion(nn.Module):
         lambda_cov: float = 0.2,
         lambda_cov_hinge: float = 0.0,
         lambda_dup: float = 0.2,
+        lambda_dup_collapse: float = 0.0,
         cov_topk: int = 3,
         cov_sigma: float = 4.0,
         cov_radius: float = 6.0,
+        cov_hard_weight: float = 0.0,
+        cov_hard_cap: float = 1.0,
+        cov_dense_weight: float = 0.0,
+        cov_dense_radius: float = 16.0,
+        cov_dense_norm: float = 4.0,
+        cov_weight_cap: float = 6.0,
         region_radius: float = 5.0,
         region_topk: int = 5,
+        exist_label_mode: str = "hungarian",
+        exist_pos_radius: float = 6.0,
+        dup_dense_aware: bool = False,
+        dup_neighbor_radius: float = 6.0,
+        dup_allow_extra: int = 0,
+        dup_collapse_inner_radius: float = 2.0,
+        dup_collapse_outer_radius: float = 4.0,
+        dup_collapse_far_weight: float = 4.0,
         gamma: float = 2.0,
         alpha: float = 0.6,
         eos_coef: float = 0.3,
@@ -449,11 +642,26 @@ class setCriterion(nn.Module):
         self.lambda_cov = lambda_cov
         self.lambda_cov_hinge = lambda_cov_hinge
         self.lambda_dup = lambda_dup
+        self.lambda_dup_collapse = lambda_dup_collapse
         self.cov_topk = cov_topk
         self.cov_sigma = cov_sigma
         self.cov_radius = cov_radius
+        self.cov_hard_weight = cov_hard_weight
+        self.cov_hard_cap = cov_hard_cap
+        self.cov_dense_weight = cov_dense_weight
+        self.cov_dense_radius = cov_dense_radius
+        self.cov_dense_norm = cov_dense_norm
+        self.cov_weight_cap = cov_weight_cap
         self.region_radius = region_radius
         self.region_topk = region_topk
+        self.exist_label_mode = str(exist_label_mode).strip().lower().replace("-", "_")
+        self.exist_pos_radius = float(exist_pos_radius)
+        self.dup_dense_aware = bool(dup_dense_aware)
+        self.dup_neighbor_radius = dup_neighbor_radius
+        self.dup_allow_extra = int(dup_allow_extra)
+        self.dup_collapse_inner_radius = dup_collapse_inner_radius
+        self.dup_collapse_outer_radius = dup_collapse_outer_radius
+        self.dup_collapse_far_weight = dup_collapse_far_weight
         self.gamma = gamma
         self.alpha = alpha
 
@@ -491,6 +699,81 @@ class setCriterion(nn.Module):
 
         return indices
 
+    def _build_exist_targets(
+        self,
+        pred_logits,
+        pred_points,
+        gt_points,
+        gt_mask,
+        pred_valid_mask=None,
+        H: int = 256,
+        W: int = 256,
+        return_info: bool = False,
+    ):
+        group_modes = {
+            "nearest_gt_group",
+            "nearest_gt",
+            "gt_group",
+            "region_representative",
+            "region",
+        }
+        if self.exist_label_mode in group_modes:
+            target_classes, idx, tgt_idx, target_info = build_region_representative_targets(
+                pred_points,
+                gt_points,
+                gt_mask,
+                pred_valid_mask=pred_valid_mask,
+                H=H,
+                W=W,
+                region_radius=self.exist_pos_radius,
+                return_roles=True,
+            )
+            indices = []
+            for b in range(pred_points.size(0)):
+                sel = idx[0] == b
+                indices.append((idx[1][sel], tgt_idx[1][sel]))
+            if return_info:
+                return target_classes, indices, target_info
+            return target_classes, indices
+
+        cls_indices = self._match_p2p(
+            pred_logits,
+            pred_points,
+            gt_points,
+            gt_mask,
+            pred_valid_mask=pred_valid_mask,
+        )
+        cls_idx = self._get_src_permutation_idx(cls_indices)
+        target_classes = torch.zeros(
+            (pred_logits.size(0), pred_logits.size(1)),
+            dtype=torch.long,
+            device=pred_logits.device,
+        )
+        target_classes[cls_idx] = 1
+        if return_info:
+            valid_mask = (
+                pred_valid_mask.bool()
+                if pred_valid_mask is not None
+                else torch.ones_like(target_classes, dtype=torch.bool)
+            )
+            target_info = {
+                "roles": target_classes,
+                "role_labels_available": False,
+                "positive_mask": (target_classes == 1) & valid_mask,
+                "duplicate_mask": torch.zeros_like(target_classes, dtype=torch.bool),
+                "background_mask": (target_classes == 0) & valid_mask,
+                "assigned_gt": torch.full_like(target_classes, -1),
+                "nearest_dist_px": torch.full(
+                    target_classes.shape,
+                    float("inf"),
+                    dtype=pred_points.dtype,
+                    device=pred_points.device,
+                ),
+                "pos_radius": None,
+            }
+            return target_classes, cls_indices, target_info
+        return target_classes, cls_indices
+
     # ---------------- Focal loss (跟你原本一樣) ----------------
     def focal_loss_with_logits(self, logits, targets):
         x = logits
@@ -514,6 +797,52 @@ class setCriterion(nn.Module):
         return fl_pos + neg_w * fl_neg
 
     # ---------------- Hybrid loss 主體 ----------------
+    def p2p_exist_loss(
+        self,
+        exist_logit: torch.Tensor,
+        pred_points_for_cls: torch.Tensor,
+        gt_points: torch.Tensor,
+        gt_mask: torch.Tensor,
+        pred_valid_mask: torch.Tensor = None,
+        return_target_info: bool = False,
+    ):
+        """One-to-one objectness loss used by Lex and random-start Lex."""
+        cls_logits = exist_logit
+        if cls_logits.dim() == 3 and cls_logits.size(-1) == 1:
+            cls_logits = cls_logits.squeeze(-1)
+
+        target_out = self._build_exist_targets(
+            cls_logits,
+            pred_points_for_cls.detach(),
+            gt_points,
+            gt_mask,
+            pred_valid_mask=pred_valid_mask,
+            return_info=return_target_info,
+        )
+        if return_target_info:
+            target_classes, _, target_info = target_out
+        else:
+            target_classes, _ = target_out
+            target_info = None
+
+        if cls_logits.dim() == 3 and cls_logits.size(-1) == 2:
+            logits_ce = cls_logits.transpose(1, 2)
+            loss = F.cross_entropy(
+                logits_ce,
+                target_classes,
+                weight=self.empty_weight,
+                reduction='none',
+            ).mean()
+        else:
+            loss = self.focal_loss_with_logits(
+                cls_logits,
+                target_classes.to(dtype=cls_logits.dtype),
+            )
+
+        if return_target_info:
+            return loss, target_classes, target_info
+        return loss, target_classes
+
     def forward(
         self,
         p_t: torch.Tensor,        # [B,N,2] 当前 noisy points
@@ -578,20 +907,13 @@ class setCriterion(nn.Module):
         if pred_points_for_cls is None:
             pred_points_for_cls = x0_hat.detach()
 
-        cls_indices = self._match_p2p(
+        target_classes, _ = self._build_exist_targets(
             exist_logit,
             pred_points_for_cls.detach(),
             p0,
             mask,
             pred_valid_mask=pred_valid_mask,
         )
-        cls_idx = self._get_src_permutation_idx(cls_indices)
-        target_classes = torch.zeros(
-            (exist_logit.size(0), exist_logit.size(1)),
-            dtype=torch.long,
-            device=exist_logit.device,
-        )
-        target_classes[cls_idx] = 1
 
         # Coordinate loss stays on original x0_hat, so use coordinate-only P2P matching.
         coord_match_logits = exist_logit.new_zeros((x0_hat.size(0), x0_hat.size(1), 2))
@@ -858,6 +1180,12 @@ class setCriterion(nn.Module):
             H=256,
             W=256,
             cover_radius=self.cov_radius,
+            hard_weight=self.cov_hard_weight,
+            hard_cap=self.cov_hard_cap,
+            dense_weight=self.cov_dense_weight,
+            dense_radius=self.cov_dense_radius,
+            dense_norm=self.cov_dense_norm,
+            weight_cap=self.cov_weight_cap,
         )
 
         if pred_points_for_cls is None:
@@ -873,6 +1201,20 @@ class setCriterion(nn.Module):
             W=256,
             region_radius=self.region_radius,
             region_topk=self.region_topk,
+            dense_aware=self.dup_dense_aware,
+            neighbor_radius=self.dup_neighbor_radius,
+            allow_extra=self.dup_allow_extra,
+        )
+        L_dup_collapse = duplicate_collapse_loss(
+            pred_points_m11=x0_hat,
+            gt_points_m11=p0,
+            gt_mask=mask,
+            matched_indices=indices,
+            H=256,
+            W=256,
+            inner_radius=self.dup_collapse_inner_radius,
+            outer_radius=self.dup_collapse_outer_radius,
+            far_weight=self.dup_collapse_far_weight,
         )
 
         # ---- 7. 背景損失 L_bg ----
@@ -986,6 +1328,7 @@ class setCriterion(nn.Module):
                 + self.lambda_cov * L_cov
                 + self.lambda_cov_hinge * L_cov_hinge
                 + self.lambda_dup * L_dup
+                + self.lambda_dup_collapse * L_dup_collapse
         )
 
         loss = eps_term + aux_term
@@ -1013,10 +1356,11 @@ class setCriterion(nn.Module):
                 "Lbg=", float(L_bg),
                 "Lcov_hinge=", float(L_cov_hinge),
                 "Ldup=", float(L_dup),
+                "LdupCollapse=", float(L_dup_collapse),
             )
             raise RuntimeError("Loss became NaN/inf, stop and inspect.")
 
-        return loss, L_exist, L_x0, L_cnt, L_bg, L_eps, L_cov, L_cov_hinge, L_dup
+        return loss, L_exist, L_x0, L_cnt, L_bg, L_eps, L_cov, L_cov_hinge, L_dup, L_dup_collapse
 
 
 

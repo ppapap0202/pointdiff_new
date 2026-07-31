@@ -10,6 +10,7 @@ import csv
 
 from models import build_model
 from models.diffusion_utils import CosineAbarSchedule
+from models.proposal_prior import build_mixed_x0_prior
 from dataset.dataset import ImageDataset
 
 import random
@@ -28,9 +29,10 @@ def set_seed(seed: int = 7113064165):
 # ----------------------------
 # Utils
 # ----------------------------
-def make_ddim_steps(T=1000, steps=20, device="cpu"):
+def make_ddim_steps(T=1000, steps=20, device="cpu", start_t=None):
     # long tensor descending
-    return torch.linspace(T - 1, 0, steps, device=device, dtype=torch.long)
+    start = T - 1 if start_t is None else max(0, min(int(start_t), int(T) - 1))
+    return torch.linspace(start, 0, steps, device=device, dtype=torch.long)
 
 
 @torch.no_grad()
@@ -256,13 +258,18 @@ def load_checkpoint_into_model(model, ckpt_path, device):
     state = torch.load(ckpt_path, map_location=device)
     if isinstance(state, dict):
         if "model_state" in state:
-            model.load_state_dict(state["model_state"])
+            incompatible = model.load_state_dict(state["model_state"], strict=False)
         elif "state_dict" in state:
-            model.load_state_dict(state["state_dict"])
+            incompatible = model.load_state_dict(state["state_dict"], strict=False)
         else:
-            model.load_state_dict(state)
+            incompatible = model.load_state_dict(state, strict=False)
     else:
-        model.load_state_dict(state)
+        incompatible = model.load_state_dict(state, strict=False)
+    if incompatible.missing_keys or incompatible.unexpected_keys:
+        print(
+            "[WARN] checkpoint loaded with non-strict keys | "
+            f"missing={incompatible.missing_keys} unexpected={incompatible.unexpected_keys}"
+        )
     return model
 
 
@@ -448,7 +455,14 @@ if __name__ == "__main__":
     steps = int(args.ddim_steps)
     sched = CosineAbarSchedule(T=T)
     abar = sched.abar.to(device=device)  # [T]
-    t_seq = make_ddim_steps(T=T, steps=steps, device=device)  # [steps]
+    use_proposal_prior = bool(getattr(args, "use_proposal_prior", False))
+    prior_start_t = int(getattr(args, "proposal_prior_start_t", 700))
+    t_seq = make_ddim_steps(
+        T=T,
+        steps=steps,
+        device=device,
+        start_t=prior_start_t if use_proposal_prior else None,
+    )  # [steps]
     eps = float(args.eps_clip)
 
     # per-image aggregation (global)
@@ -475,6 +489,10 @@ if __name__ == "__main__":
 
         # encode once
         feats = model.encode(images)
+        prior_occupancy_logits = None
+        prior_density = None
+        if use_proposal_prior:
+            prior_occupancy_logits, prior_density = model.predict_proposal_prior(feats)
 
         # ----------------------------
         # DDIM sampling R times
@@ -482,16 +500,36 @@ if __name__ == "__main__":
         p0_list = []
         prob_list = []
         posmask_list = []
+        validmask_list = []
 
         t0 = int(t_seq[0].item())  # most noisy
         abar_t0 = abar[t0].view(1, 1, 1)  # [1,1,1]
 
         R = int(getattr(args, "num_realizations", 1))
         for r in range(R):
-            # VAL-style init: uniform in [-1,1]
-            p_t = torch.empty((B, N, 2), device=device).uniform_(-1.0 + eps, 1.0 - eps)
+            if use_proposal_prior:
+                x0_prior, _ = build_mixed_x0_prior(
+                    prior_occupancy_logits,
+                    prior_density,
+                    num_slots=N,
+                    clamp_eps=eps,
+                    mode=str(getattr(args, "proposal_prior_mode", "occupancy")),
+                    density_cell_capacity=int(getattr(args, "proposal_prior_cell_capacity", 2)),
+                )
+                noise = torch.randn_like(x0_prior)
+                p_t = (
+                    abar_t0.sqrt() * x0_prior
+                    + (1.0 - abar_t0).clamp_min(0.0).sqrt() * noise
+                )
+            else:
+                # Original validation-style init.
+                p_t = torch.empty((B, N, 2), device=device).uniform_(
+                    -1.0 + eps, 1.0 - eps
+                )
 
             exist_prob_last = None
+            pred_points_last = None
+            pred_valid_last = None
 
             for i, t_int in enumerate(t_seq.tolist()):
                 t_int = int(t_int)
@@ -499,16 +537,25 @@ if __name__ == "__main__":
                 abar_t = abar[t_int].view(1, 1, 1).expand(B, 1, 1)
 
                 need_exist = (i == len(t_seq) - 1)  # ✅ last step only
-                eps_pred, exist_logit, pro,_ ,_ = model.denoise(
+                eps_pred, exist_logit, pro, pred_points_for_cls, pred_valid_mask = model.denoise(
                     feats, p_t, t_tensor,
                     abar_t=abar_t,
                     clamp_eps=1e-6,
-                    need_exist=need_exist
+                    need_exist=need_exist,
+                    selector_prior_maps=(
+                        (prior_occupancy_logits, prior_density)
+                        if prior_density is not None
+                        else None
+                    ),
                 )
 
                 if need_exist:
                     if exist_logit is None:
                         raise RuntimeError("need_exist=True but denoise returned None exist_logit")
+                    if pred_points_for_cls is None:
+                        raise RuntimeError("need_exist=True but denoise returned no merged points")
+                    pred_points_last = pred_points_for_cls
+                    pred_valid_last = pred_valid_mask
 
                     # --- Case A: BCE 1-logit: [B,N] or [B,N,1] ---
                     if exist_logit.dim() == 3 and exist_logit.size(-1) == 1:
@@ -537,6 +584,9 @@ if __name__ == "__main__":
                     else:
                         raise RuntimeError(f"Unexpected exist_logit shape: {tuple(exist_logit.shape)}")
 
+                    if pred_valid_last is not None:
+                        pos_mask_last = pos_mask_last & pred_valid_last.bool()
+
                 if i + 1 < len(t_seq):
                     abar_prev = abar[int(t_seq[i + 1].item())].view(1, 1, 1).expand(B, 1, 1)
                     eta_step = float(getattr(args, "ddim_eta", 0.3))
@@ -549,10 +599,16 @@ if __name__ == "__main__":
 
             if exist_prob_last is None:
                 raise RuntimeError("DDIM loop finished but exist_prob_last is None. Check need_exist logic.")
+            if pred_points_last is None:
+                raise RuntimeError("DDIM loop finished without merged prediction points.")
 
-            p0_list.append(p_t.detach())           # [B,N,2]
+            p0_list.append(pred_points_last.detach())  # [B,N,2], aligned with exist_prob_last
             prob_list.append(exist_prob_last.detach())  # [B,N]
             posmask_list.append(pos_mask_last.detach())
+            if pred_valid_last is None:
+                validmask_list.append(torch.ones_like(pos_mask_last, dtype=torch.bool).detach())
+            else:
+                validmask_list.append(pred_valid_last.bool().detach())
 
         # ----------------------------
         # For each patch in batch
@@ -595,15 +651,18 @@ if __name__ == "__main__":
             # Accumulate predictions (global) VAL-style: keep prob>thr candidates, no pixel-merge here
             # ----------------------------
             for r in range(R):
-                pts_norm_all = p0_list[r][b]  # [N,2] on GPU, raw proposals in [-1,1]
+                pts_norm_all = p0_list[r][b]  # [N,2] on GPU, merged proposals in [-1,1]
                 sc_all = prob_list[r][b]      # [N]   on GPU, P(pos)
                 pm = posmask_list[r][b]       # [N] bool
+                vm = validmask_list[r][b]      # [N] bool
 
                 # -------------------------------------------------
                 # A. save ALL proposals (before gate)
                 # -------------------------------------------------
-                xs_prop = (pts_norm_all[:, 0] + 1) * 0.5 * (W - 1)
-                ys_prop = (pts_norm_all[:, 1] + 1) * 0.5 * (H - 1)
+                pts_prop = pts_norm_all[vm]
+                sc_prop = sc_all[vm]
+                xs_prop = (pts_prop[:, 0] + 1) * 0.5 * (W - 1)
+                ys_prop = (pts_prop[:, 1] + 1) * 0.5 * (H - 1)
 
                 xs_prop_g = (xs_prop + x0).clamp(0, W_full - 1)
                 ys_prop_g = (ys_prop + y0).clamp(0, H_full - 1)
@@ -611,7 +670,7 @@ if __name__ == "__main__":
                 per_image_proposals_xy[img_key].append(
                     torch.stack([xs_prop_g, ys_prop_g], dim=1).detach().cpu()
                 )
-                per_image_proposals_prob[img_key].append(sc_all.detach().cpu())
+                per_image_proposals_prob[img_key].append(sc_prop.detach().cpu())
 
                 # -------------------------------------------------
                 # B. gate -> candidates
@@ -648,7 +707,7 @@ if __name__ == "__main__":
     per_image_pred_hard_sum = {}
     per_image_error_hard = {}
 
-    nms_r = 0.0
+    nms_r = 4.0
 
     # compute per-image GT count from deduplicated global GT points
     per_image_gt_cnt = {}

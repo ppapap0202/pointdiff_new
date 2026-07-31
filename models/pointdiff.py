@@ -125,16 +125,18 @@ import torch.nn.functional as F
 import math
 import torch.nn as nn
 import time
+from .proposal_prior import ProposalPriorHead
 
 
 
-@torch.no_grad()
 def merge_slots_same_pixel(
     x0_hat: torch.Tensor,   # [B,N,2] in [-1,1]
     pro: torch.Tensor,      # [B,N,C]
     H: int,
     W: int,
     max_slots: int = None,
+    weight: torch.Tensor = None,
+    weight_min: float = 0.0,
 ):
     device = x0_hat.device
     B, N, _ = x0_hat.shape
@@ -175,14 +177,23 @@ def merge_slots_same_pixel(
         merged_xy_pix = torch.zeros((M, 2), device=device, dtype=pts.dtype)
         counts = torch.zeros((M,), device=device, dtype=pts.dtype)
 
-        merged_xy_pix.index_add_(0, inverse, pts)
-        counts.index_add_(0, inverse, torch.ones_like(inverse, dtype=pts.dtype))
-        merged_xy_pix = merged_xy_pix / counts[:, None].clamp_min(1.0)
+        if weight is not None:
+            w = weight[b].to(device=device, dtype=pts.dtype).clamp_min(float(weight_min))
+            merged_xy_pix.index_add_(0, inverse, pts * w[:, None])
+            counts.index_add_(0, inverse, w)
+        else:
+            merged_xy_pix.index_add_(0, inverse, pts)
+            counts.index_add_(0, inverse, torch.ones_like(inverse, dtype=pts.dtype))
+        merged_xy_pix = merged_xy_pix / counts[:, None].clamp_min(1e-6)
 
         # 代表 feature：選群內最接近中心的點
         merged_feat = torch.zeros((M, C), device=device, dtype=feat.dtype)
-        merged_feat.index_add_(0, inverse, feat)
-        merged_feat = merged_feat / counts[:, None].clamp_min(1.0)
+        if weight is not None:
+            w_feat = weight[b].to(device=device, dtype=feat.dtype).clamp_min(float(weight_min))
+            merged_feat.index_add_(0, inverse, feat * w_feat[:, None])
+        else:
+            merged_feat.index_add_(0, inverse, feat)
+        merged_feat = merged_feat / counts[:, None].to(dtype=feat.dtype).clamp_min(1e-6)
 
         merged_xy = pixels_to_m11_batch(merged_xy_pix, H, W)  # [M,2]
 
@@ -216,6 +227,138 @@ def merge_slots_same_pixel(
     merged_feat = torch.stack(merged_feat_list, dim=0)  # [B,N,C]
     merged_mask = torch.stack(merged_mask_list, dim=0)  # [B,N]
     return merged_xy, merged_feat, merged_mask
+
+
+def merge_slots_same_pixel(
+    x0_hat: torch.Tensor,
+    pro: torch.Tensor,
+    H: int,
+    W: int,
+    max_slots: int = None,
+    weight: torch.Tensor = None,
+    weight_min: float = 0.0,
+    merge_radius_px: float = 0.0,
+):
+    """Merge duplicate selector slots by same rounded pixel or by a small radius."""
+    device = x0_hat.device
+    B, N, _ = x0_hat.shape
+    C = pro.size(-1)
+    max_slots = int(max_slots or N)
+
+    def m11_to_pixels_batch(p_m11, h, w):
+        x = (p_m11[..., 0] + 1.0) * 0.5 * (w - 1)
+        y = (p_m11[..., 1] + 1.0) * 0.5 * (h - 1)
+        return torch.stack([x, y], dim=-1)
+
+    def pixels_to_m11_batch(p_pix, h, w):
+        x = p_pix[..., 0] / max(w - 1, 1) * 2.0 - 1.0
+        y = p_pix[..., 1] / max(h - 1, 1) * 2.0 - 1.0
+        return torch.stack([x, y], dim=-1)
+
+    x0_pix = m11_to_pixels_batch(x0_hat.detach(), H, W)
+    merged_xy_list = []
+    merged_feat_list = []
+    merged_mask_list = []
+    radius_px = float(merge_radius_px)
+
+    for b in range(B):
+        pts = x0_pix[b]
+        feat = pro[b]
+
+        if radius_px > 0.0:
+            if weight is not None:
+                order_weight = weight[b].to(device=device, dtype=pts.dtype).clamp_min(float(weight_min))
+            else:
+                order_weight = torch.ones((N,), device=device, dtype=pts.dtype)
+            order = torch.argsort(order_weight, descending=True)
+            assigned = torch.zeros((N,), device=device, dtype=torch.bool)
+            inverse = torch.empty((N,), device=device, dtype=torch.long)
+            cluster_count = 0
+            for idx in order:
+                i = int(idx.item())
+                if bool(assigned[i]):
+                    continue
+                dist = torch.norm(pts - pts[i], dim=1)
+                members = (~assigned) & (dist < radius_px)
+                inverse[members] = int(cluster_count)
+                assigned[members] = True
+                cluster_count += 1
+            M = int(cluster_count)
+        else:
+            pts_int = torch.round(pts).long()
+            pts_int[:, 0].clamp_(0, W - 1)
+            pts_int[:, 1].clamp_(0, H - 1)
+            _, inverse = torch.unique(pts_int, dim=0, return_inverse=True)
+            M = int(inverse.max().item()) + 1 if inverse.numel() > 0 else 0
+
+        merged_xy_pix = torch.zeros((M, 2), device=device, dtype=pts.dtype)
+        counts = torch.zeros((M,), device=device, dtype=pts.dtype)
+        if weight is not None:
+            w_xy = weight[b].to(device=device, dtype=pts.dtype).clamp_min(float(weight_min))
+            merged_xy_pix.index_add_(0, inverse, pts * w_xy[:, None])
+            counts.index_add_(0, inverse, w_xy)
+        else:
+            merged_xy_pix.index_add_(0, inverse, pts)
+            counts.index_add_(0, inverse, torch.ones_like(inverse, dtype=pts.dtype))
+        merged_xy_pix = merged_xy_pix / counts[:, None].clamp_min(1e-6)
+
+        merged_feat = torch.zeros((M, C), device=device, dtype=feat.dtype)
+        if weight is not None:
+            w_feat = weight[b].to(device=device, dtype=feat.dtype).clamp_min(float(weight_min))
+            merged_feat.index_add_(0, inverse, feat * w_feat[:, None])
+        else:
+            merged_feat.index_add_(0, inverse, feat)
+        merged_feat = merged_feat / counts[:, None].to(dtype=feat.dtype).clamp_min(1e-6)
+
+        merged_xy = pixels_to_m11_batch(merged_xy_pix, H, W)
+        pad_M = max_slots - M
+        if pad_M > 0:
+            merged_xy = torch.cat(
+                [merged_xy, torch.zeros((pad_M, 2), device=device, dtype=x0_hat.dtype)],
+                dim=0,
+            )
+            merged_feat = torch.cat(
+                [merged_feat, torch.zeros((pad_M, C), device=device, dtype=pro.dtype)],
+                dim=0,
+            )
+            merged_mask = torch.cat(
+                [
+                    torch.ones(M, device=device, dtype=torch.bool),
+                    torch.zeros(pad_M, device=device, dtype=torch.bool),
+                ],
+                dim=0,
+            )
+        else:
+            merged_xy = merged_xy[:max_slots]
+            merged_feat = merged_feat[:max_slots]
+            merged_mask = torch.ones(max_slots, device=device, dtype=torch.bool)
+
+        merged_xy_list.append(merged_xy)
+        merged_feat_list.append(merged_feat)
+        merged_mask_list.append(merged_mask)
+
+    return (
+        torch.stack(merged_xy_list, dim=0),
+        torch.stack(merged_feat_list, dim=0),
+        torch.stack(merged_mask_list, dim=0),
+    )
+
+
+def selector_object_prob(logits: torch.Tensor) -> torch.Tensor:
+    if logits.dim() == 3 and logits.size(-1) == 2:
+        return logits.softmax(-1)[..., 1]
+    if logits.dim() == 3 and logits.size(-1) == 1:
+        return torch.sigmoid(logits.squeeze(-1))
+    return torch.sigmoid(logits)
+
+
+def selector_object_logit(logits: torch.Tensor) -> torch.Tensor:
+    if logits.dim() == 3 and logits.size(-1) == 2:
+        return logits[..., 1] - logits[..., 0]
+    if logits.dim() == 3 and logits.size(-1) == 1:
+        return logits.squeeze(-1)
+    return logits
+
 
 class EncoderFPN(nn.Module):
     """
@@ -813,13 +956,347 @@ class ConfidenceHead(nn.Module):
         return self.mlp(f)  # [B,N,2]
 
 
+class CandidateInteractionLayer(nn.Module):
+    def __init__(self, d_model: int, nhead: int, dim_ff: int, dropout: float):
+        super().__init__()
+        self.norm_attn = nn.LayerNorm(d_model)
+        self.attn = nn.MultiheadAttention(
+            embed_dim=d_model,
+            num_heads=nhead,
+            dropout=dropout,
+            batch_first=True,
+        )
+        self.norm_ff = nn.LayerNorm(d_model)
+        self.ff = nn.Sequential(
+            nn.Linear(d_model, dim_ff),
+            nn.SiLU(),
+            nn.Dropout(dropout),
+            nn.Linear(dim_ff, d_model),
+            nn.Dropout(dropout),
+        )
+        with torch.no_grad():
+            self.attn.out_proj.weight.zero_()
+            self.attn.out_proj.bias.zero_()
+            self.ff[3].weight.zero_()
+            self.ff[3].bias.zero_()
+
+    def forward(
+            self,
+            x: torch.Tensor,
+            valid_mask: torch.Tensor,
+            attn_mask: torch.Tensor = None,
+    ) -> torch.Tensor:
+        key_padding_mask = ~valid_mask.bool()
+        valid_f = valid_mask.unsqueeze(-1).to(dtype=x.dtype)
+
+        x_norm = self.norm_attn(x)
+        attn_out, _ = self.attn(
+            x_norm,
+            x_norm,
+            x_norm,
+            key_padding_mask=key_padding_mask,
+            attn_mask=attn_mask,
+            need_weights=False,
+        )
+        x = x + attn_out
+        x = x + self.ff(self.norm_ff(x))
+        return x * valid_f
+
+
+class CandidateInteractionSelector(nn.Module):
+    """Let selector candidates compete before the final confidence head."""
+
+    def __init__(
+            self,
+            d_model: int,
+            num_layers: int = 1,
+            nhead: int = 4,
+            dim_ff: int = None,
+            dropout: float = 0.1,
+            radius: float = 12.0,
+            H: int = 256,
+            W: int = 256,
+    ):
+        super().__init__()
+        d_model = int(d_model)
+        nhead = int(nhead)
+        if d_model % nhead != 0:
+            raise ValueError(f"selector_interaction_heads={nhead} must divide cond_c={d_model}")
+        self.nhead = nhead
+        self.radius = float(radius)
+        self.H = int(H)
+        self.W = int(W)
+        dim_ff = int(dim_ff or d_model * 4)
+        self.layers = nn.ModuleList([
+            CandidateInteractionLayer(
+                d_model=d_model,
+                nhead=nhead,
+                dim_ff=dim_ff,
+                dropout=float(dropout),
+            )
+            for _ in range(max(1, int(num_layers)))
+        ])
+
+    def _radius_attn_mask(
+            self,
+            points_m11: torch.Tensor,
+            valid_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.radius <= 0.0:
+            return None
+
+        points = points_m11.detach().float()
+        x = (points[..., 0] + 1.0) * 0.5 * float(self.W - 1)
+        y = (points[..., 1] + 1.0) * 0.5 * float(self.H - 1)
+        pix = torch.stack([x, y], dim=-1)
+        dist = torch.cdist(pix, pix, p=2)
+
+        valid = valid_mask.bool()
+        pair_valid = valid[:, :, None] & valid[:, None, :]
+        allowed = (dist <= float(self.radius)) & pair_valid
+        # Padded queries are ignored after attention; give them legal keys to
+        # avoid all-masked attention rows.
+        allowed = allowed | ((~valid[:, :, None]) & valid[:, None, :])
+        return (~allowed).repeat_interleave(self.nhead, dim=0)
+
+    def forward(
+            self,
+            feat: torch.Tensor,
+            points_m11: torch.Tensor,
+            valid_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        original_valid = valid_mask.bool()
+        safe_valid = original_valid.clone()
+        empty = ~safe_valid.any(dim=1)
+        if empty.any():
+            safe_valid[empty, 0] = True
+
+        attn_mask = self._radius_attn_mask(points_m11, safe_valid)
+        x = feat * original_valid.unsqueeze(-1).to(dtype=feat.dtype)
+        for layer in self.layers:
+            x = layer(x, safe_valid, attn_mask=attn_mask)
+            x = torch.nan_to_num(x, nan=0.0, posinf=1e4, neginf=-1e4)
+        return x * original_valid.unsqueeze(-1).to(dtype=feat.dtype)
+
+
+class LocalCompetitionSelector(nn.Module):
+    """Differentiable local non-max competition on selector object logits."""
+
+    def __init__(
+            self,
+            d_model: int,
+            radius: float = 6.0,
+            temperature: float = 0.7,
+            max_strength: float = 0.35,
+            init_strength: float = 0.05,
+            residual_scale: float = 0.25,
+            exclude_self: bool = True,
+            H: int = 256,
+            W: int = 256,
+    ):
+        super().__init__()
+        d_model = int(d_model)
+        self.radius = float(radius)
+        self.temperature = max(float(temperature), 1e-4)
+        self.max_strength = max(float(max_strength), 0.0)
+        self.residual_scale = max(float(residual_scale), 0.0)
+        self.exclude_self = bool(exclude_self)
+        self.H = int(H)
+        self.W = int(W)
+
+        hidden = max(64, d_model * 2)
+        self.score_delta = nn.Sequential(
+            nn.LayerNorm(d_model),
+            nn.Linear(d_model, hidden),
+            nn.SiLU(),
+            nn.Linear(hidden, 1),
+        )
+        with torch.no_grad():
+            self.score_delta[-1].weight.zero_()
+            self.score_delta[-1].bias.zero_()
+
+        if self.max_strength > 0.0:
+            init_strength = min(max(float(init_strength), 1e-4), self.max_strength * (1.0 - 1e-4))
+            ratio = init_strength / self.max_strength
+            self.strength_logit = nn.Parameter(torch.tensor(math.log(ratio / (1.0 - ratio)), dtype=torch.float32))
+        else:
+            self.register_parameter("strength_logit", None)
+
+    def _pixel_points(self, points_m11: torch.Tensor) -> torch.Tensor:
+        points = points_m11.float()
+        x = (points[..., 0] + 1.0) * 0.5 * float(self.W - 1)
+        y = (points[..., 1] + 1.0) * 0.5 * float(self.H - 1)
+        return torch.stack([x, y], dim=-1)
+
+    def _effective_strength(self, dtype: torch.dtype, device: torch.device) -> torch.Tensor:
+        if self.strength_logit is None or self.max_strength <= 0.0:
+            return torch.zeros((), dtype=dtype, device=device)
+        return self.max_strength * torch.sigmoid(self.strength_logit.to(device=device, dtype=dtype))
+
+    def forward(
+            self,
+            logits: torch.Tensor,
+            feat: torch.Tensor,
+            points_m11: torch.Tensor,
+            valid_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.radius <= 0.0:
+            return logits
+        if logits.numel() == 0:
+            return logits
+
+        logits_f = logits.float()
+        valid = valid_mask.to(device=logits.device, dtype=torch.bool)
+        valid_f = valid.unsqueeze(-1).to(dtype=feat.dtype, device=feat.device)
+
+        raw_score = selector_object_logit(logits_f)
+        delta = self.score_delta(feat.float() * valid_f.float()).squeeze(-1)
+        if self.residual_scale > 0.0:
+            delta = torch.tanh(delta) * float(self.residual_scale)
+        comp_score = raw_score + delta
+
+        pix = self._pixel_points(points_m11.to(device=logits.device))
+        dist = torch.cdist(pix, pix, p=2)
+        allowed = (dist <= float(self.radius)) & valid[:, :, None] & valid[:, None, :]
+        if self.exclude_self:
+            eye = torch.eye(allowed.size(1), dtype=torch.bool, device=allowed.device).unsqueeze(0)
+            allowed = allowed & ~eye
+
+        has_neighbor = allowed.any(dim=-1)
+        neighbor_scores = comp_score[:, None, :].masked_fill(~allowed, -1.0e4)
+        neighbor_lse = torch.logsumexp(neighbor_scores / self.temperature, dim=-1) * self.temperature
+        neighbor_lse = torch.where(has_neighbor, neighbor_lse, torch.zeros_like(comp_score))
+
+        suppression = F.softplus((neighbor_lse - comp_score) / self.temperature) * self.temperature
+        suppression = torch.where(has_neighbor, suppression, torch.zeros_like(suppression))
+        strength = self._effective_strength(raw_score.dtype, raw_score.device)
+        final_score = comp_score - strength * suppression
+        final_score = torch.where(valid, final_score, raw_score)
+        score_shift = (final_score - raw_score).clamp(-20.0, 20.0)
+
+        if logits.dim() == 3 and logits.size(-1) == 2:
+            out = logits_f.clone()
+            out[..., 1] = out[..., 1] + score_shift
+        elif logits.dim() == 3 and logits.size(-1) == 1:
+            out = logits_f + score_shift.unsqueeze(-1)
+        else:
+            out = logits_f + score_shift
+        return out.to(dtype=logits.dtype)
+
+
+def fourier_encode_points(points_m11: torch.Tensor, num_bands: int) -> torch.Tensor:
+    """Fourier encode normalized point coordinates for position-aware confidence."""
+    num_bands = int(num_bands)
+    if num_bands <= 0:
+        return points_m11.new_empty((*points_m11.shape[:-1], 0))
+
+    freqs = (2.0 ** torch.arange(num_bands, device=points_m11.device, dtype=points_m11.dtype)) * math.pi
+    angles = points_m11[..., None] * freqs  # [B,N,2,K]
+    pe = torch.cat([angles.sin(), angles.cos()], dim=-1)  # [B,N,2,2K]
+    return pe.flatten(start_dim=-2)  # [B,N,4K]
+
+
+def selector_local_features(
+        points_m11: torch.Tensor,
+        valid_mask: torch.Tensor,
+        radii=(3.0, 6.0),
+        H: int = 256,
+        W: int = 256,
+) -> torch.Tensor:
+    """Local duplicate/context features for selector scoring."""
+    points = points_m11.detach().float()
+    valid = valid_mask.bool() if valid_mask is not None else torch.ones(
+        points.shape[:2], dtype=torch.bool, device=points.device
+    )
+    x = (points[..., 0] + 1.0) * 0.5 * float(W - 1)
+    y = (points[..., 1] + 1.0) * 0.5 * float(H - 1)
+    pix = torch.stack([x, y], dim=-1)
+
+    dist = torch.cdist(pix, pix, p=2)
+    B, N, _ = dist.shape
+    eye = torch.eye(N, dtype=torch.bool, device=dist.device).unsqueeze(0)
+    pair_valid = valid[:, :, None] & valid[:, None, :] & (~eye)
+    max_radius = max([float(r) for r in radii] + [1.0])
+
+    feats = []
+    for radius in radii:
+        count = ((dist <= float(radius)) & pair_valid).sum(dim=-1).to(points.dtype)
+        feats.append(torch.log1p(count) / math.log1p(32.0))
+
+    masked_dist = dist.masked_fill(~pair_valid, max_radius)
+    nn_dist = masked_dist.min(dim=-1).values.clamp(max=max_radius) / max_radius
+    feats.append(nn_dist.to(points.dtype))
+    feats.append(valid.to(dtype=points.dtype))
+    return torch.stack(feats, dim=-1)
+
+
+def sample_selector_prior_features(
+        prior_maps,
+        points_m11: torch.Tensor,
+        valid_mask: torch.Tensor,
+) -> torch.Tensor:
+    if prior_maps is None:
+        return None
+    occ_logits, density = prior_maps
+    if occ_logits is None or density is None:
+        return None
+
+    occ = torch.sigmoid(occ_logits.float())
+    dens = torch.log1p(density.float().clamp_min(0.0))
+    maps = torch.cat([occ, dens], dim=1)
+    grid = points_m11.detach().float().clamp(-1.0, 1.0).unsqueeze(2)
+    sampled = F.grid_sample(maps, grid, mode="bilinear", padding_mode="zeros", align_corners=True)
+    sampled = sampled.squeeze(-1).transpose(1, 2)
+    if valid_mask is not None:
+        sampled = sampled * valid_mask.unsqueeze(-1).to(dtype=sampled.dtype)
+    return sampled
+
+
 class ModelBuilder(nn.Module):
     """
     介面：
       encode(images) -> (P4,P8,P16)
       denoise(feats, p_t, t) -> eps_pred, score
     """
-    def __init__(self, in_ch=1, fpn_c=128, cond_c=64, t_dim=256, with_score=True):
+    def __init__(
+            self,
+            in_ch=1,
+            fpn_c=128,
+            cond_c=64,
+            t_dim=256,
+            with_score=True,
+            conf_pos_bands=8,
+            selector_local_features=False,
+            selector_prior_features=False,
+            num_refine=3,
+            use_proposal_prior=False,
+            proposal_prior_hidden=64,
+            selector_refine_gate=False,
+            selector_refine_gate_strength=0.0,
+            selector_refine_gate_detach=True,
+            selector_conf_weighted_merge=False,
+            selector_merge_weight_min=0.05,
+            selector_merge_radius_px=0.0,
+            selector_merge_weight_detach=True,
+            selector_refine_point_gate=False,
+            selector_refine_point_gate_strength=0.0,
+            selector_refine_point_gate_min=0.25,
+            selector_refine_point_gate_detach=True,
+            selector_interaction=False,
+            selector_interaction_layers=1,
+            selector_interaction_heads=4,
+            selector_interaction_radius=12.0,
+            selector_interaction_dropout=0.1,
+            selector_local_competition=False,
+            selector_local_competition_radius=6.0,
+            selector_local_competition_temperature=0.7,
+            selector_local_competition_strength=0.35,
+            selector_local_competition_init_strength=0.05,
+            selector_local_competition_residual_scale=0.25,
+            selector_local_competition_exclude_self=True,
+            selector_dim=None,
+            selector_feature_fusion="add",
+    ):
         super().__init__()
         self.backbone = EncoderFPN(in_ch=in_ch, out_c=fpn_c)
         self.temb = TimestepEmbed(dim=t_dim)
@@ -827,7 +1304,7 @@ class ModelBuilder(nn.Module):
         # #self.head_eps = EpsHeadFiLM(pf_dim=cond_c * 4, t_dim=t_dim, hidden=512, depth=6, dropout=0.1)
         # self.head_eps = DenoiserHeadRes(in_dim=cond_c * 4 + t_dim + 2, hidden=384, depth=3, dropout=0.2)
         self.pf_proj = nn.Linear(cond_c * 4, cond_c)  # proposal feature dim = cond_c
-        self.num_refine = 3
+        self.num_refine = max(1, int(num_refine))
         token_count = 3 * (self.cond.patch * self.cond.patch)
         self.head_eps = nn.ModuleList([
             PointRCNNHead(
@@ -842,13 +1319,243 @@ class ModelBuilder(nn.Module):
         ])
         #self.conf_head = ConfidenceHead(in_dim=cond_c*6, hidden=256, p_prior=0.07)
         # ModelBuilder.__init__()
-        self.conf_from_pro = ConfidenceHead(in_dim=cond_c, hidden=256, p_prior=0.07)
+        self.conf_pos_bands = int(conf_pos_bands)
+        conf_pos_dim = 4 * self.conf_pos_bands
+        if conf_pos_dim > 0:
+            self.conf_pos_proj = nn.Sequential(
+                nn.Linear(conf_pos_dim, cond_c),
+                nn.SiLU(),
+                nn.Linear(cond_c, cond_c),
+            )
+            # Preserve old checkpoint behavior at load time; fine-tuning can
+            # learn to use this residual position branch from zero.
+            with torch.no_grad():
+                self.conf_pos_proj[-1].weight.zero_()
+                self.conf_pos_proj[-1].bias.zero_()
+        else:
+            self.conf_pos_proj = None
+        self.selector_local_features = bool(selector_local_features)
+        if self.selector_local_features:
+            self.selector_local_proj = nn.Sequential(
+                nn.Linear(4, cond_c),
+                nn.SiLU(),
+                nn.Linear(cond_c, cond_c),
+            )
+            with torch.no_grad():
+                self.selector_local_proj[-1].weight.zero_()
+                self.selector_local_proj[-1].bias.zero_()
+        else:
+            self.selector_local_proj = None
+
+        self.selector_prior_features = bool(selector_prior_features)
+        if self.selector_prior_features:
+            self.selector_prior_proj = nn.Sequential(
+                nn.Linear(2, cond_c),
+                nn.SiLU(),
+                nn.Linear(cond_c, cond_c),
+            )
+            with torch.no_grad():
+                self.selector_prior_proj[-1].weight.zero_()
+                self.selector_prior_proj[-1].bias.zero_()
+        else:
+            self.selector_prior_proj = None
+        self.selector_dim = int(selector_dim or cond_c)
+        if self.selector_dim <= 0:
+            raise ValueError(f"selector_dim must be positive, got {selector_dim}")
+        self.selector_feature_fusion = str(selector_feature_fusion).strip().lower().replace("-", "_")
+        if self.selector_feature_fusion not in {"add", "concat_proj"}:
+            raise ValueError(f"unsupported selector_feature_fusion={selector_feature_fusion!r}")
+
+        fusion_in_dim = cond_c
+        if self.selector_feature_fusion == "concat_proj":
+            if self.conf_pos_proj is not None:
+                fusion_in_dim += cond_c
+            if self.selector_local_proj is not None:
+                fusion_in_dim += cond_c
+            if self.selector_prior_proj is not None:
+                fusion_in_dim += cond_c
+            self.selector_fuse_proj = nn.Sequential(
+                nn.LayerNorm(fusion_in_dim),
+                nn.Linear(fusion_in_dim, self.selector_dim),
+                nn.SiLU(),
+                nn.Linear(self.selector_dim, self.selector_dim),
+            )
+        elif self.selector_dim != cond_c:
+            self.selector_fuse_proj = nn.Sequential(
+                nn.LayerNorm(cond_c),
+                nn.Linear(cond_c, self.selector_dim),
+            )
+        else:
+            self.selector_fuse_proj = None
+
+        self.conf_from_pro = ConfidenceHead(in_dim=self.selector_dim, hidden=256, p_prior=0.07)
+        self.selector_refine_gate = bool(selector_refine_gate)
+        self.selector_refine_gate_strength = float(selector_refine_gate_strength)
+        self.selector_refine_gate_detach = bool(selector_refine_gate_detach)
+        self.selector_conf_weighted_merge = bool(selector_conf_weighted_merge)
+        self.selector_merge_weight_min = float(selector_merge_weight_min)
+        self.selector_merge_radius_px = float(selector_merge_radius_px)
+        self.selector_merge_weight_detach = bool(selector_merge_weight_detach)
+        self.selector_refine_point_gate = bool(selector_refine_point_gate)
+        self.selector_refine_point_gate_strength = float(selector_refine_point_gate_strength)
+        self.selector_refine_point_gate_min = float(selector_refine_point_gate_min)
+        self.selector_refine_point_gate_detach = bool(selector_refine_point_gate_detach)
+        self.selector_interaction = (
+            CandidateInteractionSelector(
+                d_model=self.selector_dim,
+                num_layers=int(selector_interaction_layers),
+                nhead=int(selector_interaction_heads),
+                dropout=float(selector_interaction_dropout),
+                radius=float(selector_interaction_radius),
+            )
+            if bool(selector_interaction)
+            else None
+        )
+        self.selector_local_competition = (
+            LocalCompetitionSelector(
+                d_model=self.selector_dim,
+                radius=float(selector_local_competition_radius),
+                temperature=float(selector_local_competition_temperature),
+                max_strength=float(selector_local_competition_strength),
+                init_strength=float(selector_local_competition_init_strength),
+                residual_scale=float(selector_local_competition_residual_scale),
+                exclude_self=bool(selector_local_competition_exclude_self),
+            )
+            if bool(selector_local_competition)
+            else None
+        )
+        self.use_proposal_prior = bool(use_proposal_prior)
+        self.proposal_prior_head = (
+            ProposalPriorHead(in_ch=fpn_c, hidden=int(proposal_prior_hidden))
+            if self.use_proposal_prior
+            else None
+        )
 
     def encode(self, images):
         # images: [B,in_ch,H,W]
         return self.backbone(images)
 
-    def denoise(self, feats, p_t, t, abar_t=None, clamp_eps=1e-6, cond_cache=None, need_exist=True):
+    def predict_proposal_prior(self, feats):
+        if self.proposal_prior_head is None:
+            raise RuntimeError("proposal prior head is disabled")
+        p4, _, _ = feats
+        return self.proposal_prior_head(p4)
+
+    def _selector_logits(
+            self,
+            points_m11: torch.Tensor,
+            pro: torch.Tensor,
+            valid_mask: torch.Tensor = None,
+            selector_prior_maps=None,
+            check_finite=None,
+            name_prefix: str = "selector",
+            use_local_features: bool = True,
+            use_interaction: bool = True,
+    ):
+        if valid_mask is None:
+            valid_mask = torch.ones(
+                points_m11.shape[:2],
+                dtype=torch.bool,
+                device=points_m11.device,
+            )
+        else:
+            valid_mask = valid_mask.bool()
+
+        with torch.autocast(device_type="cuda", enabled=False):
+            points_f = points_m11.to(device=pro.device, dtype=torch.float32)
+            valid_f = valid_mask.unsqueeze(-1).to(device=pro.device, dtype=torch.float32)
+            base_feat = pro.float() * valid_f
+            conf_feat = base_feat
+            concat_parts = [base_feat]
+            if self.conf_pos_proj is not None:
+                pos_enc = fourier_encode_points(points_f, self.conf_pos_bands)
+                pos_feat = self.conf_pos_proj(pos_enc)
+                pos_feat = pos_feat * valid_f
+                if self.selector_feature_fusion == "concat_proj":
+                    concat_parts.append(pos_feat)
+                else:
+                    conf_feat = conf_feat + pos_feat
+                if check_finite is not None:
+                    check_finite(f"{name_prefix}_pos_feat", pos_feat)
+            if use_local_features and self.selector_local_proj is not None:
+                local_feat = selector_local_features(
+                    points_f,
+                    valid_mask,
+                    radii=(3.0, 6.0),
+                    H=256,
+                    W=256,
+                )
+                local_feat = local_feat.to(device=pro.device, dtype=torch.float32)
+                local_ctx = self.selector_local_proj(local_feat)
+                local_ctx = local_ctx * valid_f
+                if self.selector_feature_fusion == "concat_proj":
+                    concat_parts.append(local_ctx)
+                else:
+                    conf_feat = conf_feat + local_ctx
+                if check_finite is not None:
+                    check_finite(f"{name_prefix}_local_ctx", local_ctx)
+            elif self.selector_feature_fusion == "concat_proj" and self.selector_local_proj is not None:
+                concat_parts.append(torch.zeros_like(base_feat))
+            if self.selector_prior_proj is not None:
+                prior_feat = sample_selector_prior_features(
+                    selector_prior_maps,
+                    points_f,
+                    valid_mask,
+                )
+                if prior_feat is not None:
+                    prior_feat = prior_feat.to(device=pro.device, dtype=torch.float32)
+                    prior_ctx = self.selector_prior_proj(prior_feat)
+                    prior_ctx = prior_ctx * valid_f
+                    if self.selector_feature_fusion == "concat_proj":
+                        concat_parts.append(prior_ctx)
+                    else:
+                        conf_feat = conf_feat + prior_ctx
+                    if check_finite is not None:
+                        check_finite(f"{name_prefix}_prior_ctx", prior_ctx)
+                elif self.selector_feature_fusion == "concat_proj":
+                    concat_parts.append(torch.zeros_like(base_feat))
+            if self.selector_feature_fusion == "concat_proj":
+                conf_feat = torch.cat(concat_parts, dim=-1)
+                conf_feat = self.selector_fuse_proj(conf_feat)
+                conf_feat = conf_feat * valid_mask.unsqueeze(-1).to(
+                    device=conf_feat.device,
+                    dtype=conf_feat.dtype,
+                )
+                if check_finite is not None:
+                    check_finite(f"{name_prefix}_fused_feat", conf_feat)
+            elif self.selector_fuse_proj is not None:
+                conf_feat = self.selector_fuse_proj(conf_feat)
+                conf_feat = conf_feat * valid_mask.unsqueeze(-1).to(
+                    device=conf_feat.device,
+                    dtype=conf_feat.dtype,
+                )
+                if check_finite is not None:
+                    check_finite(f"{name_prefix}_fused_feat", conf_feat)
+            if use_interaction and self.selector_interaction is not None:
+                conf_feat = self.selector_interaction(conf_feat, points_f, valid_mask)
+                if check_finite is not None:
+                    check_finite(f"{name_prefix}_interaction_feat", conf_feat)
+            logits = self.conf_from_pro(conf_feat)
+            if use_interaction and self.selector_local_competition is not None:
+                logits = self.selector_local_competition(logits, conf_feat, points_f, valid_mask)
+
+        logits = torch.nan_to_num(logits, nan=0.0, posinf=20.0, neginf=-20.0)
+        logits = logits.clamp(-20, 20)
+        if check_finite is not None:
+            check_finite(f"{name_prefix}_logits", logits)
+        return logits
+
+    def denoise(
+            self,
+            feats,
+            p_t,
+            t,
+            abar_t=None,
+            clamp_eps=1e-6,
+            cond_cache=None,
+            need_exist=True,
+            selector_prior_maps=None,
+    ):
         P4, P8, P16 = feats
         cache = cond_cache
         if cache is None:
@@ -956,13 +1663,70 @@ class ModelBuilder(nn.Module):
                 check_finite(f"x0_hat_{i}", x0_hat)
 
                 x0_hat_last = x0_hat
-                p_ref = x0_hat.detach()
+                gate_prob = None
+                need_feature_gate = (
+                    self.selector_refine_gate
+                    and self.selector_refine_gate_strength > 0.0
+                )
+                need_point_gate = (
+                    self.selector_refine_point_gate
+                    and self.selector_refine_point_gate_strength > 0.0
+                )
+                need_any_refine_gate = (
+                    i < len(self.head_eps) - 1
+                    and (need_feature_gate or need_point_gate)
+                )
+                if need_any_refine_gate:
+                    gate_logits = self._selector_logits(
+                        x0_hat.detach(),
+                        pro,
+                        valid_mask=None,
+                        selector_prior_maps=selector_prior_maps,
+                        check_finite=check_finite,
+                        name_prefix=f"refine_gate_{i}",
+                        use_local_features=False,
+                        use_interaction=False,
+                    )
+                    gate_prob = selector_object_prob(gate_logits).unsqueeze(-1)
+
+                if need_any_refine_gate and need_feature_gate:
+                    feature_gate_prob = gate_prob
+                    if self.selector_refine_gate_detach:
+                        feature_gate_prob = feature_gate_prob.detach()
+                    gate_center = feature_gate_prob.mean(dim=1, keepdim=True)
+                    gate_strength = float(self.selector_refine_gate_strength)
+                    gate_scale = 1.0 + gate_strength * (feature_gate_prob - gate_center)
+                    gate_scale = gate_scale.clamp(
+                        min=max(0.05, 1.0 - gate_strength),
+                        max=1.0 + gate_strength,
+                    )
+                    pro = pro * gate_scale.to(dtype=pro.dtype)
+                    check_finite(f"pro_after_refine_gate_{i}", pro)
+
+                p_next = x0_hat
+                if need_any_refine_gate and need_point_gate:
+                    point_gate_prob = gate_prob
+                    if self.selector_refine_point_gate_detach:
+                        point_gate_prob = point_gate_prob.detach()
+                    point_strength = float(self.selector_refine_point_gate_strength)
+                    point_min = float(self.selector_refine_point_gate_min)
+                    update_scale = (1.0 - point_strength) + point_strength * point_gate_prob
+                    update_scale = update_scale.clamp(
+                        min=max(0.0, min(point_min, 1.0)),
+                        max=1.0,
+                    )
+                    p_next = p_ref + update_scale.to(dtype=x0_hat.dtype) * (x0_hat - p_ref)
+                    p_next = p_next.clamp(-1.0 + 1e-3, 1.0 - 1e-3)
+                    check_finite(f"p_ref_after_point_gate_{i}", p_next)
+
+                p_ref = p_next.detach()
             else:
                 p_ref = p_ref
 
         cls_logits = None
         pro_out = pro
         pred_points_for_cls = x0_hat_last
+        self.last_merge_stats = None
         pred_valid_mask = torch.ones(
             (pro.size(0), pro.size(1)),
             dtype=torch.bool,
@@ -972,31 +1736,63 @@ class ModelBuilder(nn.Module):
             if x0_hat_last is None:
                 raise RuntimeError("need_exist=True but x0_hat_last is None")
 
+            merge_weight = None
+            if self.selector_conf_weighted_merge:
+                raw_selector_logits = self._selector_logits(
+                    x0_hat_last.detach(),
+                    pro,
+                    valid_mask=None,
+                    selector_prior_maps=selector_prior_maps,
+                    check_finite=check_finite,
+                    name_prefix="premerge_selector",
+                    use_interaction=False,
+                )
+                merge_weight = selector_object_prob(raw_selector_logits)
+                if self.selector_merge_weight_detach:
+                    merge_weight = merge_weight.detach()
+
             # merge 也很可能是 NaN 源頭，先強制 FP32
             with torch.autocast(device_type="cuda", enabled=False):
                 merged_x0_hat, merged_pro, merged_valid_mask = merge_slots_same_pixel(
                     x0_hat=x0_hat_last.detach().float(),
-                    pro=pro.detach().float(),
+                    pro=pro.float(),
                     H=256,
                     W=256,
                     max_slots=pro.size(1),
+                    weight=merge_weight,
+                    weight_min=self.selector_merge_weight_min,
+                    merge_radius_px=self.selector_merge_radius_px,
                 )
 
             merged_pro = torch.nan_to_num(merged_pro, nan=0.0, posinf=1e4, neginf=-1e4)
             check_finite("merged_pro", merged_pro)
+            raw_slot_count = torch.full(
+                (x0_hat_last.size(0),),
+                int(x0_hat_last.size(1)),
+                dtype=torch.long,
+                device=x0_hat_last.device,
+            )
+            merged_valid_count = merged_valid_mask.long().sum(dim=1)
+            self.last_merge_stats = {
+                "raw_slot_count": raw_slot_count.detach(),
+                "merged_valid_count": merged_valid_count.detach(),
+                "merge_drop_count": (raw_slot_count - merged_valid_count).detach(),
+                "raw_x0_hat": x0_hat_last.detach(),
+                "merged_x0_hat": merged_x0_hat.detach(),
+                "merged_valid_mask": merged_valid_mask.detach(),
+            }
 
-            with torch.autocast(device_type="cuda", enabled=False):
-                cls_logits = self.conf_from_pro(merged_pro.float())
-
-            cls_logits = torch.nan_to_num(cls_logits, nan=0.0, posinf=20.0, neginf=-20.0)
-            cls_logits = cls_logits.clamp(-20, 20)
-            check_finite("cls_logits", cls_logits)
+            cls_logits = self._selector_logits(
+                merged_x0_hat,
+                merged_pro,
+                valid_mask=merged_valid_mask,
+                selector_prior_maps=selector_prior_maps,
+                check_finite=check_finite,
+                name_prefix="selector",
+            )
 
             pro_out = merged_pro
             pred_points_for_cls = merged_x0_hat.to(pro.device)
             pred_valid_mask = merged_valid_mask
 
         return eps_pred, cls_logits, pro_out, pred_points_for_cls, pred_valid_mask
-
-
-

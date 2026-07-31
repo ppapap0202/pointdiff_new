@@ -11,6 +11,8 @@ def loading_data(cfg):
         pad_if_needed=True,
         image_exts=('.jpg', '.png'),
         gray=cfg.gray,
+        augment=bool(getattr(cfg, "train_augment", False)),
+        hflip_prob=float(getattr(cfg, "hflip_prob", 0.0)),
     )
     val_dataset = ImageDataset(
         root=cfg.test_root,
