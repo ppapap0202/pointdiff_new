@@ -13,6 +13,13 @@ __pycache__/
 *.zip
 *.log
 
+# Logs runtime artifacts
+logs/*.pid
+logs/*_status*.txt
+logs/*.json
+logs/*.out
+logs/*.err
+
 # 資料集
 data/
 .log
