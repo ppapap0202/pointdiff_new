@@ -1,0 +1,112 @@
+seed: 7113064165
+batch_size: 12
+num_workers: 16
+epochs: 1
+dataset_file: SHHA
+data_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data'
+val_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data\images'
+test_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\test_data'
+mode: 'points'
+crop_size: [256, 256]
+crop_type: 'center'
+gray: False
+device: cuda
+out_dir: 'D:\output\validate_density_prior_stage1_epoch0005_gate005_probe'
+train_augment: True
+hflip_prob: 0.5
+
+in_ch: 3
+fpn_c: 128
+cond_c: 64
+t_dim: 256
+with_score: True
+conf_pos_bands: 8
+num_refine: 6
+
+use_proposal_prior: True
+proposal_prior_hidden: 64
+proposal_prior_sigma: 1.25
+proposal_prior_start_t: 700
+
+# Validation-only style probe: keep weights fixed while checking the candidate
+# gate effect. freeze_base_for_prior makes the train pass cheap and avoids
+# full-model train-mode side effects; lr=0 prevents prior-head updates.
+freeze_base_for_prior: True
+lambda_prior_occupancy: 1.0
+lambda_prior_density: 1.0
+lambda_prior_count: 0.1
+lr: 0.0
+lr_backbone: 0.0
+
+diffusion_T: 1000
+K: 5
+signal_scale: 2.0
+
+lambda_gt_loss: 0.5
+lambda_exist: 40.0
+lambda_x0: 10.0
+lambda_eps: 0.5
+lambda_cnt: 0.0
+lambda_cnt_val: 0.0
+lambda_bg: 5.0
+lambda_cov: 5.0
+lambda_cov_hinge: 5.0
+lambda_rand_cover: 15.0
+lambda_rand_match: 7.5
+lambda_rand_exist: 20.0
+lambda_rand_count: 0.0
+lambda_rand_count_margin: 5.0
+rand_count_pos_margin: 0.35
+rand_count_neg_margin: 0.10
+rand_count_neg_topk: 64
+rand_count_slack: 0
+lambda_rand_bg: 3.0
+rand_cover_t_min: 300
+rand_cover_t_max: 700
+rand_cover_radius: 4.0
+rand_bg_ignore_radius: 6.0
+lambda_dup: 10.0
+lambda_dup_collapse: 0.0
+cov_topk: 5
+cov_sigma: 6.0
+cov_radius: 4.0
+cov_hard_weight: 2.0
+cov_hard_cap: 1.0
+cov_dense_weight: 1.0
+cov_dense_radius: 16.0
+cov_dense_norm: 4.0
+cov_weight_cap: 6.0
+region_radius: 4.0
+region_topk: 5
+dup_dense_aware: False
+dup_neighbor_radius: 4.0
+dup_allow_extra: 0
+dup_collapse_inner_radius: 2.0
+dup_collapse_outer_radius: 4.0
+dup_collapse_far_weight: 4.0
+log_every: 50
+max_norm: 10.0
+
+resume_training: False
+reset_optimizer: True
+ckpt_path: 'D:\output\density_prior_from_0197_stage1\last_epoch0005.pth'
+save_dir: 'C:\pycharm\pointdiff_new\vis_results\validate_density_prior_stage1_epoch0005_gate005_probe'
+
+hard_thresh: 0.05
+threshold_sweep: [0.02, 0.05, 0.08, 0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+nms_radius: 4
+metric: 'hard'
+pick_worst: False
+num_realizations: 3
+ddim_steps: 50
+val_num_realizations: 1
+val_ddim_cover_radius: 6.0
+val_ddim_candidate_low_score_thresh: 0.01
+eps_clip: 0.001
+inner_margin_ratio: 0.001
+nms_r_ratio: 0.001
+top_k_vis: 10
+ddim_eta: 0
+diag_prob_hi: 0.45
+diag_prob_lo: 0.15
+test_gate_mode: prob_only

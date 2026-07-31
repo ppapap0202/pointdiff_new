@@ -1,0 +1,138 @@
+seed: 7113064165
+batch_size: 48
+num_workers: 8
+epochs: 50
+dataset_file: SHHA
+data_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data'
+val_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data\images'
+test_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\test_data'
+mode: 'points'
+crop_size: [256, 256]
+crop_type: 'center'
+gray: False
+device: cuda
+out_dir: 'D:\output\density_only_prior_t50_conf_guided_refine_from_epoch0011_50ep_bs48_detachgate_ddim5'
+train_augment: True
+hflip_prob: 0.5
+
+in_ch: 3
+fpn_c: 128
+cond_c: 64
+t_dim: 256
+with_score: True
+conf_pos_bands: 8
+selector_local_features: True
+selector_prior_features: True
+train_selector_prior_proj: True
+freeze_selector_only: True
+selector_refine_gate: True
+selector_refine_gate_strength: 0.25
+selector_refine_gate_detach: True
+selector_conf_weighted_merge: True
+selector_merge_weight_min: 0.05
+selector_merge_weight_detach: True
+num_refine: 6
+
+use_proposal_prior: True
+proposal_prior_hidden: 64
+proposal_prior_sigma: 1.0
+proposal_prior_start_t: 50
+proposal_prior_mode: density_only
+proposal_prior_cell_capacity: 2
+freeze_base_for_prior: False
+
+lambda_prior_occupancy: 0.0
+lambda_prior_density: 0.0
+lambda_prior_count: 0.0
+
+lr: 0.00002
+lr_backbone: 0.0
+diffusion_T: 1000
+K: 5
+signal_scale: 2.0
+
+lambda_gt_loss: 0.0
+lambda_exist: 40.0
+lambda_x0: 0.0
+lambda_eps: 0.0
+lambda_cnt: 0.0
+lambda_cnt_val: 0.0
+lambda_bg: 0.0
+lambda_cov: 0.0
+lambda_cov_hinge: 0.0
+
+lambda_rand_cover: 0.0
+lambda_rand_match: 0.0
+lambda_rand_exist: 40.0
+lambda_rand_rank: 12.0
+lambda_rand_count: 5.0
+lambda_rand_count_margin: 30.0
+rand_count_pos_margin: 0.35
+rand_count_neg_margin: 0.03
+rand_count_neg_topk: 256
+rand_count_slack: 0
+lambda_rand_bg: 10.0
+rand_cover_t_min: 50
+rand_cover_t_max: 50
+rand_cover_radius: 3.0
+rand_bg_ignore_radius: 6.0
+
+lambda_rand_dup: 40.0
+rand_dup_radius: 6.0
+rand_dup_topk: 12
+rand_dup_dense_aware: True
+rand_dup_neighbor_radius: 6.0
+rand_dup_allow_extra: 0
+
+rand_rank_near_radius: 6.0
+rand_rank_far_radius: 12.0
+rand_rank_margin: 1.0
+rand_rank_neg_topk: 256
+rand_rank_far_weight: 0.25
+
+lambda_dup: 0.0
+lambda_dup_collapse: 0.0
+cov_topk: 5
+cov_sigma: 6.0
+cov_radius: 4.0
+cov_hard_weight: 0.0
+cov_hard_cap: 1.0
+cov_dense_weight: 0.0
+cov_dense_radius: 16.0
+cov_dense_norm: 4.0
+cov_weight_cap: 6.0
+region_radius: 4.0
+region_topk: 5
+dup_dense_aware: False
+dup_neighbor_radius: 4.0
+dup_allow_extra: 0
+dup_collapse_inner_radius: 2.0
+dup_collapse_outer_radius: 4.0
+dup_collapse_far_weight: 4.0
+log_every: 50
+max_norm: 10.0
+
+resume_training: False
+reset_optimizer: True
+load_shape_compatible_only: False
+ckpt_path: 'D:\output\density_only_prior_t50_selector_only_from_epoch0119_100ep_bs48\last_epoch0011.pth'
+save_dir: 'C:\pycharm\pointdiff_new\vis_results\density_only_prior_t50_conf_guided_refine_from_epoch0011_50ep_bs48_detachgate_ddim5'
+
+hard_thresh: 0.1
+threshold_sweep: [0.02, 0.05, 0.08, 0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+nms_radius: 4
+metric: 'hard'
+pick_worst: False
+num_realizations: 3
+ddim_steps: 5
+val_num_realizations: 1
+val_ddim_cover_radius: 6.0
+val_ddim_candidate_low_score_thresh: 0.01
+eps_clip: 0.001
+inner_margin_ratio: 0.001
+nms_r_ratio: 0.001
+top_k_vis: 10
+ddim_eta: 0
+diag_prob_hi: 0.45
+diag_prob_lo: 0.15
+test_gate_mode: prob_only
