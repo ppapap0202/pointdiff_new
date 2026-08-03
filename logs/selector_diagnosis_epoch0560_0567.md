@@ -220,9 +220,194 @@ positive 的同人鄰居。`L_rand_bg` 是無差別 `prob.mean()`（無 focal、
 
 ---
 
-## 尚未驗證
+## 尚未驗證（第一階段結束時，下方第二階段已逐一驗證）
 
 - 改 radius 後的實際訓練效果（以上皆為固定權重的靜態分析）
 - far background 是否可由 appearance/幾何特徵區分（未做可分性測試）
 - positive 分數偏低的成因（是被組內競爭壓低，還是正向訊號本身不足）
 - `Lrandsoft` 長期卡在 12.5–12.7 的確切機制（推論為梯度相消，未直接量測）
+
+---
+---
+
+# 第二階段：實驗與再診斷
+
+第一階段內容寫於 k-fold 驗證之前。之後跑了四輪訓練實驗與四項診斷，
+**其中推翻了第一階段的多項建議**，以下逐一記錄。
+
+新增工具：
+- `scripts/analyze_near_far_separability.py`（linear probe + k-fold）
+- `scripts/analyze_inference_selection.py`（推論端選點演算法比較 + recall 分解）
+- `scripts/analyze_group_mass.py`（組內機率質量）
+
+新增輸出：`logs/near_far_separability_kfold_epoch0551.json`、
+`logs/inference_selection_epoch0551.json`、`logs/group_mass_epoch0551.json`、
+`logs/recall_decomposition_epoch0551.json`
+
+---
+
+## 樣本規模的表述問題（方法論修正）
+
+第一階段多處用「88,030 slots」「640,282 slots」描述樣本規模，掩蓋了真正的獨立單位是
+**image**。第一版可分性測試只有 **23 張圖**（test 僅 7 張），而 3 張圖的 smoke test
+顯示 selector AUC 會在 **0.5224–0.7057** 之間擺盪 —— 與後來量到的 gap 同一量級。
+
+**之後所有測試一律先報告 image 數，slot 數僅作次要資訊。**
+
+---
+
+## 四輪訓練實驗（全部從 `last_epoch0551.pth` 起跑，可直接對照）
+
+基準（epoch 0551）：`recall 0.4393  precision 0.4289  dup@6 0.7273  conf_mae 105.4  val_MAE 95.34`
+
+| 實驗 | 改動 | 結果 |
+|---|---|---|
+| pos8 | `exist_pos_radius` 32→8、soft_compete 對齊 8/6 | recall →**0.3641**，mae →133.7 |
+| pos8+bgtopk | 加 `rand_bg_topk=32`、`lambda_rand_bg` 10→2 | recall →**0.3834**，mae →119.2 |
+| A (dupw025) | `exist_duplicate_weight` 1.0→0.25 | 峰值 0.4557@0552 → 衰退至 **0.4347**@0575 |
+| B (randexist) | `lambda_exist` 40→10、`lambda_rand_exist` 8→24 | 進行中 |
+
+**第一階段的第 1、2 項建議（`exist_pos_radius 32→8`、對齊 soft_compete）經實驗證明有害。**
+
+### 實驗 A 的兩個發現
+
+1. 假設**部分成立**：`selected_per_gt` 1.0244→1.0846，`val_MAE` 一度到 **91.84**（全程最佳）。
+   但 duplicate 同步上升（0.7273→0.7633）—— **模型無法選擇性地只抬 positive**。
+2. 衰退原因：`Lranddup` 從 0.2246 升到 0.2520+ 並持續高位。
+   **組內抑制至少有四個來源**（exist CE、`rand_dup`、`localcomp`、`soft_compete`），
+   鬆開一個，其他會補上。
+
+### 新增的程式改動（皆向後相容，預設值等同舊行為）
+
+- `models/train_loop.py`：`rand_bg_topk`（預設 0 = 原本的無加權 mean）
+- `models/diffusion_utils.py`：`exist_duplicate_weight`（預設 1.0，實測 diff = 0.00e+00）
+  兩條 exist loss 路徑（`criterion.forward` 與 `p2p_exist_loss`）都已套用
+
+---
+
+## near/far 可分性：k-fold（182 images / 640,282 slots / 5-fold / 隨機 image split）
+
+任務：預測「該 candidate 在某個 GT 的 6px 內」。
+
+| 特徵集 | 維度 | test AUC |
+|---|---:|---:|
+| conf_feat（進 head 前） | 64 | **0.8247 ± 0.0163** |
+| pro + relgeom + prior | 84 | 0.8244 ± 0.0165 |
+| prior（occ+density） | **2** | 0.8092 ± 0.0151 |
+| pro | 64 | 0.7890 ± 0.0181 |
+| relgeom | 18 | 0.6196 ± 0.0063 |
+
+| 單特徵 | test AUC |
+|---|---:|
+| prior_density | **0.8139 ± 0.0144** |
+| selector 實際分數 | **0.6436 ± 0.0185** |
+| relgeom_centroid_dist | 0.4153（反指標） |
+
+**配對比較：`conf_feat` probe 比 selector 高 `+0.1811 ± 0.0083`，5/5 folds 全勝。**
+
+`ConfidenceHead` 是 64→256→1 的非線性網路，容量嚴格大於打敗它的單層 linear probe。
+**資訊已經送到 head 門口，是訓練把 head 帶去了別的地方 —— 不需要動 conditioner 或 backbone。**
+
+但書：selector 的訓練目標本來就不是 near/far 二分類，
+`build_region_representative_targets` 要求每組只有一個 positive，
+所以 0.18 的落差有一部分是刻意的，不全是浪費。
+
+---
+
+## 組內機率質量（182 images / 98,831 GT groups）
+
+`mass = Σ sigmoid(score)`，範圍為該 GT 6px 內、且以它為最近 GT 的 candidates。
+
+```
+[rand branch 訓練]  mass mean=1.279 median=1.203  over=0.556  in[0.8,1.2]=0.178
+[ddim branch 推論]  mass mean=1.050 median=0.985  over=0.493  in[0.8,1.2]=0.218
+```
+
+**推論分支的 mass 中位數是 0.985 —— 總量已經正確。** quota loss 的施力空間比預期小得多。
+
+兩分支的密集區趨勢**相反**（rand: 11+ 鄰居 1.276；ddim: 0.922），
+quota 在 rand 上壓密集區會讓 ddim 的密集區更不足。
+
+---
+
+## 推論端選點演算法（182 images / 98,831 GT，不需重新訓練）
+
+| selector | MAE | recall | prec |
+|---|---:|---:|---:|
+| ORACLE topk（真實 GT 數） | 0.00 | 0.4777 | 0.4777 |
+| **topk by density count** | **80.86** | 0.4594 | 0.4724 |
+| mass_transfer r2 | 126.55 | 0.4991 | 0.4718 |
+| **固定 threshold（現況）** | **138.41** | 0.3941 | 0.4837 |
+| threshold + NMS r4 | 164.46 | 0.3600 | 0.4938 |
+| ORACLE mass 集中 | 215.49 | 0.6032 | 1.0000 |
+| adaptive NMS（4 個 alpha） | 146–268 | 0.23–0.38 | — |
+
+- **density count top-k 把 MAE 從 138.41 降到 80.86（−42%），完全不需訓練**
+- adaptive NMS（`r = alpha*4/sqrt(density)`）四個 alpha **全部比不做還差**，放棄
+- 隨機 bias 對照：recall 每升一分 precision 就掉一分，MAE 從 116 惡化到 316
+
+---
+
+## recall 損失分解（threshold sweep，182 images / 98,831 GT）
+
+```
+coverage   = GT 6px 內完全沒有候選點的比例       (threshold 無關)
+magnitude  = (1 - coverage) - I_recall           (集中後 mass 仍過不了門檻)
+dispersion = I_recall - A_recall                 (mass 夠但分散在多點)
+```
+
+| thr | A_recall | I_recall | coverage | magnitude | dispersion | A_prec | A_MAE |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0.10 | **0.8793** | 0.6773 | 0.099 | 0.224 | **0.000** | 0.155 | 2547 |
+| 0.20 | 0.8691 | 0.6744 | 0.099 | 0.227 | 0.000 | 0.195 | 1881 |
+| 0.30 | 0.8293 | 0.6662 | 0.099 | 0.235 | 0.000 | 0.259 | 1195 |
+| 0.40 | 0.7317 | 0.6517 | 0.099 | 0.249 | 0.000 | 0.339 | 630 |
+| 0.50 | 0.5739 | 0.6302 | 0.099 | 0.271 | 0.056 | 0.418 | 218 |
+| 0.60 | 0.3941 | 0.6032 | 0.099 | 0.298 | **0.209** | 0.484 | 138 |
+
+**三個關鍵結論：**
+
+1. **`dispersion` 在 thr ≤ 0.4 時為 0** —— 低 threshold 下 `A_recall` 反超 `I_recall`。
+   「組內無法集中」不是獨立的失敗機制，**幾乎完全是 threshold 0.6 訂太高的表現**。
+2. **`coverage` 是 0.0990，不是先前寫的 0.170。** 那個 0.170 來自 `group_mass` 腳本的
+   `nearest_gt_only` 分組（candidate 被鄰近 GT 搶走就算 empty），不是覆蓋的正確定義。
+3. **recall 從來不是瓶頸。** thr 0.1 時 recall 已達 0.8793，離覆蓋上限 0.901 只差 2%。
+   代價全在 precision（0.155）。**模型該找的都找到了，問題是分不出哪些是真的。**
+
+---
+
+## 第二階段推翻的假設
+
+| # | 假設 | 推翻它的證據 |
+|---|---|---|
+| 8 | `exist_pos_radius 32→8` 能消 68% far-bg FP | 實驗：recall 0.4393→0.3641 |
+| 9 | `L_rand_bg` 的無加權 mean 是 recall 下降主因 | 改 top-k 後 recall 照樣掉 |
+| 10 | 弱化 role=2 能選擇性提升 positive | duplicate 同步上升，24 epoch 後衰退 |
+| 11 | `prior_density` 對 near/far 無用 | k-fold 單特徵 AUC **0.8139**（probe 5 測的是另一個任務） |
+| 12 | 「組內無法集中」是獨立的失敗機制 | threshold sweep：dispersion 在 thr≤0.4 時為 **0** |
+| 13 | slot embedding 值得投入 | 同上 + 隨機 bias 對照顯示 MAE 只會惡化 |
+| 14 | 覆蓋損失是 17.0% | 正確定義下是 **9.9%** |
+| 15 | adaptive NMS（density 推導半徑）可行 | 4 個 alpha 全部比不做更差 |
+| 16 | oracle mass 集中 recall 可達 0.80 | 那是 1 張圖的 smoke test；182 圖實測 **0.6032** |
+
+---
+
+## 目前的結論
+
+**確定的**
+
+- recall 不是瓶頸（thr 0.1 可達 0.879，覆蓋上限 0.901）
+- **precision 才是**：模型吐出 5.7 倍的點，無法區分哪些是真的
+- `conf_feat` 內含 0.8247 AUC 的 near/far 資訊，selector 只用出 0.6436（5/5 folds，gap ±0.0083）
+- `ConfidenceHead` 容量足夠 —— 不需要動 conditioner / backbone
+- 六輪 loss 改動（半徑×2、bg topk、dupw、randexist、以及更早的 groupassign）
+  沒有一次帶來穩定改善
+- 推論端 density count top-k 不需訓練即可讓 MAE −42%
+
+**唯一未被否證的方向**
+
+讓 selector 把 `conf_feat` 裡已有的 near/far 資訊用出來。三條獨立證據都指向它：
+probe 的 0.18 AUC 落差、mass 顯示總量已對而分佈不對、分解顯示問題在 precision 而非 recall。
+
+**已否證的方向**：slot embedding、group quota、adaptive NMS、相對幾何特徵、
+以及所有調整半徑的作法。
