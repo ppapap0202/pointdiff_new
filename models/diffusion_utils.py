@@ -622,6 +622,7 @@ class setCriterion(nn.Module):
         region_topk: int = 5,
         exist_label_mode: str = "hungarian",
         exist_pos_radius: float = 6.0,
+        exist_duplicate_weight: float = 1.0,
         dup_dense_aware: bool = False,
         dup_neighbor_radius: float = 6.0,
         dup_allow_extra: int = 0,
@@ -656,6 +657,11 @@ class setCriterion(nn.Module):
         self.region_topk = region_topk
         self.exist_label_mode = str(exist_label_mode).strip().lower().replace("-", "_")
         self.exist_pos_radius = float(exist_pos_radius)
+        # Down-weight role=2 slots (same GT group, not the closest one) in the
+        # existence loss. They currently count as ordinary negatives, identical to
+        # background tens of pixels away, even though evaluation would happily
+        # match any of them. 1.0 keeps the previous behaviour.
+        self.exist_duplicate_weight = float(exist_duplicate_weight)
         self.dup_dense_aware = bool(dup_dense_aware)
         self.dup_neighbor_radius = dup_neighbor_radius
         self.dup_allow_extra = int(dup_allow_extra)
@@ -774,6 +780,29 @@ class setCriterion(nn.Module):
             return target_classes, cls_indices, target_info
         return target_classes, cls_indices
 
+    def _reduce_exist_ce(self, per_tok_ce, target_info):
+        """Mean over slots, with role=2 (same-group non-closest) down-weighted.
+
+        Falls back to a plain mean when the weight is 1.0 or role labels are not
+        available, so the hungarian label mode is unaffected.
+        """
+        w_dup = float(self.exist_duplicate_weight)
+        if abs(w_dup - 1.0) <= 1e-9 or not isinstance(target_info, dict):
+            return per_tok_ce.mean()
+        if not bool(target_info.get("role_labels_available", False)):
+            return per_tok_ce.mean()
+        roles = target_info.get("roles")
+        if roles is None or roles.shape != per_tok_ce.shape:
+            return per_tok_ce.mean()
+
+        weights = torch.ones_like(per_tok_ce)
+        weights = torch.where(
+            roles == 2,
+            weights.new_tensor(w_dup),
+            weights,
+        )
+        return (per_tok_ce * weights).sum() / weights.sum().clamp_min(1e-6)
+
     # ---------------- Focal loss (跟你原本一樣) ----------------
     def focal_loss_with_logits(self, logits, targets):
         x = logits
@@ -811,15 +840,16 @@ class setCriterion(nn.Module):
         if cls_logits.dim() == 3 and cls_logits.size(-1) == 1:
             cls_logits = cls_logits.squeeze(-1)
 
+        need_info = bool(return_target_info) or abs(self.exist_duplicate_weight - 1.0) > 1e-9
         target_out = self._build_exist_targets(
             cls_logits,
             pred_points_for_cls.detach(),
             gt_points,
             gt_mask,
             pred_valid_mask=pred_valid_mask,
-            return_info=return_target_info,
+            return_info=need_info,
         )
-        if return_target_info:
+        if need_info:
             target_classes, _, target_info = target_out
         else:
             target_classes, _ = target_out
@@ -827,12 +857,13 @@ class setCriterion(nn.Module):
 
         if cls_logits.dim() == 3 and cls_logits.size(-1) == 2:
             logits_ce = cls_logits.transpose(1, 2)
-            loss = F.cross_entropy(
+            per_tok_ce = F.cross_entropy(
                 logits_ce,
                 target_classes,
                 weight=self.empty_weight,
                 reduction='none',
-            ).mean()
+            )
+            loss = self._reduce_exist_ce(per_tok_ce, target_info)
         else:
             loss = self.focal_loss_with_logits(
                 cls_logits,
@@ -907,13 +938,25 @@ class setCriterion(nn.Module):
         if pred_points_for_cls is None:
             pred_points_for_cls = x0_hat.detach()
 
-        target_classes, _ = self._build_exist_targets(
-            exist_logit,
-            pred_points_for_cls.detach(),
-            p0,
-            mask,
-            pred_valid_mask=pred_valid_mask,
-        )
+        need_roles = abs(self.exist_duplicate_weight - 1.0) > 1e-9
+        if need_roles:
+            target_classes, _, exist_target_info = self._build_exist_targets(
+                exist_logit,
+                pred_points_for_cls.detach(),
+                p0,
+                mask,
+                pred_valid_mask=pred_valid_mask,
+                return_info=True,
+            )
+        else:
+            target_classes, _ = self._build_exist_targets(
+                exist_logit,
+                pred_points_for_cls.detach(),
+                p0,
+                mask,
+                pred_valid_mask=pred_valid_mask,
+            )
+            exist_target_info = None
 
         # Coordinate loss stays on original x0_hat, so use coordinate-only P2P matching.
         coord_match_logits = exist_logit.new_zeros((x0_hat.size(0), x0_hat.size(1), 2))
@@ -1127,7 +1170,7 @@ class setCriterion(nn.Module):
                     f"NEG margin(pos-neg): mean={neg_margin_mean:.4f} p95={neg_margin_p95:.4f}"
                 )
             # 最後再用原本的方式算 L_exist（或直接 per_tok_ce.mean）
-            L_exist = per_tok_ce.mean()
+            L_exist = self._reduce_exist_ce(per_tok_ce, exist_target_info)
         else:
             # fallback: 舊版 focal（二分類 sigmoid）
             print("not cross entropy")

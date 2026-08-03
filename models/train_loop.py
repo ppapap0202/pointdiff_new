@@ -1650,6 +1650,7 @@ def train_one_epoch(
         rand_cover_t_max: int = 999,
         rand_cover_radius: float = 6.0,
         rand_bg_ignore_radius: float = 6.0,
+        rand_bg_topk: int = 0,
         rand_dup_radius: float = 6.0,
         rand_dup_topk: int = 12,
         rand_dup_dense_aware: bool = False,
@@ -2107,7 +2108,19 @@ def train_one_epoch(
                                     dmin = torch.cdist(rand_pred_pix[b], gt_pix[b, gt_idx], p=2).min(dim=1).values
                                     bg_mask = bg_mask & (dmin >= ignore_radius)
                             if bg_mask.any():
-                                rand_bg_losses.append(rand_prob_obj[b][bg_mask].mean())
+                                bg_scores = rand_prob_obj[b][bg_mask]
+                                # Averaging over every background slot drags the
+                                # positives down with them, because the selector
+                                # cannot tell a near-GT slot from a background one
+                                # a few pixels away. Keeping only the highest
+                                # scoring background slots turns this into hard
+                                # negative mining: slots already near or past the
+                                # threshold get pushed down, the quiet majority is
+                                # left alone.
+                                bg_topk = int(rand_bg_topk)
+                                if bg_topk > 0 and bg_scores.numel() > bg_topk:
+                                    bg_scores = bg_scores.topk(k=bg_topk, largest=True).values
+                                rand_bg_losses.append(bg_scores.mean())
                             else:
                                 rand_bg_losses.append(rand_prob_obj[b].new_tensor(0.0))
                         L_rand_bg = torch.stack(rand_bg_losses).mean()
