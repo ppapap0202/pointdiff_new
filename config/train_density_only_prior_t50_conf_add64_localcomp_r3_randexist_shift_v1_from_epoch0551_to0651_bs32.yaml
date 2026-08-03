@@ -1,0 +1,247 @@
+seed: 7113064165
+batch_size: 32
+num_workers: 8
+epochs: 651
+dataset_file: SHHA
+data_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data'
+val_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\train_data\images'
+test_root: 'C:\pycharm\dataset\ShanghaiTech_Crowd_Counting_Dataset\part_A_final\test_data'
+mode: 'points'
+crop_size: [256, 256]
+crop_type: 'center'
+gray: False
+device: cuda
+out_dir: 'D:\output\density_only_prior_t50_conf_add64_localcomp_r3_randexist_shift_v1_from_epoch0551_to0651_bs32_ddim5_nonms'
+train_augment: True
+hflip_prob: 0.5
+
+in_ch: 3
+fpn_c: 128
+cond_c: 64
+t_dim: 256
+with_score: True
+conf_pos_bands: 8
+selector_local_features: True
+selector_prior_features: True
+train_selector_prior_proj: True
+freeze_selector_only: True
+
+# Keep confidence out of refine/merge. This radius-3 version only suppresses
+# near-identical duplicates, so dense neighboring GTs are less likely to fight.
+selector_refine_gate: False
+selector_refine_gate_strength: 0.0
+selector_refine_gate_detach: True
+selector_conf_weighted_merge: False
+selector_merge_weight_min: 0.05
+selector_merge_radius_px: 2.0
+selector_merge_weight_detach: True
+selector_refine_point_gate: False
+selector_refine_point_gate_strength: 0.0
+selector_refine_point_gate_min: 0.25
+selector_refine_point_gate_detach: True
+selector_interaction: True
+selector_interaction_layers: 2
+selector_interaction_heads: 4
+selector_interaction_radius: 12.0
+selector_interaction_dropout: 0.1
+selector_local_competition: True
+selector_local_competition_radius: 3.0
+selector_local_competition_temperature: 0.7
+selector_local_competition_strength: 0.25
+selector_local_competition_init_strength: 0.03
+selector_local_competition_residual_scale: 0.25
+selector_local_competition_exclude_self: True
+selector_dim: 64
+selector_feature_fusion: add
+num_refine: 6
+
+use_proposal_prior: True
+proposal_prior_hidden: 64
+proposal_prior_sigma: 1.0
+proposal_prior_start_t: 50
+proposal_prior_mode: density_only
+proposal_prior_cell_capacity: 2
+freeze_base_for_prior: False
+
+lambda_prior_occupancy: 0.0
+lambda_prior_density: 0.0
+lambda_prior_count: 0.0
+
+lr: 0.00001
+lr_backbone: 0.0
+diffusion_T: 1000
+K: 5
+signal_scale: 2.0
+
+lambda_gt_loss: 0.0
+# Experiment B: shift the existence-loss weight from the supervised branch to
+# the random-start branch. exist_duplicate_weight stays at its 1.0 default, so
+# Experiment A is fully reverted.
+#
+# lambda_exist drives criterion.forward, whose candidates come from
+#   p_t = forward_noisy(p0, t~U[0,1000))          i.e. GT points plus noise.
+# lambda_rand_exist drives the p2p_exist_loss call in train_loop, whose
+# candidates come from
+#   p_rand = forward_noisy(build_mixed_x0_prior(...), t=50) -> one denoise pass,
+# which is what inference actually sees (DDIM from the prior at t=50).
+#
+# At low t the supervised branch puts candidates almost on top of the GT, so
+# 'which one is closest' is well defined there and the head is rewarded for a
+# judgement it cannot reproduce at inference time. Measured contributions were
+# ~8.0 (supervised) versus ~0.78 (rand), a 10x imbalance favouring the branch
+# that does not match deployment.
+#
+# 10.0 x ~0.20 = ~2.0 and 24.0 x ~0.098 = ~2.4, so total magnitude stays close
+# to before while the centre of gravity moves to the inference distribution.
+lambda_exist: 10.0
+exist_label_mode: nearest_gt_group
+exist_pos_radius: 32.0
+lambda_x0: 0.0
+lambda_eps: 0.0
+lambda_cnt: 0.0
+lambda_cnt_val: 0.0
+lambda_bg: 0.0
+lambda_cov: 0.0
+lambda_cov_hinge: 0.0
+
+lambda_rand_cover: 0.0
+lambda_rand_match: 0.0
+lambda_rand_exist: 24.0
+lambda_rand_rank: 4.0
+lambda_rand_count: 0.0
+lambda_rand_count_margin: 18.0
+rand_count_pos_margin: 0.35
+rand_count_neg_margin: 0.03
+rand_count_neg_topk: 256
+rand_count_slack: 0
+lambda_rand_bg: 10.0
+rand_cover_t_min: 50
+rand_cover_t_max: 50
+rand_cover_radius: 3.0
+rand_bg_ignore_radius: 32.0
+
+lambda_rand_dup: 5.0
+rand_dup_radius: 6.0
+rand_dup_topk: 16
+rand_dup_dense_aware: True
+rand_dup_neighbor_radius: 6.0
+rand_dup_allow_extra: 0
+
+rand_rank_near_radius: 6.0
+rand_rank_far_radius: 8.0
+rand_rank_margin: 1.0
+rand_rank_neg_topk: 256
+rand_rank_far_weight: 1.0
+
+lambda_rand_one_to_one_conf: 0.0
+rand_one_to_one_radius: 6.0
+rand_one_to_one_bg_radius: 32.0
+rand_one_to_one_margin: 1.2
+rand_one_to_one_neg_topk: 128
+rand_one_to_one_count_pos_logit: 3.4
+rand_one_to_one_count_neg_logit: 2.0
+rand_one_to_one_count_slack: 0
+rand_one_to_one_pos_logit: 3.4
+rand_one_to_one_dup_neg_logit: 1.3
+rand_one_to_one_bg_neg_logit: -0.5
+rand_one_to_one_pos_weight: 1.0
+rand_one_to_one_dup_weight: 1.5
+rand_one_to_one_bg_weight: 0.3
+rand_one_to_one_rank_weight: 2.5
+rand_one_to_one_count_weight: 2.0
+
+lambda_rand_group_pos: 5.0
+rand_group_pos_radius: 6.0
+rand_group_pos_sigma: 4.0
+rand_group_pos_temperature: 0.7
+rand_group_pos_logit: 2.0
+rand_group_pos_nearest_gt_only: True
+
+lambda_rand_soft_compete: 1.0
+rand_soft_compete_winner_radius: 32.0
+rand_soft_compete_radius: 32.0
+rand_soft_compete_sigma: 4.0
+rand_soft_compete_bg_radius: 32.0
+rand_soft_compete_margin: 1.45
+rand_soft_compete_neg_topk: 96
+rand_soft_compete_temperature: 0.7
+rand_soft_compete_nearest_gt_only: True
+rand_soft_compete_pos_logit: 2.5
+rand_soft_compete_dup_neg_logit: -0.25
+rand_soft_compete_bg_neg_logit: -0.5
+rand_soft_compete_pos_weight: 0.5
+rand_soft_compete_rank_weight: 4.5
+rand_soft_compete_dup_weight: 2.0
+rand_soft_compete_softmax_weight: 2.2
+rand_soft_compete_bg_weight: 1.0
+
+lambda_rand_group_quota: 0.0
+rand_group_quota_radius: 6.0
+rand_group_quota_bg_radius: 32.0
+rand_group_quota_target: 1.0
+rand_group_quota_margin: 1.0
+rand_group_quota_neg_topk: 96
+rand_group_quota_nearest_gt_only: True
+rand_group_quota_pos_logit: 2.0
+rand_group_quota_dup_neg_logit: 0.0
+rand_group_quota_bg_neg_logit: -0.5
+rand_group_quota_pos_weight: 0.4
+rand_group_quota_weight: 2.5
+rand_group_quota_over_weight: 1.5
+rand_group_quota_under_weight: 0.05
+rand_group_quota_gap_weight: 2.0
+rand_group_quota_dup_weight: 1.5
+rand_group_quota_bg_weight: 0.15
+
+lambda_dup: 0.0
+lambda_dup_collapse: 0.0
+cov_topk: 5
+cov_sigma: 6.0
+cov_radius: 4.0
+cov_hard_weight: 0.0
+cov_hard_cap: 1.0
+cov_dense_weight: 0.0
+cov_dense_radius: 16.0
+cov_dense_norm: 4.0
+cov_weight_cap: 6.0
+region_radius: 4.0
+region_topk: 5
+dup_dense_aware: False
+dup_neighbor_radius: 4.0
+dup_allow_extra: 0
+dup_collapse_inner_radius: 2.0
+dup_collapse_outer_radius: 4.0
+dup_collapse_far_weight: 4.0
+log_every: 50
+max_norm: 10.0
+
+resume_training: True
+reset_optimizer: True
+load_shape_compatible_only: False
+ckpt_path: 'D:\output\density_only_prior_t50_conf_add64_localcomp_r3_groupassign_pos32_v1_from_epoch0550_to0650_bs32_ddim5_nonms\last_epoch0551.pth'
+save_dir: 'C:\pycharm\pointdiff_new\vis_results\density_only_prior_t50_conf_add64_localcomp_r3_randexist_shift_v1_from_epoch0551_to0651_bs32'
+
+hard_thresh: 0.1
+threshold_sweep: [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+nms_radius: 4
+metric: 'hard'
+pick_worst: False
+num_realizations: 3
+ddim_steps: 5
+val_num_realizations: 1
+val_ddim_cover_radius: 6.0
+val_ddim_candidate_low_score_thresh: 0.01
+validate_every: 5
+validate_final: True
+val_num_workers: 8
+val_pin_memory: True
+val_persistent_workers: True
+val_prefetch_factor: 2
+eps_clip: 0.001
+inner_margin_ratio: 0.001
+nms_r_ratio: 0.001
+top_k_vis: 10
+ddim_eta: 0
+diag_prob_hi: 0.45
+diag_prob_lo: 0.15
+test_gate_mode: prob_only
